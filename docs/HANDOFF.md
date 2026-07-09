@@ -17,11 +17,14 @@ rewrite resolve isso sem backend próprio).
 
 ## Quem faz o quê
 
-- **Você (este chat)** não escreve código. Seu trabalho é: decidir arquitetura/direção,
+- **Você (este chat, app Claude Desktop/Cowork, modelo Claude Sonnet 5)** não escreve
+  código — de propósito, não por limitação. Seu trabalho é: decidir arquitetura/direção,
   escrever os prompts que o Carlos cola no Claude Code, manter
   `docs/zephyr-mining-hub-prompts.md` e o `CLAUDE.md` do repo sincronizados com a
   realidade, revisar os relatos de progresso que ele traz, e dizer quando/o que
-  commitar.
+  commitar. Fique em Sonnet aqui — não precisa (nem deve) trocar pra Fable neste chat;
+  Fable é só pra sessão de CLI que aplica código. Isso também poupa o limite de uso da
+  conta Pro do Carlos pro que realmente importa (as sessões de código).
 - **Claude Fable 5, via Claude Code CLI, rodando na máquina do Carlos** escreve o
   código de verdade. Uma sessão nova (`claude` num terminal) por prompt/módulo — nunca
   acumular dois módulos numa sessão só (context rot + perde o checkpoint granular do
@@ -47,29 +50,43 @@ rewrite resolve isso sem backend próprio).
 
 ## AÇÃO PENDENTE — resolver antes de abrir a sessão do Prompt 4
 
-Uma checagem de `git log`/`git status` direto no repo (feita ao montar este handoff)
-achou 3 coisas soltas do Prompt 3, já resolvidas ou deixadas prontas:
+Histórico: duas rodadas de checagem real (`git log`/`git status`/`git diff` direto no
+repo) já encontraram e corrigiram pendências de commit/push do Prompt 3 — mas na
+segunda checagem (2026-07-09, montando este handoff) o repo ainda estava com **2
+commits locais não enviados** (`21de8e5` e um commit de docs seguinte) e alterações
+não commitadas de novo em `CLAUDE.md`/`.gitignore`/`docs/HANDOFF.md`. Provável causa
+de pelo menos parte disso: normalização de quebra de linha (CRLF/LF) no Windows —
+`CLAUDE.md` apareceu com ~100% das linhas "mudadas" no diff mesmo sem mudança de
+conteúdo real; conteúdo confirmado igual por leitura direta do arquivo. Isso não é
+motivo de alarme, só motivo de commitar nas duas ocasiões.
 
-1. O commit do Prompt 3 (`21de8e5`) existe mas não tinha sido enviado ao GitHub.
-2. Havia um ajuste final no `CLAUDE.md` feito depois desse commit, ainda não commitado.
-3. `.claude/settings.local.json` (config de permissão local, `acceptEdits`) nunca tinha
-   entrado no `.gitignore` — corrigido agora.
-
-Também foi criada a pasta `docs/` com este handoff, o plano de prompts e o guia de
-prompt engineering (movidos/copiados pra dentro do repo pra não depender mais do chat
-antigo).
-
-Peça pro Carlos rodar isto ANTES de qualquer prompt novo (resolve tudo de uma vez):
+**Peça pro Carlos rodar isto em passos separados (não tudo colado de uma vez), e
+CONFERIR a saída de cada um antes do próximo — os dois `push` anteriores parecem não
+ter rodado de fato, então desta vez precisa de confirmação visual:**
 
 ```powershell
 cd C:\Projetos\zephyr-mining-hub
 git add -A
-git commit -m "docs: handoff, sincroniza CLAUDE.md, ignora .claude local"
+git status
+```
+→ deve listar `CLAUDE.md`, `.gitignore`, `docs/HANDOFF.md` (e talvez mais) em "Changes
+to be committed". Se a lista parecer estranha, pare e cole a saída pro chat antes de
+continuar.
+
+```powershell
+git commit -m "docs: sincroniza CLAUDE.md e handoff, fecha pendencias de gitignore"
 git push
 ```
+→ o `push` precisa terminar mostrando algo como `main -> main` sem erro. Se pedir
+login do GitHub, complete o login.
 
-Depois, `git status` deve mostrar "nothing to commit, working tree clean" e "up to
-date with 'origin/main'". Se não mostrar isso, pare e investigue antes de seguir.
+```powershell
+git status
+git log --oneline -3
+```
+→ **critério de sucesso:** `git status` mostra exatamente "nothing to commit, working
+tree clean" E "Your branch is up to date with 'origin/main'". Se faltar qualquer uma
+dessas duas frases, NÃO prossiga pro Prompt 4 — volte pro chat com a saída completa.
 
 ## Arquivos que importam
 
@@ -127,6 +144,14 @@ date with 'origin/main'". Se não mostrar isso, pare e investigue antes de segui
    modelo já fica salvo em `claude-fable-5` entre sessões. Permissões já configuradas
    em modo `acceptEdits` via `.claude/settings.local.json` (aprova edição de arquivo
    sozinho, ainda pergunta pra comandos como `npm`/`git`).
+5. **Comandos git puros (add/commit/push) que você (chat) instrui: rode numa
+   PowerShell comum, FORA de qualquer sessão `claude` ativa.** Descoberto na prática:
+   pedir pro Fable rodar `git push` dentro da própria sessão dele esbarra num prompt
+   de permissão (mesmo em modo `acceptEdits`, que só cobre edição de arquivo, não
+   comando) — se o prompt não for respondido, o comando não roda e não dá erro
+   visível, só fica pendente silenciosamente. Isso já causou pelo menos duas rodadas
+   de "push que não pegou". Instrua sempre: abrir uma PowerShell nova (não a que tem
+   `claude` rodando) e rodar os comandos git ali.
 
 ## Próximos passos, em ordem
 
