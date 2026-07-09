@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Teste real de CORS / mixed content — Zephyr Mining Hub</title>
+</head>
+<body>
+  <h1>Teste de CORS / mixed content (fetch real do navegador)</h1>
+  <p>
+    Página usada pra validar, com fetch de verdade, o que o navegador permite —
+    resultado registrado em NOTES.md. Rode o simulador de XMRig antes:
+    <code>node scripts/xmrig-sim.mjs</code> (porta 18088).
+  </p>
+  <pre id="out">executando…</pre>
+  <script>
+    const results = []
+    const out = document.getElementById('out')
+
+    async function probe(name, url) {
+      // fetch "cru", sem headers extras — igual ao que o app faria
+      try {
+        const response = await fetch(url)
+        const text = await response.text()
+        results.push(`${name} => OK | status=${response.status} | ${text.length} bytes`)
+      } catch (err) {
+        results.push(`${name} => BLOQUEADO/FALHOU | ${err.name}: ${err.message}`)
+      }
+      out.textContent = results.join('\n')
+    }
+
+    (async () => {
+      await probe('TESTE_A_2MINERS_HTTPS', 'https://zeph.2miners.com/api/stats')
+      await probe('TESTE_B1_XMRIG_LOCAL_SEM_CORS', 'http://127.0.0.1:18088/1/summary')
+      await probe('TESTE_B2_XMRIG_LOCAL_COM_CORS', 'http://127.0.0.1:18088/cors/1/summary')
+      await probe('TESTE_C_SCANNER_DIRETO', 'https://zephyrprotocol.com/api/v1/livestats')
+      await probe('TESTE_D_SCANNER_VIA_PROXY_DEV', '/zephyr-api/v1/livestats')
+      out.textContent = results.join('\n') + '\nFIM_DOS_TESTES'
+    })()
+  </script>
+</body>
+</html>
