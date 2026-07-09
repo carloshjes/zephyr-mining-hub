@@ -37,10 +37,19 @@ que já passa pelo proxy (Vite dev / rewrite do Vercel em produção).
 
 - GET /livestats — snapshot atual: zeph_price, reserve_ratio, reserve_ratio_ma, zeph_circ,
   zys_current_variable_apy, etc.
-- GET /stats?scale=day|hour|block&from=&to=&fields= — série histórica. Prefira scale=day
-  pra análise histórica; use fields= pra pedir só as colunas necessárias (payload menor).
+- GET /stats?scale=day|hour&from=&to=&fields= — série histórica por TEMPO (from/to em unix
+  segundos). Prefira scale=day pra análise histórica; use fields= pra pedir só as colunas
+  necessárias (payload menor).
+- GET /stats?scale=block — outra criatura (confirmado 2026-07-09): from/to viram ALTURAS
+  de bloco e cada ponto vem com `block_height` no lugar de `timestamp` (com timestamps
+  responde `[]`). Use getBlockStats em `src/lib/api/zephyrScanner.ts`, que tem o tipo certo.
 - GET /blockrewards?from=&to=&order= — por bloco: miner_reward, governance_reward,
-  reserve_reward, yield_reward (e as versões _atoms).
+  reserve_reward, yield_reward (e as versões _atoms). from/to são ALTURAS (inclusive);
+  alturas além do topo são ignoradas sem erro. **ARMADILHA (2026-07-09): `order=desc` com
+  limit e SEM from/to é não-determinístico** — a mesma chamada devolveu ora um snapshot
+  ~58 dias atrasado, ora ~15 h. Pra "últimos N blocos", SEMPRE ancorar em from/to usando a
+  altura do explorer (`height` do daemon é contagem: topo minerado = height−1). Camada
+  pronta: getRecentBlockRewards/getLatestBlockReward em zephyrScanner.ts.
 - GET /reservesnapshots?from=&to=&order= — snapshots do reserve ratio em alturas
   específicas, com on_chain.reserve_ratio.
 - /pricingrecords, /apyhistory, /historicalreturns, /zyspricehistory, /projectedreturns —

@@ -5,7 +5,8 @@
 // Endpoints implementados por demanda dos módulos; os demais (/pricingrecords,
 // /apyhistory, ...) entram quando algum módulo precisar.
 
-import { fetchJson } from './http'
+import { ApiError, fetchJson } from './http'
+import { getNetworkInfo } from './zephyrExplorer'
 
 // Caminho relativo de propósito: a Scanner API não envia header CORS (testado
 // em 2026-07-08 — fetch direto do navegador é bloqueado, ver NOTES.md), então
@@ -31,7 +32,10 @@ export interface LiveStats {
   zys_current_variable_apy?: number
 }
 
-export type StatsScale = 'day' | 'hour' | 'block'
+// scale=block NÃO entra aqui: nessa escala a resposta troca `timestamp` por
+// `block_height` e o from/to vira ALTURA, não timestamp (testado em
+// 2026-07-09) — use getBlockStats, que tem o tipo certo.
+export type StatsScale = 'day' | 'hour'
 
 // A série vem como [{ timestamp, data: { <campo pedido>: valor } }].
 // O genérico amarra os campos pedidos em `fields` aos campos tipados em `data`.
@@ -91,12 +95,109 @@ export function getStats<F extends string>(
   return fetchJson<StatsPoint<F>[]>(`${BASE_URL}/stats?${search}`, { signal })
 }
 
+// Série do /stats em scale=block: cada ponto vem com `block_height` (não
+// `timestamp`), e from/to são ALTURAS de bloco — confirmado com chamadas
+// reais em 2026-07-09. É o que permite alinhar essa série com /blockrewards
+// no mesmo eixo x.
+export interface BlockStatsPoint<F extends string> {
+  block_height: number
+  data: Partial<Record<F, number>>
+}
+
+export function getBlockStats<F extends string>(
+  fields: readonly F[],
+  fromHeight: number,
+  toHeight: number,
+  signal?: AbortSignal,
+): Promise<BlockStatsPoint<F>[]> {
+  const search = new URLSearchParams({
+    scale: 'block',
+    fields: fields.join(','),
+    from: String(fromHeight),
+    to: String(toHeight),
+  })
+  return fetchJson<BlockStatsPoint<F>[]>(`${BASE_URL}/stats?${search}`, { signal })
+}
+
+// from/to do /blockrewards são ALTURAS (inclusive). Alturas além do topo da
+// chain são ignoradas sem erro (clamp confirmado por teste em 2026-07-09).
+export async function getBlockRewardsRange(
+  fromHeight: number,
+  toHeight: number,
+  signal?: AbortSignal,
+): Promise<BlockReward[]> {
+  const search = new URLSearchParams({
+    from: String(Math.max(fromHeight, 0)),
+    to: String(toHeight),
+    order: 'asc',
+  })
+  const response = await fetchJson<BlockRewardsResponse>(
+    `${BASE_URL}/blockrewards?${search}`,
+    { signal },
+  )
+  return response.results ?? []
+}
+
+// Altura atual da rede (explorer) usada como âncora das janelas "últimos N
+// blocos". Necessária porque `order=desc&limit=` SEM from/to é
+// não-determinístico no servidor: em 2026-07-09 a mesma chamada devolveu ora
+// um snapshot ~58 dias atrasado, ora ~15 h — nunca confiar nele pra "mais
+// recente".
+async function getAnchorHeight(signal?: AbortSignal): Promise<number> {
+  const info = await getNetworkInfo(signal)
+  if (info.height === undefined) {
+    throw new ApiError('Explorer não devolveu a altura atual da rede', `${BASE_URL}/blockrewards`)
+  }
+  // `height` do daemon é a CONTAGEM de blocos (a próxima altura a minerar);
+  // o bloco mais novo minerado é height-1 — confirmado em 2026-07-09
+  // (com âncora em `height`, janelas de N blocos voltavam com N-1)
+  return info.height - 1
+}
+
+// Folga acima da âncora: o indexador do Scanner pode estar alguns blocos à
+// frente/atrás do explorer; alturas inexistentes são só ignoradas (clamp).
+const ANCHOR_CUSHION_BLOCKS = 30
+
+/** Últimos `count` blocos com recompensa, em ordem ascendente de altura. */
+export async function getRecentBlockRewards(
+  count: number,
+  signal?: AbortSignal,
+): Promise<BlockReward[]> {
+  const anchor = await getAnchorHeight(signal)
+  const results = await getBlockRewardsRange(
+    anchor - count + 1,
+    anchor + ANCHOR_CUSHION_BLOCKS,
+    signal,
+  )
+  if (results.length > 0) return results.slice(-count)
+  // Janela vazia = indexador do Scanner atrasado além da janela pedida.
+  // Melhor mostrar dado antigo com a altura visível do que nada — o desc sem
+  // âncora devolve o snapshot que o servidor tiver.
+  const fallback = await fetchJson<BlockRewardsResponse>(
+    `${BASE_URL}/blockrewards?order=desc&limit=${count}`,
+    { signal },
+  )
+  return (fallback.results ?? []).slice().reverse()
+}
+
+/** Série de reserve_ratio dos últimos `count` blocos, ascendente por altura. */
+export async function getRecentReserveRatios(
+  count: number,
+  signal?: AbortSignal,
+): Promise<BlockStatsPoint<'reserve_ratio'>[]> {
+  const anchor = await getAnchorHeight(signal)
+  const points = await getBlockStats(
+    ['reserve_ratio'] as const,
+    anchor - count + 1,
+    anchor + ANCHOR_CUSHION_BLOCKS,
+    signal,
+  )
+  return points.slice(-count)
+}
+
 export async function getLatestBlockReward(
   signal?: AbortSignal,
 ): Promise<BlockReward | undefined> {
-  const response = await fetchJson<BlockRewardsResponse>(
-    `${BASE_URL}/blockrewards?order=desc&limit=1`,
-    { signal },
-  )
-  return response.results?.[0]
+  const recent = await getRecentBlockRewards(1, signal)
+  return recent.at(-1)
 }

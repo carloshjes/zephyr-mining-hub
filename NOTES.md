@@ -150,3 +150,66 @@ Na medição de hoje a HeroMiners tinha ~22 MH/s e a 2Miners ~1,4 MH/s (destaque
 de "maior hashrate" na HeroMiners, que também é a única expondo fee → "menor
 fee"). Se o mundo real mudar, as expectativas de ordem do script precisam
 acompanhar.
+
+# NOTES — Prompt 3 (Raio-X da Recompensa, 2026-07-09)
+
+Sondagem REAL da Scanner API por `curl`/Node antes de codar (nada assumido do doc):
+
+## Armadilha crítica — `order=desc` do /blockrewards é não-determinístico
+
+- `GET /blockrewards?order=desc&limit=N` SEM from/to devolveu, em duas chamadas
+  no mesmo dia, snapshots com topos DIFERENTES: altura 773.829 (~58 dias
+  atrasada!) e 815.094 (~15 h atrasada). O dado em si existe e está atualizado —
+  `?from=&to=` por ALTURA respondeu até o topo real da chain na hora.
+- Consequência descoberta de tabela: o `getLatestBlockReward` do Prompt 1 (usado
+  no Pulso da Rede pra recompensa do minerador E pra âncora do halving) podia
+  exibir recompensa de semanas atrás como "atual". Corrigido na camada: janelas
+  "últimos N blocos" agora ancoram em from/to usando a altura do explorer.
+- Off-by-one da âncora: `height` do daemon (get_info) é CONTAGEM de blocos — o
+  topo minerado é height−1. Sintoma antes do ajuste: janelas de N blocos
+  voltavam com N−1. Fallback: se a janela ancorada vier vazia (indexador
+  atrasado além dela), cai no `order=desc` mesmo assim — dado velho com altura
+  visível é melhor que tela vazia.
+
+## Mais fatos confirmados da Scanner API
+
+- `/stats?scale=block`: from/to são ALTURAS e cada ponto vem com `block_height`
+  (não `timestamp`); com timestamps unix responde `[]`. É o que permite alinhar
+  reserve_ratio com /blockrewards no mesmo eixo x (getBlockStats tem o tipo).
+- `/blockrewards` por faixa: 1.001 linhas numa resposta só (~332 KB), sem gaps
+  de altura e sem cap observado; alturas além do topo são ignoradas (clamp).
+- Nos 1.000 blocos recentes: `governance_reward = 0` em TODOS (a UI mostra a
+  série zerada na legenda/tabela, sem faixa fantasma no gráfico); a fatia do
+  minerador variou 65,0%–66,4% do total (efeito do ajuste de taxas), com o
+  split base 65/30/5; reserve_ratio variou 3,60–5,81 (cruzou o piso de 4,0).
+
+## Decisões de visualização (skill de dataviz)
+
+- Paleta das 4 fatias (azul/verde-água/amarelo/verde, nesta ordem de pilha) e o
+  violeta da linha de ratio validados com `validate_palette.js` contra a
+  superfície slate-900 (#0f172a): banda de luminosidade, croma e contraste
+  PASS; CVD do par yield↔governança na banda-piso (ΔE 10,3) → encoding
+  secundário obrigatório: borda sólida de 2 px por faixa sobre wash de 25%,
+  rótulos diretos de % na borda direita, legenda sempre presente e tabela
+  (`<details>`) como par acessível dos dois gráficos.
+- Nada de eixo duplo: fatia e reserve ratio são dois gráficos empilhados com a
+  MESMA janela de alturas, e a legenda textual deixa claro que a comparação é
+  observação, não fórmula (a fórmula exata do split não vem nos dados).
+
+## Teste E2E do módulo (headless Edge via CDP, sem dependências)
+
+`scripts/rewards-e2e.mjs` (pré-requisito: `npm run dev` rodando):
+- `node scripts/rewards-e2e.mjs normal` — 22 checks: manchete conferida
+  MATEMATICAMENTE contra a API (busca o mesmo bloco por altura e recalcula
+  total e %), 3 faixas com dado real + governança zerada sem faixa fantasma,
+  rótulos diretos, tooltip por mouse E teclado, toggle ZEPH/% do bloco, troca
+  de janela 200→100 refazendo a busca, tabela com reserve ratio por altura e
+  screenshots desktop+mobile. **TUDO PASSOU em 2026-07-09.**
+- `node scripts/rewards-e2e.mjs brokenrewards` — derruba só
+  `/zephyr-api/v1/blockrewards` por interceptação Fetch do CDP (sem editar
+  código-fonte, diferente do esquema do Prompt 2): aviso âmbar cita a fonte, a
+  manchete degrada com mensagem, o reserve ratio segue de pé. **TUDO PASSOU em
+  2026-07-09.**
+- Armadilha de teste: `pointermove` é evento CONTÍNUO no React — a atualização
+  de estado do tooltip é adiada, então o teste precisa esperar um tick após o
+  dispatch (keydown é discreto e atualiza síncrono).
