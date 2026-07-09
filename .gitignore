@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 .e2e-out/
+
+# Claude Code local settings (permission mode etc.) — pessoal, não do repo
+.claude/

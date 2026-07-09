@@ -1,0 +1,479 @@
+# Zephyr Mining Hub — Plano de Construção e Prompts
+
+Guia de execução pro vibecoding com Claude Fable 5 (GLM-5.2 pausado por falta de assinatura ativa — troca de volta quando quiser, nada abaixo depende de qual modelo executa), seguindo as técnicas do `guia_conversar_com_llm.md` (papel, tags XML, contexto+porquê, auto-verificação, encadeamento em vez de "tudo de uma vez", conversa nova por tarefa nova).
+
+## Como usar este documento
+
+1. Cole o bloco **CLAUDE.md** (seção abaixo) num arquivo `CLAUDE.md` na raiz do repo, uma vez só. Tanto `claude` (Fable) quanto `claude` apontado pra Z.ai (GLM) leem esse arquivo automaticamente — é o "system prompt" persistente dos dois, evita repetir contexto estável em todo prompt (economia de tokens, Seção 3/7 do guia).
+2. Pra cada Prompt (1 a 5), abra um terminal/sessão **nova** (Seção 7, tática 1 do guia: assunto novo → mesa limpa) com o modelo indicado, cole o prompt inteiro.
+3. Rode na ordem — cada prompt assume que o anterior já rodou. Não pule pra frente.
+4. Se a saída de um prompt não ficar boa de primeira, não reescreva o prompt do zero: use o ciclo da Seção 6.3 do guia — peça pro próprio modelo revisar contra os critérios de aceite listados no prompt, depois reescrever.
+
+Sem GLM ativo por enquanto: os Prompts 2, 3 e 4 (antes GLM) rodam no Fable também — o conteúdo de cada prompt não muda, só quem executa. Mesmo assim, mantenha uma sessão nova por prompt, sem juntar os 3 módulos numa sessão só: é o commit por módulo que dá o checkpoint reversível, e o guia de prompts já avisa que contexto grande demais piora precisão (Seção 3, context rot) — nenhum dos dois motivos depende de qual modelo tá rodando.
+
+---
+
+## Passo 0 — Repositório no GitHub (antes do Prompt 1)
+
+Sim, crie antes. Dois motivos: com 5 prompts em sessões separadas e dois modelos diferentes, commitar depois de cada prompt é sua rede de segurança — se o GLM bagunçar algo no Prompt 3, você volta pro estado do Prompt 2 com um `git reset`; e o deploy (Vercel — ver atualização na seção "Decisões de arquitetura") já fica plugado desde o início, sem migrar depois.
+
+1. **Crie o repositório vazio.** Em github.com → "New repository". Nome sugerido: `zephyr-mining-hub`. Público ou privado, sua escolha, não muda nada tecnicamente. Deixe README, .gitignore e license **desmarcados** — o repo precisa nascer vazio, senão conflita com o scaffold do Vite no Prompt 1.
+
+2. **Clone na sua máquina** (a própria página do repo recém-criado mostra a URL pra copiar):
+   ```bash
+   git clone https://github.com/SEU_USUARIO/zephyr-mining-hub.git
+   cd zephyr-mining-hub
+   ```
+   Se você já criou a pasta de destino manualmente antes, entre nela e clone com `.` no
+   final (`git clone URL .`) — assim o git usa a pasta existente em vez de tentar criar
+   uma subpasta nova com o mesmo nome.
+
+3. **Chame o Fable de dentro dessa pasta.** É essa pasta vazia e clonada que vira a raiz do projeto:
+   ```bash
+   claude
+   ```
+   Cole o Prompt 1. Quando ele for scaffoldar o Vite, a pasta atual (`.`) já é o repo — oriente-o a criar o projeto ali dentro, não numa subpasta nova (senão fica `zephyr-mining-hub/zephyr-mining-hub/`).
+
+4. **Confira o .gitignore** que o scaffold do Vite gera (cobre `node_modules/`, `dist/`, etc.) antes do primeiro commit, pra não subir `node_modules` sem querer.
+
+5. **Commit depois de CADA prompt, não só no final:**
+   ```bash
+   git add -A
+   git commit -m "prompt 1: fundacao + modulo pulso da rede"
+   git push
+   ```
+   Repita a cada prompt (2, 3, 4, 5) com uma mensagem descrevendo o módulo — é o mesmo princípio de "encadeamento" do guia de prompts, só que em nível de git: um checkpoint reversível por módulo.
+
+6. **Deploy fica pra depois, mas mudou de GitHub Pages pra Vercel** — o Prompt 1 descobriu que a Scanner API bloqueia CORS e precisa de um rewrite/proxy que GitHub Pages (100% estático) não oferece (ver "Decisões de arquitetura"). Fluxo: vercel.com → importar o repo do GitHub → deploy automático a cada push. Monto o prompt do rewrite de produção quando chegar nessa etapa.
+
+Se já tiver o GitHub CLI (`gh`) instalado, os passos 1+2 viram um comando só: `gh repo create zephyr-mining-hub --public --clone` (ou `--private`).
+
+---
+
+## Decisões de arquitetura (atualizado após o Prompt 1 — achados reais, não mais suposição)
+
+- **Stack:** Vite + React + TypeScript + Tailwind CSS — confirmado, scaffold já rodando.
+- **Deploy: Vercel (conectado ao repo GitHub), não GitHub Pages.** Motivo real, não cautela: a Zephyr Scanner API bloqueia CORS no navegador, então o módulo Pulso da Rede só funciona com um proxy — o Vite dev server resolve em dev, mas GitHub Pages é 100% estático e não roda proxy/rewrite. Vercel resolve com rewrite e continua puxando do seu GitHub a cada push — não muda o "construí pelo meu GitHub", só troca onde o site fica hospedado.
+- **Por que essa stack:** combinação mais comum em exemplos de treino dos modelos de coding hoje, então tanto Fable quanto GLM erram menos nela; cabe inteira em "sozinho-em-semanas".
+
+### Descobertas da Fase 0 (Prompt 1) — valem pra todos os prompts seguintes
+
+1. **Scanner API bloqueia CORS, confirmado com fetch real** (sem header `Access-Control-Allow-Origin`). Qualquer módulo que use `/livestats`, `/stats` ou `/blockrewards` — isso inclui o Prompt 3 — **tem que reusar a camada de dados existente em `src/lib/api/`**, nunca fazer fetch direto pra `zephyrprotocol.com`. É o único lugar que já sabe passar pelo proxy.
+2. **Hashrate e dificuldade de rede não existem no Scanner API** (campo a campo, confirmado). Fonte real: `explorer.zephyrprotocol.com/api/networkinfo`, CORS aberto, sem proxy necessário. Já no CLAUDE.md atualizado abaixo.
+3. **2Miners confirmado CORS-aberto** direto do navegador. As outras pools (HeroMiners, MiningOcean, K1Pool, RavenMiner) seguem não testadas — trate como incerto até confirmar cada uma no Prompt 2.
+4. **XMRig real confirmado CORS-aberto** (conferido no código-fonte dele) e sem bloqueio de mixed content testado localhost→127.0.0.1 (via `scripts/xmrig-sim.mjs`, reaproveitável). **Em aberto:** o mesmo teste com a página já publicada em HTTPS (Vercel) contra XMRig local em HTTP é um cenário diferente e ainda não testado — o Prompt 4 precisa validar isso especificamente.
+
+**Antes de rodar o Prompt 2:** peça pro Fable, na mesma sessão do Prompt 1 (ele já tem o contexto todo), atualizar o CLAUDE.md do repo com esses 4 pontos. Sessões novas (Prompts 2-4) só enxergam o que estiver escrito lá, não esta conversa.
+
+---
+
+## CLAUDE.md (cole isso na raiz do repo)
+
+```markdown
+# Zephyr Mining Hub — Contexto do Projeto
+
+## O que é
+Dashboard web para a comunidade de mineradores da criptomoeda Zephyr (ZEPH, algoritmo
+RandomX, minerada via XMRig). Público: quem já minera ZEPH e/ou está decidindo pools e
+acompanhando recompensas de bloco. 4 módulos independentes, uma casca de navegação comum.
+
+## Stack
+Vite + React + TypeScript + Tailwind CSS. Deploy no Vercel (conectado ao repo GitHub) —
+a Zephyr Scanner API bloqueia CORS no navegador (confirmado), então a v1 precisa do
+rewrite/proxy do Vercel em produção (mesma ideia do proxy do Vite dev server). Não é
+"backend" com estado — é só a ponte de CORS. Ver NOTES.md pro detalhe dos testes.
+
+## Convenções
+- Nomes de variável/função/componente em inglês. Comentários em português.
+- Erro de rede/API sempre visível na UI — nunca tela em branco ou silenciosa.
+- Campo ausente na resposta da API vira "—" na tela. Nunca inventar/mockar valor.
+- Loading e erro usam um componente compartilhado (não reinventar por módulo).
+
+## Módulos (rotas)
+- /rede — Pulso da Rede: hashrate/dificuldade de rede, halving, saúde do reserve ratio.
+  Público, sem configuração do visitante.
+- /pools — Bússola de Pools: comparador das pools ZEPH ativas. Público, sem configuração.
+- /recompensa — Raio-X da Recompensa: como o prêmio de bloco se divide entre
+  minerador/reserva/yield. Público, sem configuração.
+- /meu-rig — Monitor do Rig: cada visitante configura a própria carteira/pool/XMRig local,
+  salvo em localStorage do navegador dele.
+
+## Zephyr Scanner API
+Base: https://zephyrprotocol.com/api/v1 — GET, sem autenticação, cache de 30s por endpoint
+no servidor deles (não faça polling mais rápido que isso). Doc completa:
+https://zephyrprotocol.com/documentation/scanner-api
+
+**CORS bloqueado, confirmado por teste real** (sem `Access-Control-Allow-Origin`). Nunca
+faça fetch direto pra este domínio do navegador — use/estenda a camada em `src/lib/api/`,
+que já passa pelo proxy (Vite dev / rewrite do Vercel em produção).
+
+- GET /livestats — snapshot atual: zeph_price, reserve_ratio, reserve_ratio_ma, zeph_circ,
+  zys_current_variable_apy, etc.
+- GET /stats?scale=day|hour|block&from=&to=&fields= — série histórica por TEMPO (from/to em unix
+  segundos). Prefira scale=day pra análise histórica; use fields= pra pedir só as colunas
+  necessárias (payload menor).
+- GET /stats?scale=block — outra criatura (confirmado 2026-07-09): from/to viram ALTURAS
+  de bloco e cada ponto vem com `block_height` no lugar de `timestamp` (com timestamps
+  responde `[]`). Use getBlockStats em `src/lib/api/zephyrScanner.ts`, que tem o tipo certo.
+- GET /blockrewards?from=&to=&order= — por bloco: miner_reward, governance_reward,
+  reserve_reward, yield_reward (e as versões _atoms). from/to são ALTURAS (inclusive);
+  alturas além do topo são ignoradas sem erro. **ARMADILHA (2026-07-09): `order=desc` com
+  limit e SEM from/to é não-determinístico** — a mesma chamada devolveu ora um snapshot
+  ~58 dias atrasado, ora ~15 h. Pra "últimos N blocos", SEMPRE ancorar em from/to usando a
+  altura do explorer (`height` do daemon é contagem: topo minerado = height−1). Camada
+  pronta: getRecentBlockRewards/getLatestBlockReward em zephyrScanner.ts.
+- GET /reservesnapshots?from=&to=&order= — snapshots do reserve ratio em alturas
+  específicas, com on_chain.reserve_ratio.
+- /pricingrecords, /apyhistory, /historicalreturns, /zyspricehistory, /projectedreturns —
+  existem, focados em ZSD/ZYS, não usados nos módulos de mineração a menos que algum
+  prompt futuro peça.
+
+## Zephyr Explorer API
+Hashrate e dificuldade de rede NÃO existem no Scanner API (confirmado, campo a campo) —
+use esta fonte: GET https://explorer.zephyrprotocol.com/api/networkinfo — CORS aberto,
+sem proxy necessário. Já usado pelo módulo Pulso da Rede; consulte o código existente
+antes de reimplementar.
+
+## APIs de Pool
+Padrão cryptonote-nodejs-pool — mas CONFIRME campo a campo por pool, nomes variam.
+
+Confirmado funcionando neste projeto, incluindo CORS liberado pro navegador (testado com
+fetch real, não só do servidor):
+- 2Miners: GET https://zeph.2miners.com/api/stats → { hashrate, minersTotal, workersTotal,
+  luck, nodes: [{ networkhashps, difficulty, height, avgBlockTime, blockReward }], ... }
+  — `Access-Control-Allow-Origin: *`, confirmado.
+- Por convenção dessa família de software, deve existir também
+  GET https://zeph.2miners.com/api/accounts/<endereco> pra stats por minerador —
+  confirmar formato exato E CORS ao implementar o módulo Monitor do Rig, não assumir que
+  herda o mesmo header do /api/stats.
+
+Também confirmado funcionando (CORS aberto, testado com fetch real do navegador no
+Prompt 2):
+- HeroMiners — GET https://zephyr.herominers.com/api/stats, CORS `*` confirmado.
+  Fee/min. payout em `config`, hashrate/miners em `pool`, `coinUnits` vem como string.
+  (de.zephyr.herominers.com é host de stratum, não de API.)
+
+Pools ZEPH conhecidas SEM integração ainda — motivo confirmado no Prompt 2, TODOs em
+`src/lib/api/pools.ts`:
+- K1Pool — GET https://k1pool.com/api/stats/zeph responde JSON válido mas SEM header
+  CORS → bloqueado no navegador. Integrar só com proxy (TODO em pools.ts).
+- MiningOcean — sem REST JSON público (front usa protobuf sobre SSE). TODO.
+- RavenMiner — endpoint de stats não confirmado (API respondeu "method not found" e
+  o DNS de zeph.ravenminer.com estava instável no teste). TODO.
+Lista completa e atualizada de pools: https://miningpoolstats.stream/zephyr
+
+O dropdown de pool do módulo Monitor do Rig (Prompt 4) usa só 2Miners e HeroMiners —
+as outras 3 não estão prontas.
+
+## API local do XMRig
+Quando XMRig roda com `--http-enabled` (porta configurável, ex. 16000):
+GET http://127.0.0.1:PORTA/1/summary → hashrate, shares, uptime, backend de CPU.
+Sem autenticação por padrão, a menos que `access-token` tenha sido configurado.
+
+CORS confirmado aberto no binário real do XMRig (`Access-Control-Allow-Origin: *`,
+conferido no código-fonte). Mixed content localhost→127.0.0.1 testado sem bloqueio via
+`scripts/xmrig-sim.mjs` (reaproveitável pra testar sem hardware real). **Pendente:** o
+mesmo teste com a página já publicada em HTTPS (produção) contra o XMRig local em HTTP —
+cenário diferente do testado, precisa validação própria no módulo Monitor do Rig.
+
+## Riscos conhecidos
+Ver NOTES.md pro detalhe completo dos testes de CORS/mixed-content da Fase 0. Resumo:
+Scanner API bloqueada (usa proxy), 2Miners e XMRig real liberados, hashrate/dificuldade
+não vêm do Scanner API (usar Explorer API acima).
+```
+
+---
+
+## Prompt 1 — Fable: Fundação + módulo Pulso da Rede
+
+```
+Aja como um engenheiro front-end sênior, especialista em React + TypeScript e em
+consumir APIs REST públicas de forma resiliente (cache, retry, tratamento de erro).
+
+<contexto>
+Este é o primeiro prompt de um projeto maior — leia CLAUDE.md na raiz do repo antes de
+começar, ele tem o contexto completo do produto. Estou construindo o "Zephyr Mining Hub",
+um dashboard web para a comunidade que minera Zephyr (ZEPH, XMRig/RandomX). O produto
+final terá 4 módulos, mas cada um será construído em um prompt separado, em sessões
+diferentes. Este prompt cobre SÓ a fundação: não implemente os outros 3 módulos ainda,
+apenas deixe a arquitetura pronta pra recebê-los.
+</contexto>
+
+<tarefa>
+1. Scaffold do projeto: Vite + React + TypeScript + Tailwind CSS. A pasta atual já é um
+   repositório git clonado do GitHub (vazio) — crie o projeto dentro dela mesma (use "."
+   como diretório de destino), não crie uma subpasta nova.
+2. Estrutura de pastas para os 4 módulos futuros com navegação já funcionando entre as
+   rotas /rede, /pools, /recompensa, /meu-rig (as 3 últimas podem ser placeholder vazio
+   por enquanto).
+3. Camada de dados tipada (ex. src/lib/api/) para os endpoints da Zephyr Scanner API.
+   Implemente agora só os usados no módulo "Pulso da Rede": /livestats e /stats.
+4. Implemente o módulo "Pulso da Rede" (/rede) completo, como prova de vida: hashrate e
+   dificuldade de rede, reserve ratio atual, contagem regressiva pro próximo halving.
+   Atualização automática respeitando o cache de 30s do endpoint.
+5. Valide de verdade (não suponha) e registre em NOTES.md:
+   - CORS: um fetch do navegador para https://zeph.2miners.com/api/stats funciona, ou o
+     navegador bloqueia? Teste com fetch real no console/app e registre o resultado.
+   - Mixed content: um fetch do navegador para http://127.0.0.1:PORTA (simulando a API
+     local do XMRig) a partir da página em localhost funciona sem bloqueio? Teste e
+     registre; se não tiver XMRig rodando pra testar de verdade, suba qualquer servidor
+     HTTP local na porta pra simular e documente o resultado.
+</tarefa>
+
+<dados_e_apis>
+Ver CLAUDE.md para a referência completa. Para este prompt, você só precisa de:
+- GET https://zephyrprotocol.com/api/v1/livestats (cache 30s)
+- GET https://zephyrprotocol.com/api/v1/stats?scale=day&fields=zeph_price_close,reserve_ratio_close
+</dados_e_apis>
+
+<restricoes>
+- Sem backend próprio nesta fase — tudo client-side.
+- Erro de rede/API sempre visível: mostre um estado de "dado indisponível, tentando de
+  novo", nunca tela em branco.
+- Código (variáveis/funções/componentes) em inglês; comentários em português.
+- Não implemente autenticação nem wallet nesta fase — isso é de outro módulo.
+</restricoes>
+
+<criterios_de_aceite>
+- `npm run dev` sobe sem erro.
+- A aba "Pulso da Rede" mostra dado real da API (não mock) e atualiza sozinha.
+- As outras 3 abas existem na navegação, mesmo vazias.
+- NOTES.md existe com o resultado REAL dos dois testes de CORS/mixed-content — não
+  "provavelmente funciona", o resultado observado.
+</criterios_de_aceite>
+
+Antes de finalizar, confira cada critério de aceite acima um por um. Se algum teste de
+CORS/mixed-content falhar, não tente resolver de forma definitiva agora — só documente
+o resultado e a limitação em NOTES.md e siga.
+```
+
+---
+
+## Prompt 2 — Fable: módulo Bússola de Pools
+
+```
+Aja como um desenvolvedor front-end pleno, focado em consumir múltiplas APIs REST em
+paralelo e normalizar dados de fontes heterogêneas numa tabela comparativa.
+
+<contexto>
+Você está adicionando o módulo "Bússola de Pools" ao projeto Zephyr Mining Hub — a
+fundação já existe (leia CLAUDE.md e o código em src/ antes de começar). A rota /pools
+hoje é um placeholder vazio; substitua pelo módulo completo abaixo.
+</contexto>
+
+<tarefa>
+1. Busque dados das pools de ZEPH conhecidas (lista e URLs no CLAUDE.md) em paralelo.
+2. Normalize os campos numa interface comum: nome da pool, fee (%) se disponível,
+   hashrate da pool, número de mineradores, min. payout, luck (se disponível), block
+   height reportado.
+3. Monte uma tabela ordenável por qualquer coluna (clique no cabeçalho ordena), com
+   destaque visual pra pool com maior hashrate e outro pra menor fee.
+4. Se uma pool falhar ao responder, não quebre a tela inteira — mostre "indisponível" só
+   naquela linha e continue mostrando as demais.
+5. Guarde um histórico simples do campo "luck" a cada atualização (localStorage) e mostre
+   um mini-gráfico de tendência (últimas ~20 leituras) por pool.
+</tarefa>
+
+<dados_e_apis>
+Lista de pools e formato esperado de resposta: seção "APIs de Pool" do CLAUDE.md. Seguem
+aproximadamente o padrão cryptonote-nodejs-pool (confirmei o formato da 2Miners; as
+demais devem ser parecidas, mas confirme campo a campo ao integrar — não assuma nomes).
+</dados_e_apis>
+
+<restricoes>
+- Se alguma pool não liberar CORS (ver NOTES.md da fase anterior), deixe um comentário
+  TODO no lugar daquela chamada em vez de travar a build.
+- Não invente número: campo ausente na resposta vira "—", nunca um valor fake.
+</restricoes>
+
+<criterios_de_aceite>
+- Tabela carrega com pelo menos as pools que responderem sem bloqueio de CORS.
+- Ordenação por coluna funciona em pelo menos 3 colunas diferentes.
+- Uma pool fora do ar (simule desligando a chamada dela) não derruba as outras linhas.
+</criterios_de_aceite>
+
+Antes de finalizar, simule uma pool retornando erro (desconecte ou force um 500 nela) e
+confirme que o resto da tabela continua de pé. Teste esse caso antes de dar como pronto.
+```
+
+---
+
+## Prompt 3 — Fable: módulo Raio-X da Recompensa
+
+```
+Aja como um desenvolvedor front-end pleno com experiência em visualização de dados
+(séries temporais) e em explicar mecânicas financeiras complexas de forma simples e
+visual pra um público não-especialista.
+
+<contexto>
+Módulo "Raio-X da Recompensa" do Zephyr Mining Hub — o módulo mais conceitual do
+projeto. A tese por trás dele: em Zephyr, o prêmio de bloco não vai 100% pro minerador —
+é fatiado entre minerador, reserva do ZSD e yield do ZYS, e essa fatia muda com o reserve
+ratio da rede. Nenhum outro dashboard de mineração mostra isso, porque é mecânica
+exclusiva do protocolo Zephyr (Djed). Este módulo existe pra tornar essa fatia visível e
+explicável pra quem minera mas não necessariamente entende a fundo a mecânica por trás.
+</contexto>
+
+<tarefa>
+1. Busque os últimos N blocos (configurável, padrão 200) de /blockrewards — traz
+   miner_reward, governance_reward, reserve_reward, yield_reward por bloco.
+2. Monte um gráfico de área empilhada dessas 4 fatias ao longo dos blocos/tempo.
+3. Destaque em texto simples o dado mais recente: "Agora, de cada bloco de X ZEPH, Y% vai
+   pro minerador, Z% pra reserva, W% pro yield" (calculado a partir do bloco mais recente).
+4. Cruze com /livestats (reserve_ratio) num segundo gráfico de linha simples, abaixo ou ao
+   lado, sugerindo a relação entre reserve ratio e o tamanho da fatia do minerador.
+5. Escreva 2-3 frases fixas (não geradas dinamicamente a cada load) explicando o "porquê"
+   dessa mecânica pra alguém que nunca ouviu falar de Djed — linguagem simples, sem jargão
+   de finanças descentralizadas.
+</tarefa>
+
+<dados_e_apis>
+GET /blockrewards?from=&to=&order=desc — ver CLAUDE.md pro formato completo de resposta.
+GET /livestats pro reserve_ratio atual.
+
+IMPORTANTE: a Scanner API bloqueia CORS direto do navegador (confirmado na Fase 0/Prompt
+1). NÃO faça fetch direto pra zephyrprotocol.com — use e estenda a camada de dados já
+existente em src/lib/api/ (ela já resolve isso via proxy). Leia esse código antes de
+escrever qualquer chamada nova.
+</dados_e_apis>
+
+<restricoes>
+- Não afirme causalidade que os dados não sustentam: ao mostrar reserve_ratio junto da
+  fatia do minerador, deixe claro que é observação/correlação, não uma fórmula garantida
+  — a fórmula exata de split não está disponível nos dados, só o resultado por bloco.
+- Gráfico responsivo, legível em tela de celular.
+</restricoes>
+
+<criterios_de_aceite>
+- Gráfico de área empilhada renderiza com dado real, não mock.
+- O texto "agora" bate matematicamente com o bloco mais recente retornado pela API.
+- As 2-3 frases explicativas fazem sentido pra alguém que só conhece mineração de Monero
+  e nunca ouviu falar de reserve ratio.
+</criterios_de_aceite>
+
+Antes de finalizar, releia as frases explicativas do passo 5 como se você fosse alguém
+que só sabe minerar Monero e nunca ouviu falar de "reserve ratio" — ainda fazem sentido
+sem clicar em nada a mais? Ajuste se não fizerem.
+```
+
+---
+
+## Prompt 4 — Fable: módulo Monitor do Rig
+
+```
+Aja como um desenvolvedor front-end pleno, com atenção a estado persistente no navegador
+(localStorage) e a UX de configuração feita pelo próprio usuário final, sem tela de admin
+e sem backend.
+
+<contexto>
+Módulo "Monitor do Rig" do Zephyr Mining Hub. Diferente dos outros 3 módulos (públicos,
+sem configuração), este é por visitante: cada pessoa que abrir o site configura o próprio
+endereço de carteira e, opcionalmente, sua própria pool e o endereço da API local do
+próprio XMRig, pra acompanhar o próprio rig.
+</contexto>
+
+<tarefa>
+1. Formulário simples (sem conta, sem login): visitante escolhe pool — dropdown com
+   SÓ 2Miners e HeroMiners (únicas confirmadas integráveis no Prompt 2; as outras 3
+   ficam de fora até os TODOs em src/lib/api/pools.ts serem resolvidos), endereço de
+   carteira ZEPH, e opcionalmente host:porta da API local do XMRig.
+2. Salve essa configuração em localStorage — ao voltar no site, os campos já vêm
+   preenchidos.
+3. Com endereço + pool configurados, busque as estatísticas daquele minerador específico
+   na API da pool escolhida (endpoint de stats por endereço — ver CLAUDE.md; confirme o
+   formato exato pra pool escolhida, pode variar entre pools).
+4. Se o XMRig local estiver configurado E acessível (ver NOTES.md sobre mixed content),
+   mostre também hashrate local em tempo real, shares aceitas/rejeitadas, uptime.
+5. Defina um estado visual único e óbvio, comparando hashrate atual com a média das
+   últimas leituras: "minerando normal" / "hashrate abaixo do esperado" / "offline".
+</tarefa>
+
+<dados_e_apis>
+Ver CLAUDE.md: seção "API por minerador" de cada pool, e seção "API local do XMRig"
+(endpoint /1/summary, sem auth por padrão).
+</dados_e_apis>
+
+<restricoes>
+- Nunca peça chave privada ou seed — só endereço público (é tudo que as APIs de pool
+  precisam pra consultar estatísticas).
+- Se a API local do XMRig não for alcançável, degrade graciosamente: mostre só o dado da
+  pool, sem quebrar a tela.
+- O XMRig real já é CORS-aberto (confirmado na Fase 0) e existe um simulador em
+  scripts/xmrig-sim.mjs pra testar sem hardware. O que ainda NÃO foi testado é a página já
+  publicada em HTTPS acessando XMRig local em HTTP (mixed content) — teste esse cenário
+  especificamente (`npm run build && npm run preview`, ou já no Vercel) e registre o
+  resultado em NOTES.md antes de dar o módulo como pronto.
+</restricoes>
+
+<criterios_de_aceite>
+- Configuração sobrevive a um refresh da página (localStorage funcionando de verdade).
+- Com um endereço de carteira de teste, os dados da pool aparecem na tela.
+- Sem XMRig local rodando, a tela não quebra — só omite aquela parte, sem erro visível.
+</criterios_de_aceite>
+
+Antes de finalizar, teste o fluxo completo do zero: navegador sem nada salvo → preenche o
+formulário → dado aparece → dá refresh na página → dado continua lá sem precisar
+preencher de novo. Confirme os 4 passos nessa ordem antes de dar como pronto.
+```
+
+---
+
+## Prompt 5 — Fable: integração e revisão final
+
+```
+Aja como um engenheiro front-end sênior fazendo revisão final de um projeto que teve
+cada módulo construído em uma sessão separada, sem memória compartilhada entre elas —
+seu trabalho aqui é unificar, não reescrever do zero.
+
+<contexto>
+Os 4 módulos do Zephyr Mining Hub (Pulso da Rede, Bússola de Pools, Raio-X da Recompensa,
+Monitor do Rig) já existem no repo, construídos em prompts/sessões diferentes. É esperado
+ter inconsistência de estilo entre eles.
+</contexto>
+
+<tarefa>
+1. Revise os 4 módulos e liste em REVIEW.md qualquer inconsistência de: nomenclatura de
+   variável/função, tratamento de erro/loading (cada módulo pode ter reinventado o
+   próprio jeito de mostrar "carregando"/"erro"), estilo visual (cores, espaçamento,
+   tipografia).
+2. Unifique os padrões mais divergentes: um único componente de loading/erro reutilizado
+   pelos 4 módulos, um único tema no Tailwind config.
+3. Finalize a navegação entre os 4 módulos com indicação clara de qual está ativo.
+4. Adicione uma página inicial simples explicando em 2-3 frases o que é o Zephyr Mining
+   Hub, linkando pros 4 módulos.
+5. Rode `npm run build` e garanta que sobe sem erro nem warning novo.
+6. Procure por qualquer chamada à Scanner API usando `order=desc` sem `from`/`to`
+   explícitos (o Prompt 3 achou e corrigiu um caso não-determinístico exatamente nisso,
+   em getLatestBlockReward — ver CLAUDE.md). Se achar outra ocorrência, corrija com a
+   mesma âncora por altura.
+</tarefa>
+
+<restricoes>
+- Não reescreva a lógica de negócio de cada módulo (os fetches, os cálculos) — só a
+  camada de apresentação/consistência, a menos que encontre um bug real; nesse caso,
+  documente o bug em REVIEW.md antes de corrigir.
+- Preserve os critérios de aceite originais de cada módulo — não remova funcionalidade
+  pra "simplificar".
+</restricoes>
+
+<criterios_de_aceite>
+- `npm run build` limpo.
+- Os 4 módulos usam o mesmo componente de loading/erro.
+- REVIEW.md lista o que foi encontrado e o que foi corrigido.
+</criterios_de_aceite>
+```
+
+---
+
+## Depois dos 5 prompts
+
+- Rode a skill **backend-structure-auditor** pra mapear qualquer deriva de padrão que
+  sobrou entre as 4 sessões — mesmo sendo o mesmo modelo, sessões sem memória
+  compartilhada tendem a divergir em escolhas pequenas (nome de variável, estrutura de
+  componente, jeito de tratar erro).
+- Rode **code-audit-cleanup** pra tirar sobra (import não usado, código morto, comentário
+  redundante) sem mudar comportamento.
+- **creative-ui-director** é opcional e independente desta sequência — use quando quiser
+  uma passada de direção visual mais autoral (o dashboard acima só pede "responsivo,
+  legível", não define identidade visual). Pode rodar em paralelo aos módulos 2-4, se
+  quiser já começar com uma linguagem visual definida, ou depois do Prompt 5, como polish.
