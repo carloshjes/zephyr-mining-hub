@@ -101,3 +101,52 @@ apontava ~400 mil blocos ≈ jan/2028.
   cada 15 min apenas pra referência de fechamento (deltas "vs. ontem").
 - Falha de fonte: o app mantém o último dado bom na tela + banner âmbar visível
   ("tentando de novo"), com backoff exponencial de 5 s até o teto de 30 s.
+
+# NOTES — Prompt 2 (Bússola de Pools, 2026-07-08)
+
+Sondagem REAL das APIs de pool (curl com `Origin: http://localhost:5173`,
+conferindo corpo E headers CORS — não confiar em "deve ser igual à 2Miners").
+
+| Pool | Endpoint testado | Resultado |
+|------|------------------|-----------|
+| 2Miners | `https://zeph.2miners.com/api/stats` | ✅ 200 + `Access-Control-Allow-Origin: *`. Campos: `hashrate`, `minersTotal`, `workersTotal`, `luck` (%), `nodes[0].height` (string). SEM fee/pagto. mínimo na resposta → "—". |
+| HeroMiners | `https://zephyr.herominers.com/api/stats` | ✅ 200 + ACAO `*`. `config.fee` (0.9), `config.minPaymentThreshold` (átomos) ÷ `config.coinUnits` (**string!**), `pool.hashrate/miners/workers`, `pool.effort_1d` (razão → ×100 = luck %), `network.height`. Obs.: `de.zephyr.herominers.com/api/stats` responde 301 (é host de stratum). |
+| K1Pool | `https://k1pool.com/api/stats/zeph` | ⚠️ 200 com JSON válido (`poolHashrate`, `minersTotal`, `poolLuck`, `networkBlock`, `coinPoolFee`) mas **SEM header CORS** → navegador bloqueia. TODO em `src/lib/api/pools.ts`: integrar via proxy (mesmo esquema do rewrite do Vercel da Scanner API). |
+| MiningOcean | `zephyr.miningocean.org/api/stats` (e variações) | ❌ 404. O front deles usa **protobuf sobre server-sent events** (visto no bundle `main.a43d9a33.js`) — sem REST JSON público confirmado. TODO em pools.ts. |
+| RavenMiner | `zeph.ravenminer.com/api/stats` | ❌ respondeu `{"error":"method not found"}` e depois o host **parou de resolver** (DNS instável no dia do teste). Endpoint de stats não confirmado. TODO em pools.ts. |
+
+Semântica do luck normalizado no app: % com 100 = neutro (2Miners `luck` já é %,
+K1Pool `poolLuck` idem, HeroMiners `effort_1d` é razão e é multiplicado por 100).
+A janela de medição varia por pool — comparável em tendência, não em valor exato
+(nota visível no rodapé da tabela e no `title` de cada valor).
+
+Histórico de luck: localStorage (`zephyr-hub.pools.luck-history.v1`), 20 leituras
+por pool, gap mínimo de 55 s entre leituras (polling é 60 s; o gap evita duplicata
+em reload/volta de aba e no double-effect do StrictMode).
+
+## Teste E2E do módulo (headless Edge via CDP, sem dependências)
+
+`scripts/pools-e2e.mjs` (pré-requisito: `npm run dev` rodando):
+- `node scripts/pools-e2e.mjs normal` — 24 checks: dados reais das duas pools
+  integradas, "—" nos campos que a API não expõe, linhas "sem integração" das
+  3 pools com TODO, chips de destaque, ordenação em 4 colunas (Fee, Mineradores,
+  Pool asc+desc, Hashrate desc+asc), aria-sort, histórico de luck no
+  localStorage (cap de 20) e sparklines. **TUDO PASSOU em 2026-07-08.**
+- `node scripts/pools-e2e.mjs broken2miners` — com a URL da 2Miners trocada por
+  uma inválida (404 forçado): a linha dela mostra "indisponível agora", a
+  HeroMiners continua de pé com dados (e herda o chip "maior hashrate"), as
+  demais linhas seguem intactas, tela não quebra. **TUDO PASSOU em 2026-07-08**
+  (URL revertida em seguida e recuperação re-verificada com o modo normal).
+- Sonda de ordem (registro do comportamento): durante o loading as 5 linhas
+  ficam na ordem do registro com skeleton; quando o primeiro ciclo chega, a
+  tabela já rende ordenada (hashrate desc) num único commit — sem estado
+  intermediário fora de ordem.
+- Armadilha descoberta: o PROFILE do Edge headless não pode ficar dentro do
+  repo — o watcher do Vite tenta observar o `cache.db` travado do Edge e morre
+  com EBUSY. O script usa `os.tmpdir()` pro profile; só screenshots vão em
+  `.e2e-out/` (no .gitignore).
+
+Na medição de hoje a HeroMiners tinha ~22 MH/s e a 2Miners ~1,4 MH/s (destaque
+de "maior hashrate" na HeroMiners, que também é a única expondo fee → "menor
+fee"). Se o mundo real mudar, as expectativas de ordem do script precisam
+acompanhar.

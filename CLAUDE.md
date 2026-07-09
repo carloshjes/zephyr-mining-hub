@@ -66,12 +66,22 @@ fetch real, não só do servidor):
   confirmar formato exato E CORS ao implementar o módulo Monitor do Rig, não assumir que
   herda o mesmo header do /api/stats.
 
-Outras pools ZEPH conhecidas (lista completa e atualizada em
-https://miningpoolstats.stream/zephyr — confirmar API de cada uma antes de integrar):
-- HeroMiners — de.zephyr.herominers.com
-- MiningOcean — fr-zephyr.miningocean.org
-- K1Pool — eu.zeph.k1pool.com
-- RavenMiner — stratum.ravenminer.com
+Também confirmado funcionando (CORS aberto, testado com fetch real do navegador):
+- HeroMiners — GET https://zephyr.herominers.com/api/stats, CORS `*` confirmado.
+  Fee/min. payout em `config`, hashrate/miners em `pool`, `coinUnits` vem como string.
+  (de.zephyr.herominers.com é host de stratum, não de API.)
+
+Pools ZEPH conhecidas SEM integração ainda — motivo confirmado, TODOs em
+`src/lib/api/pools.ts`:
+- K1Pool — GET https://k1pool.com/api/stats/zeph responde JSON válido mas SEM header
+  CORS. Integrar só com proxy.
+- MiningOcean — sem REST JSON público (front usa protobuf sobre SSE).
+- RavenMiner — endpoint de stats não confirmado (method not found + DNS instável).
+
+O dropdown de pool do módulo Monitor do Rig (próximo módulo) usa só 2Miners e
+HeroMiners — as outras 3 não estão prontas.
+
+Lista completa e atualizada de pools: https://miningpoolstats.stream/zephyr
 
 ## API local do XMRig
 Quando XMRig roda com `--http-enabled` (porta configurável, ex. 16000):

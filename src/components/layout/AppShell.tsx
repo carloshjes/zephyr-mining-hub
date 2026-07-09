@@ -42,8 +42,8 @@ export function AppShell() {
       </main>
 
       <footer className="border-t border-slate-800 py-4 text-center text-xs text-slate-500">
-        Dados: Zephyr Scanner API (zephyrprotocol.com) e explorer.zephyrprotocol.com ·
-        projeto comunitário, sem afiliação oficial
+        Dados: Zephyr Scanner API (zephyrprotocol.com), explorer.zephyrprotocol.com e APIs
+        públicas das pools · projeto comunitário, sem afiliação oficial
       </footer>
     </div>
   )
