@@ -696,6 +696,314 @@ Se não, marque essa variação como reprovada no relatório em vez de incluir s
 
 ---
 
+## Prompt L2 — Fable: integração da logo no produto
+
+Roda depois do Prompt L1 (exploração já concluída, F3 revisada "sem branco" escolhida por
+Carlos em 2026-07-10) e ANTES do Prompt 5 — troca o placeholder atual (emoji de picareta +
+favicon provisório) pelo resultado real da exploração. Sessão pequena e contida, não é
+preciso isolar módulo por módulo como no R1.
+
+```
+Aja como um engenheiro front-end sênior fechando a integração de um asset de marca já
+decidido em produção — seu trabalho é execução fiel de parâmetros e paleta já validados
+(não redesenhar, não reabrir a exploração), com atenção a onde cada técnica de cor (token
+CSS vs. hex resolvido) se aplica.
+
+<contexto>
+A exploração de logo (Prompt L1, sessão isolada) terminou e Carlos já escolheu a versão
+definitiva: a variação F3 (revisão "sem branco", 2026-07-10) do sistema de halftone "Z
+barrado", documentada em docs/logo-exploracao.md e gerada por scripts/logo-preview.html —
+leia os dois antes de começar, e leia também CLAUDE.md e
+src/components/layout/AppShell.tsx. Hoje o cabeçalho do app usa um emoji de picareta (⛏️)
+solto ao lado do texto "Zephyr Mining Hub" (AppShell.tsx, por volta da linha 22), e o
+favicon (public/favicon.svg) é um Z roxo provisório sem nenhuma relação com a exploração —
+nenhum dos dois usa o resultado do L1. Esta sessão fecha essa lacuna: pega os parâmetros já
+validados e gerados na própria página de exploração e integra de verdade no produto. Isso é
+acabamento de um resultado já decidido, não uma nova rodada de design — se achar algo
+genuinamente quebrado no caminho, documente em NOTES.md antes de corrigir, não redecida a
+direção.
+</contexto>
+
+<tarefa>
+1. Exporte o SVG estático da F3 a partir do gerador real, não de olho/à mão: abra (ou
+   script headless, no mesmo padrão de scripts/logo-shots.mjs/design-shots.mjs)
+   scripts/logo-preview.html SEM ?anim=1 na URL e capture o markup já renderizado do card
+   "F3 · CINTILÂNCIA" (função dotsToSvg, geometria
+   FINAL_PARAMS = { cols: 22, shape: 'square', t: .18, bar: 'single', bh: .18 }, tom por
+   ponto assignTones(dots, 'sparkle', 22, 11, [.30, .28, .20, .15, .07]) sobre a rampa
+   RAMPS.semBranco — 5 tons: --color-mist-300, --color-zeph-300, --color-mist-400,
+   --color-zeph-500, --color-zeph-700). O SVG resultante já usa style="fill:var(--...)" por
+   ponto — é o padrão certo pra um componente React dentro do app (a var resolve porque o
+   componente vive dentro do CSS do app). Confira se a marcação exportada não carrega
+   classe/atributo de animação herdado da página de preview (assignTwinkle roda sempre,
+   mesmo sem ?anim=1) — se carregar, remova; o resultado tem que ser um SVG limpo e 100%
+   estático.
+2. Exporte o SVG sólido (controle, sem halftone) pro favicon, mesma técnica, função
+   solidSvg({ t: .18, bar: 'single' }, px). Atenção: um favicon é um documento carregado
+   pelo navegador FORA da cascata de CSS do app — var(--color-...) não resolve nele.
+   Resolva o token pra hex antes de gravar (public/favicon.svg já faz isso hoje, com
+   #863bff fixo — mesmo padrão, só trocando a forma). Comece com mist-100 (#edebf4,
+   contraste 16,7:1) — é o que a própria exploração recomenda pra ícone de 16px
+   (docs/logo-exploracao.md, achado sobre zeph-300 "apagar um degrau antes"); se preferir
+   consistência total de roxo com a F3, teste zeph-300 (#a996f5) e confirme de olho na aba
+   real do navegador antes de decidir — legibilidade em 16px manda mais que preferência de
+   tom aqui.
+3. Troque o emoji ⛏️ no header do AppShell.tsx pelo SVG da F3 (passo 1) — como componente
+   React inline ou um LogoMark pequeno em src/components/, sua escolha. Mantenha o
+   tratamento decorativo atual (aria-hidden, já que o texto "Zephyr Mining Hub" ao lado
+   carrega o nome acessível) — não deixe o role="img" aria-label="..." que a página de
+   exploração usa isoladamente, ele duplicaria o nome acessível. Tamanho: a exploração
+   validou legibilidade a partir de 24px — escolha algo nessa faixa (ajuste o gap do header
+   se precisar), sem esticar/distorcer o viewBox.
+4. Troque public/favicon.svg pelo SVG sólido (passo 2) — mesmo caminho de arquivo,
+   index.html não precisa mudar (já referencia /favicon.svg como image/svg+xml).
+5. Verificação visual real: rode (ou estenda) scripts/design-shots.mjs pra capturar o
+   header com a logo nova nos 3 breakpoints já usados (1360/768/390) em pelo menos uma
+   tela, e tire um screenshot dedicado da aba do navegador mostrando o favicon novo de
+   verdade (16px real, não o SVG grande) — confira que ainda lê como "Z" no tamanho da aba,
+   com a mesma honestidade do docs/logo-exploracao.md (se não ler bem, troque a cor
+   conforme o passo 2 antes de dar como pronto, não empurre pra depois).
+6. Atualize CLAUDE.md (uma linha na seção de direção visual, registrando que a logo
+   F3/sólido está integrada) e NOTES.md (o que foi exportado, de qual card, com quais
+   parâmetros exatos — pra fechar o rastro que o L1 deixou aberto).
+</tarefa>
+
+<restricoes>
+- Zero redesenho: os parâmetros de geometria, rampa de tom e pesos da F3 já estão
+  decididos (docs/logo-exploracao.md + scripts/logo-preview.html) — extraia, não
+  reinvente.
+- Sem animação em produção: nada de ?anim=1/cintilação de opacidade no app — só a marca
+  estática. Se um dia isso for pedido, é sessão separada (a própria NOTES.md já registra a
+  ressalva de prefers-reduced-motion).
+- Cor: no componente React (header), token via CSS var em style, nunca hex solto — regra
+  do projeto. No favicon.svg, hex resolvido é o padrão aceito (mesmo esquema do arquivo
+  atual) porque o arquivo vive fora da cascata do app — não confunda os dois casos.
+- Não mexa em public/icons.svg (sprite de ícones de rodapé/social, sem relação com esta
+  logo) nem em nenhuma rota/lógica dos 4 módulos.
+- npm run build limpo, sem warning novo.
+</restricoes>
+
+<criterios_de_aceite>
+- Emoji ⛏️ removido; header mostra a F3 (versão estática, parâmetros extraídos de verdade
+  da página de exploração, não reaproximados).
+- Favicon novo aparece na aba do navegador e continua legível em 16px real (confirmado por
+  screenshot da aba, não só do SVG ampliado).
+- Nenhum hex novo solto em componente React; favicon com hex resolvido documentado (qual
+  token, qual hex).
+- Zero animação nova em produção.
+- Screenshots dos 3 breakpoints com o header novo, sem quebra de layout (nav já usa
+  flex-wrap — confirme que não sobrepõe em mobile).
+- npm run build limpo.
+- CLAUDE.md e NOTES.md atualizados fechando o item "logo" do roadmap.
+</criterios_de_aceite>
+
+Antes de finalizar, olhe o favicon na aba do navegador (16px de verdade, não o preview
+grande) como se fosse a primeira vez vendo o site — ainda reconhece um "Z"? Se não, troque
+a cor (passo 2) antes de dar como pronto.
+```
+
+---
+
+## Prompt R2 — Fable: Sinal Técnico v2 (cor de status, textura, tipografia, movimento, logo)
+
+Roda depois do L2 (commite o L2 antes de começar esta sessão — R2 mexe em `AppShell.tsx`,
+que o L2 já alterou). Direção decidida em 2026-07-10 fora do Claude Code, via skill
+`creative-ui-director` (Claude Sonnet 5), com evidência real: screenshots do produto atual
++ inspeção ao vivo do rig.ai via Claude in Chrome (cores medidas por `getComputedStyle`, não
+estimadas). Assim como o R1, não é pra reabrir a direção — só executar.
+
+```
+Aja como um engenheiro front-end sênior de direção visual, dando continuidade a um sistema
+já validado — isto é uma evolução dirigida (v2) do redesign "Sinal Técnico" do Prompt R1,
+não uma reformulação. Direção e paleta já foram decididas com evidência real (medição de
+tela + inspeção ao vivo de referência); seu trabalho é implementar com rigor, não redecidir.
+
+<contexto>
+O Prompt R1 (commit 7f88da7) estabeleceu o sistema "Sinal Técnico": fundo ink-950
+unificado, família roxa zeph, composição dominante/rail, convenção mono [ LABEL ], vermelho
+alert reservado. Funcionou bem, mas usando o produto real (screenshots de 2026-07-10, não
+descrição) apareceram problemas concretos que o Carlos e uma sessão de direção visual
+(skill creative-ui-director, com inspeção ao vivo do rig.ai via Claude in Chrome — valores
+de cor medidos por getComputedStyle, não estimados) já diagnosticaram e decidiram como
+resolver. Leia CLAUDE.md, NOTES.md e o código de src/ antes de começar. Isto NÃO é uma
+redescoberta de direção — a paleta, o mapeamento de cor e as prioridades abaixo já foram
+decididos; seu trabalho é execução com o mesmo rigor do R1 (evidência real, contraste
+medido, um módulo de cada vez).
+</contexto>
+
+<diagnostico>
+Achados reais no Raio-X da Recompensa (tela mais afetada, screenshot de 2026-07-10):
+1. Legenda e gráfico empilhado usam só variações do mesmo roxo — swatches
+   (minerador/reserva/yield) quase indistinguíveis, cor não diferencia nada.
+2. Escala tipográfica sem degrau intermediário: manchete gigante (65,0%) vs. quase tudo
+   mais pequeno/apagado (legenda, eixos, rail) — falta 2-3 degraus no meio.
+3. O painel de reserve ratio no rail direito renderiza como um retângulo vazio, sem
+   eixo/linha visível — investigue a causa raiz (pode ser bug de timing/contraste, não só
+   estética) e documente em NOTES.md antes de corrigir, junto com o fix.
+4. Zero movimento em qualquer gráfico (confirmado: só há tooltip interativo, nenhuma
+   entrada/atualização animada).
+5. LogoMark no header (AppShell.tsx) renderiza em 26px — no piso do que a exploração
+   validou como legível; a variação tonal por ponto (a "cintilância" de cor) só é
+   perceptível a partir de ~32px pelos próprios achados de docs/logo-exploracao.md.
+6. Fundo ink-950 (#0a0a0e) tem uma leve tinta azulada (R10 G10 B14) — medi o fundo real do
+   rig.ai via getComputedStyle (oklch(0.1448 0 0), croma ZERO) e convertido pra sRGB dá
+   #0a0a0a: a diferença de CLARIDADE é quase nula, a diferença real é só a neutralidade
+   (zero tinta) vs. o leve azul do ink-950 atual. Não é pra clarear o fundo — é pra
+   neutralizar a tinta.
+7. O roxo da família zeph está com matiz errado. Medi de verdade via getComputedStyle no
+   zephyrprotocol.com (site oficial da moeda): a paleta deles inteira (#282554, #827fae,
+   #322f5e, #464372, #c4c1e7) tem matiz ≈244° (HSL) com o canal R praticamente IGUAL ao G,
+   os dois bem abaixo do B — receita de um índigo/violeta-azulado "puro". Nosso zeph-300
+   (#a996f5) e zeph-500 (#6f5fc4) estão em ≈250-252°, com o R visivelmente acima do G — é
+   esse gap R-vs-G a mais que puxa a percepção pra rosa/lavanda-quente, principalmente no
+   zeph-300 (mais claro e mais saturado, onde o olho nota mais). Achou o Carlos comparando
+   com o site oficial e bate com a medição.
+</diagnostico>
+
+<decisoes_ja_tomadas>
+Não redecida os itens abaixo — já foram fechados com o Carlos:
+
+1. Duas cores semânticas novas, substituindo a regra "reservado só a vermelho": verde =
+   positivo/saudável/normal; laranja = negativo/crítico/erro. O vermelho alert (#e8492f)
+   SAI do sistema por completo — todo lugar que hoje usa vermelho (offline, erro de
+   API/rede, reserve ratio abaixo do piso 4,0, banners de "tentando de novo") passa a usar
+   laranja. Não é um degrau intermediário — é binário: positivo=verde, negativo=laranja,
+   sem meio-termo novo.
+2. Fundo: neutralizar o ink-950 (referência medida: algo próximo de #0a0a0a, ajuste fino
+   com o mesmo rigor de contraste do R1) + adicionar textura sutil monocromática (ver
+   restricoes sobre a exceção de gradiente).
+3. Logo: só aumentar o tamanho (de 26px pra ~36–40px), continua ESTÁTICA — sem ?anim=1,
+   sem cintilação em produção.
+4. Textura de fundo via gradiente monocromático é uma EXCEÇÃO explícita e documentada à
+   regra "proibido gradiente" do CLAUDE.md — só pra esse uso pontual (scanline/ruído sem
+   cor), não abre precedente pra gradiente decorativo colorido em nenhum outro lugar.
+5. Recalibrar o matiz de TODA a família zeph (300/500/700/800) pra ≈244°, a família
+   medida no zephyrprotocol.com — não é trocar de cor, é corrigir o mesmo roxo pro tom
+   certo. Preserve os degraus de CLARIDADE que já existem (300 continua o mais claro/alto
+   contraste, 800 o mais escuro/decorativo) — só o matiz muda. Referência real medida (não
+   adote os hex exatos, o site deles é mais escuro/dessaturado no geral porque não precisa
+   de texto em cima; use como norte de matiz): #282554, #322f5e, #464372, #827fae, #c4c1e7.
+   Encontrei também um ciano (#5bc0de) na paleta deles — NÃO faz parte da família zeph, é
+   um accent à parte deles; ignore, não é a cor que estamos calibrando.
+
+O que você decide (com evidência, mesmo padrão do projeto):
+- Os hex exatos do verde e do laranja — comece de #22c55e (verde, é literalmente o que o
+  rig.ai usa) e algo na família laranja/âmbar (#f97316 ou similar) como ponto de partida,
+  mas MEÇA contraste WCAG 2.2 AA de verdade contra o fundo novo E contra qualquer
+  superfície onde o texto colorido aparece (mesmo script/rigor usado pros tokens do R1 —
+  ver tabela de contraste medido em NOTES.md).
+- A técnica exata de textura (scanline via repeating-linear-gradient de baixíssima
+  opacidade é o que o rig.ai faz de verdade — pode reproduzir ou propor equivalente,
+  contanto que fique monocromático e sutil).
+- A escala tipográfica exata (proponha algo como 7 degraus — ex.: caption/label/body/
+  data-md/data-lg/headline/display — e aplique via token, não hardcoded).
+</decisoes_ja_tomadas>
+
+<tarefa>
+1. Tokens primeiro: adicione verde e laranja ao @theme de src/index.css (nomes sugeridos:
+   --color-good-* e --color-bad-*, ou similar — sua escolha de nomenclatura, mas
+   documentada), a escala tipográfica completa, e o fundo neutralizado. RECALIBRE o matiz
+   de zeph-300/500/700/800 pra ≈244° (ver diagnóstico item 7 e a referência medida em
+   decisoes_ja_tomadas) — mantendo os mesmos degraus de claridade/contraste já validados,
+   só corrigindo o tom. Remova o token alert (vermelho) de todo lugar que ele é usado como
+   estado — se ele ficar órfão, remova do @theme também. Depois de mudar zeph-300/500/700,
+   REMEÇA o contraste WCAG de tudo que usa esses tokens (a mudança de matiz pode mudar o
+   número, mesmo mantendo a claridade aproximada) — mesmo script/rigor do R1. Nenhuma cor
+   hardcoded solta, mesma regra de sempre.
+2. Tela âncora: Raio-X da Recompensa, na mesma ordem de prioridade do diagnóstico:
+   - Legenda e chart: aplique a escala tipográfica nova; resolva a diferenciação de série
+     SEM depender só de matiz igual — considere padrão/textura de preenchimento (hachura,
+     pontilhado) além da cor, já que "minerador/reserva/yield" continuam sendo dados
+     neutros (não são positivo/negativo — não force verde/laranja onde não é semântica de
+     status).
+   - Banner de alerta (reserve ratio abaixo do piso 4,0): vermelho → laranja.
+   - Painel de reserve ratio no rail: investigue e conserte o bug do retângulo vazio
+     (documente causa raiz em NOTES.md); depois de consertado, dê a ele um tratamento tipo
+     "readout" — moldura hairline sempre visível, mesmo antes do dado chegar, pra nunca
+     mais parecer quebrado. Quando o valor estiver dentro da faixa saudável (4,0–8,0),
+     badge/indicador em verde; abaixo do piso, laranja.
+   - Movimento: entrada animada dos gráficos (draw-in) na primeira carga; pulso/flash sutil
+     de "acabou de atualizar" quando o polling trouxer dado novo; respeita
+     prefers-reduced-motion sem exceção (estado final estático imediato).
+   - Teste, rode os e2e existentes (rewards-e2e.mjs normal/lowratio/brokenrewards) e
+     confirme que tudo passa antes de seguir pro próximo módulo.
+3. Propague pros outros 3 módulos + nav, um de cada vez, testando antes de seguir:
+   - Monitor do Rig: estado "minerando normal" → verde; "abaixo do esperado" E "offline" →
+     laranja (ambos negativos agora, sem vermelho — diferencie por texto/ícone se dois
+     estados negativos precisarem ser distinguíveis visualmente, não por cor). Mesma
+     neutralização de fundo + escala tipográfica.
+   - Pulso da Rede: badge [ ✓ saudável ] do reserve ratio → verde quando saudável, laranja
+     quando abaixo do piso. Escala tipográfica + fundo.
+   - Bússola de Pools: escala tipográfica + fundo; avalie se os chips "maior
+     hashrate"/"menor fee" merecem verde sutil (são destaque positivo, não alerta — use com
+     moderação, não é a mesma semântica de status de saúde) ou se ficam como estão — sua
+     leitura, documente a escolha.
+   - Qualquer banner de erro/rede/API fora do ar em qualquer módulo: vermelho → laranja.
+   - Header/AppShell.tsx: LogoMark de 26px pra ~36–40px (ajuste o gap se precisar); fundo do
+     header segue a neutralização.
+4. Logo: só o size do LogoMark muda — geometria e paleta de pontos (a rampa semBranco já
+   documentada) continuam as mesmas, sem tocar em scripts/logo-export.mjs/LogoMark.tsx além
+   do tamanho renderizado.
+5. Verificação visual: rode scripts/design-shots.mjs nos 3 breakpoints de novo, revise
+   contra a mesma rubrica de 6 perguntas do R1 (está em NOTES.md, seção "Auto-check").
+6. Atualize CLAUDE.md (nova seção ou revisão da "Direção visual — Sinal Técnico": tokens
+   novos com contraste medido, a regra revisada de cor — 3 famílias em vez de "roxo +
+   vermelho reservado", nota que vermelho saiu do sistema) e NOTES.md (achados do rig.ai
+   que motivaram isso, causa raiz do bug do painel vazio, decisões de contraste, qualquer
+   ajuste de hex).
+</tarefa>
+
+<restricoes>
+- Isto é v2 do R1, não um redesign do zero: preserva composição dominante/rail, convenção
+  mono [ LABEL ], hairline dividers, honestidade "observação não fórmula" entre os dois
+  gráficos do Raio-X, zero card-farm.
+- Proibido ainda: glassmorphism, blur, glow, sombra decorativa. A ÚNICA exceção nova e
+  explícita é gradiente monocromático (sem cor) só pra textura de fundo — não usar
+  gradiente em mais nada.
+- Vermelho alert sai do sistema por completo — se sobrar em algum lugar não mapeado no
+  diagnóstico acima, você decide se vira laranja (se for negativo) ou verde (se for
+  positivo), mas não deixe vermelho residual.
+- Contraste WCAG 2.2 AA obrigatório pro verde e o laranja novos, medido de verdade (mesmo
+  script/rigor do R1), contra QUALQUER fundo onde aparecerem (o ink neutralizado E qualquer
+  superfície elevada tipo tooltip/thead).
+- Toda animação nova respeita prefers-reduced-motion sem exceção.
+- Um módulo de cada vez dentro da mesma sessão — termina e testa o Raio-X antes de tocar no
+  Rig, etc. (mesma disciplina do R1).
+- npm run build limpo, sem warning novo.
+</restricoes>
+
+<criterios_de_aceite>
+- Tokens verde/laranja/fundo neutralizado/escala tipográfica centralizados, zero cor ou
+  tamanho de fonte hardcoded novo.
+- Vermelho alert removido de todo estado do sistema (positivo=verde, negativo=laranja, sem
+  exceção não documentada).
+- Painel de reserve ratio do Raio-X nunca mais renderiza vazio — causa raiz documentada em
+  NOTES.md.
+- Legenda/swatches do gráfico empilhado legíveis à distância de leitura normal (não só em
+  zoom).
+- Gráficos do Raio-X têm entrada animada + pulso de atualização, ambos desligáveis por
+  prefers-reduced-motion.
+- Logo no header visivelmente maior (~36–40px) e a variação de tom por ponto perceptível a
+  olho nu num monitor comum.
+- Contraste WCAG AA medido (não estimado) pro verde, laranja E pro zeph recalibrado,
+  registrado em NOTES.md com os números.
+- Rampa zeph com matiz ≈244° (família do zephyrprotocol.com), mesmos degraus de claridade
+  de antes — comparação lado a lado (screenshot) do roxo antigo vs. novo registrada em
+  NOTES.md.
+- npm run build limpo; e2e existentes (rewards/rig/pools) passam sem alteração de script.
+- Screenshots dos 3 breakpoints revisados contra a rubrica de 6 perguntas do R1, nenhuma
+  tela falhando em 2+.
+- CLAUDE.md e NOTES.md atualizados com os tokens finais e a regra de cor revisada.
+</criterios_de_aceite>
+
+Antes de finalizar, repita a rubrica de 6 perguntas do R1 pra cada uma das 4 telas — e
+adicione uma sétima, específica desta rodada: "um estado positivo e um negativo na mesma
+tela são diferenciáveis por alguém com daltonismo (não só pela cor)?". Se alguma tela
+falhar em 2+ perguntas, ajuste antes de dar como pronto.
+```
+
+---
+
 ## Prompt 5 — Fable: integração e revisão final
 
 ```

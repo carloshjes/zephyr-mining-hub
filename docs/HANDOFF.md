@@ -45,19 +45,31 @@ rewrite resolve isso sem backend próprio).
 | 3 (Fable) | Raio-X da Recompensa | ✅ feito, commitado, enviado | `21de8e5` |
 | 4 (Fable) | Monitor do Rig | ✅ feito, commitado, enviado | `eb18d89` |
 | R1 (Fable) | Redesign visual "Sinal Técnico" | ✅ feito, commitado — **NÃO enviado** (local 1 commit à frente de origin/main) | `c2bc9e7` (wip) + `7f88da7` (final, pós re-verificação 2026-07-10) |
-| L1 (Fable) | Logo "Z" dot-matrix (exploração) | ✅ feito — **NÃO commitado** (arquivos novos + notas ainda no working tree) | — |
+| L1 (Fable) | Logo "Z" dot-matrix (exploração) | ✅ feito — F3 "sem branco" escolhida por Carlos (2026-07-10) — **NÃO commitado** (arquivos novos + notas ainda no working tree) | — |
+| L2 (Fable) | Logo — integração no produto (AppShell + favicon) | ✅ feito (favicon em zeph-300, logo — depois bumpado a 38px pelo R2) — **NÃO commitado** | — |
+| R2 (Fable) | Sinal Técnico v2: good/laranja (vermelho saiu), zeph recalibrado a ≈244°, fundo neutralizado + textura, escala tipográfica (9 tokens), movimento nos gráficos, causa raiz do painel vazio corrigida, logo 38px | ✅ feito — suíte e2e verde (rewards/rig/pools), `npm run build` limpo (relato do Fable), CLAUDE.md/NOTES.md atualizados — **NÃO commitado, verificado arquivo a arquivo por outro chat (2026-07-10)** | — |
 | 5 (Fable) | Integração final | ⬜ não iniciado — entra depois da tradução pro inglês | — |
-| — | Tradução pro inglês | ⬜ sessão separada, depois do R1 (não escrita ainda) — **próximo passo** | — |
+| — | Tradução pro inglês | ⬜ sessão separada, depois do R2 (não escrita ainda) | — |
 | — | Prompt de deploy no Vercel | ⬜ ainda não escrito | — |
 | — | Skills (auditoria/limpeza/visual) | ⬜ não rodadas | — |
 
-**Pendência de git aberta nesta sessão (2026-07-10):** este arquivo, `NOTES.md` e
-`docs/zephyr-mining-hub-prompts.md` tinham mudanças não commitadas (documentação do
-R1 re-verificado e do L1 — R1/L1 apareciam como "não iniciado" nesta tabela até esta
-edição, desatualizado); `docs/logo-exploracao.md`, `scripts/logo-preview.html` e
-`scripts/logo-shots.mjs` estão untracked. Nada foi perdido, só falta um commit
-dedicado a isso e depois `git push` (ficaria 2 commits locais à frente do remoto: o
-`7f88da7` do R1 + o novo commit de L1/docs).
+**Achado e corrigido nesta sessão (2026-07-10):** `CLAUDE.md` teve DOIS incidentes de
+truncamento/duplicação no working tree (seção "Riscos conhecidos" sumindo, depois
+duplicada) — provável efeito colateral de edits concorrentes entre este chat e o Fable.
+Restaurado/limpo pela segunda vez; se aparecer de novo, o conteúdo correto está no
+CLAUDE.md commitado + nas seções refletidas aqui e em NOTES.md.
+
+**Pendência de git ATUAL (2026-07-10, pós-R2):** working tree tem L2 + R2 inteiros
+não commitados (ver tabela acima). Tentativa de commitar por este chat (bash/sandbox)
+bateu em `Unable to create '.git/index.lock': File exists` — **isso é o mesmo sintoma já
+documentado na seção "Lições da sessão de 2026-07-09" abaixo**: quase certo que a sessão
+do Fable no terminal do Carlos ainda estava aberta. Verificação de conteúdo (arquivo por
+arquivo, via ferramentas que leem o disco real, não git) confirmou que o trabalho do R2
+está todo lá — não é perda de dado, é só o índice do git precisando de uma escrita limpa.
+**Ordem pra resolver:** feche a janela/sessão do Fable → abra uma PowerShell nova → se
+`.git\index.lock` ainda existir, apague → `git add -A` → `git commit -m "..."` → depois
+`git push` (ficam 3 commits locais à frente do remoto: `7f88da7` do R1 + o de L1/docs +
+este novo de L2+R2).
 
 ## Lições da sessão de 2026-07-09 (git + sessão do Fable concorrente)
 
@@ -154,18 +166,22 @@ porque tendem a se repetir:
 2. ~~Prompt R1 (Redesign visual "Sinal Técnico")~~ — feito, commitado (`c2bc9e7`
    wip + `7f88da7` final, re-verificado em 2026-07-10), **ainda não enviado ao
    GitHub**. Tokens finais e decisões de composição já espelhados em CLAUDE.md/NOTES.md.
-3. **Tradução pro inglês** — sessão separada, DEPOIS do R1 (prompt ainda não escrito).
-   **Este é o próximo prompt a escrever.**
-4. Prompt 5 (integração final) — já pronto em `docs/zephyr-mining-hub-prompts.md`, mas
-   só depois do passo 3 (senão revisa uma UI/texto que muda de novo logo em seguida).
-5. Escrever o prompt de deploy no Vercel — **ainda não existe**, mesmo estilo dos
+3. ~~Prompt L2 (integração da logo)~~ — rodou (favicon zeph-300, logo no header).
+4. ~~Prompt R2 (Sinal Técnico v2)~~ — rodou (verde/laranja substituindo vermelho, zeph
+   recalibrado, fundo+textura, escala tipográfica, movimento, causa raiz do painel vazio
+   corrigida, logo 38px). Verificado arquivo a arquivo nesta sessão (2026-07-10) — real e
+   completo. **AMBOS (L2+R2) ainda não commitados** — é o passo imediato agora, ver
+   "Pendência de git ATUAL" acima antes de rodar qualquer outro prompt.
+5. **Próxima sessão do Carlos:** mais mudanças de layout/front-end, escopo ainda não
+   definido quando este arquivo foi escrito — se você é o chat que está lendo isso agora,
+   pergunte o que ele quer antes de propor direção nova (não assuma que é continuação
+   direta do R2; pode ser outra parte do produto).
+6. Tradução pro inglês — sessão separada, prompt ainda não escrito; melhor depois do
+   item 5 (senão traduz uma UI que muda de novo em seguida).
+7. Prompt 5 (integração final) — já pronto em `docs/zephyr-mining-hub-prompts.md`, mas só
+   depois dos itens 5 e 6 (senão revisa uma UI/texto que muda de novo logo em seguida).
+8. Escrever o prompt de deploy no Vercel — **ainda não existe**, mesmo estilo dos
    outros (ver `docs/guia_conversar_com_llm.md`); parte do rewrite já usado em
    `vite.config.ts`.
-6. Rodar as skills `backend-structure-auditor` e `code-audit-cleanup` — via Skill tool
+9. Rodar as skills `backend-structure-auditor` e `code-audit-cleanup` — via Skill tool
    deste chat, não via Claude Code.
-
-Em paralelo, sem bloquear a sequência acima: **Prompt L1 (logo "Z" dot-matrix)** já
-foi explorado (`docs/logo-exploracao.md`, `scripts/logo-preview.html`,
-`scripts/logo-shots.mjs`) — Carlos escolheu a variação F3, revisada sem mist-100.
-Falta: commitar essa exploração e, quando quiser, escrever um prompt novo e separado
-pra integrar a escolhida no `AppShell.tsx` real (nav + favicon) — ainda não escrito.

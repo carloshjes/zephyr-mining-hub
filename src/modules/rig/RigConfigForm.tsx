@@ -23,7 +23,7 @@ interface FieldErrors {
 }
 
 const INPUT_CLASS =
-  'w-full rounded-none border border-hairline bg-ink-950 px-3 py-2 text-sm text-mist-100 placeholder:text-mist-600 focus:border-zeph-300 focus:outline-none'
+  'w-full rounded-none border border-hairline bg-ink-950 px-3 py-2 text-body text-mist-100 placeholder:text-mist-600 focus:border-zeph-300 focus:outline-none'
 
 export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigFormProps) {
   const [poolId, setPoolId] = useState(initial?.poolId ?? MINER_POOLS[0].id)
@@ -57,18 +57,18 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
   return (
     <form onSubmit={handleSubmit} className="space-y-5 border border-hairline p-6">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold tracking-tight">
+        <h2 className="text-lede font-semibold tracking-tight">
           {initial ? 'Editar configuração' : 'Configure seu rig'}
         </h2>
-        <p className="text-sm text-mist-400">
+        <p className="text-body text-mist-400">
           Tudo fica salvo <strong className="font-medium text-mist-300">só neste navegador</strong>{' '}
           (localStorage) — sem conta e sem enviar nada pra servidor nosso.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm">
-          <span className="mb-1 block font-mono text-[11px] tracking-wide text-mist-400">Pool</span>
+        <label className="block text-body">
+          <span className="mb-1 block font-mono text-caption tracking-wide text-mist-400">Pool</span>
           <select
             value={poolId}
             onChange={(event) => setPoolId(event.target.value)}
@@ -80,14 +80,14 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
               </option>
             ))}
           </select>
-          <span className="mt-1 block text-xs text-mist-400">
+          <span className="mt-1 block text-label text-mist-400">
             Só as pools com API por minerador acessível do navegador — as demais entram quando a
             integração for confirmada.
           </span>
         </label>
 
-        <label className="block text-sm">
-          <span className="mb-1 block font-mono text-[11px] tracking-wide text-mist-400">
+        <label className="block text-body">
+          <span className="mb-1 block font-mono text-caption tracking-wide text-mist-400">
             API local do XMRig <span className="text-mist-600">(opcional)</span>
           </span>
           <input
@@ -98,16 +98,16 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
             spellCheck={false}
             className={INPUT_CLASS}
           />
-          <span className="mt-1 block text-xs text-mist-400">
+          <span className="mt-1 block text-label text-mist-400">
             host:porta do XMRig rodando com <code className="font-mono text-mist-300">--http-enabled</code>{' '}
             — mostra hashrate local em tempo real.
           </span>
-          {errors.xmrig && <span role="alert" className="mt-1 block text-xs text-alert">{errors.xmrig}</span>}
+          {errors.xmrig && <span role="alert" className="mt-1 block text-label text-bad">{errors.xmrig}</span>}
         </label>
       </div>
 
-      <label className="block text-sm">
-        <span className="mb-1 block font-mono text-[11px] tracking-wide text-mist-400">
+      <label className="block text-body">
+        <span className="mb-1 block font-mono text-caption tracking-wide text-mist-400">
           Endereço da carteira ZEPH
         </span>
         <input
@@ -117,19 +117,19 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
           placeholder="ZEPHYR…"
           spellCheck={false}
           autoComplete="off"
-          className={`${INPUT_CLASS} font-mono text-xs`}
+          className={`${INPUT_CLASS} font-mono text-label`}
         />
-        <span className="mt-1 block text-xs text-mist-400">
+        <span className="mt-1 block text-label text-mist-400">
           Só o endereço <strong className="font-medium text-mist-300">público</strong> — é tudo
           que a pool precisa. Nunca cole chave privada nem seed em site nenhum.
         </span>
-        {errors.wallet && <span role="alert" className="mt-1 block text-xs text-alert">{errors.wallet}</span>}
+        {errors.wallet && <span role="alert" className="mt-1 block text-label text-bad">{errors.wallet}</span>}
       </label>
 
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="submit"
-          className="bg-zeph-300 px-4 py-2 text-sm font-medium text-ink-950 transition-colors hover:bg-zeph-500 hover:text-white"
+          className="bg-zeph-300 px-4 py-2 text-body font-medium text-ink-950 transition-colors hover:bg-mist-100"
         >
           Salvar e acompanhar
         </button>
@@ -137,7 +137,7 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
           <button
             type="button"
             onClick={onCancel}
-            className="border border-hairline px-4 py-2 text-sm text-mist-300 transition-colors hover:border-mist-400"
+            className="border border-hairline px-4 py-2 text-body text-mist-300 transition-colors hover:border-mist-400"
           >
             Cancelar
           </button>
@@ -146,7 +146,7 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
           <button
             type="button"
             onClick={onClear}
-            className="ml-auto text-xs text-mist-400 underline underline-offset-4 transition-colors hover:text-alert"
+            className="ml-auto text-label text-mist-400 underline underline-offset-4 transition-colors hover:text-bad"
           >
             Apagar configuração deste navegador
           </button>

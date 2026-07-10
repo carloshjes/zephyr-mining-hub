@@ -42,25 +42,27 @@ interface RigDashboardProps {
   config: RigConfig
 }
 
-// Vermelho SÓ pra alerta: "abaixo" é alerta em contorno, "offline" é alerta
-// sólido; o estado bom fica no roxo de marca. Sempre texto, nunca só cor.
+// Estado binário da direção v2: positivo=verde (good), negativo=laranja
+// (bad) — o vermelho saiu do sistema. "Abaixo" e "offline" são AMBOS
+// negativos: quem os distingue é o TEXTO e o peso (contorno vs sólido),
+// nunca só a cor (daltonismo).
 const STATUS_PRESENTATION: Record<
   RigStatusKind,
   { label: string; className: string; dot: string }
 > = {
   normal: {
     label: 'Minerando normal',
-    className: 'border-zeph-500/60 text-zeph-300',
-    dot: 'bg-zeph-300',
+    className: 'border-good/60 text-good',
+    dot: 'bg-good',
   },
   below: {
     label: 'Hashrate abaixo do esperado',
-    className: 'border-alert/60 text-alert',
-    dot: 'bg-alert',
+    className: 'border-bad/60 text-bad',
+    dot: 'bg-bad',
   },
   offline: {
     label: 'Offline',
-    className: 'border-alert bg-alert text-ink-950 font-semibold',
+    className: 'border-bad bg-bad text-ink-950 font-semibold',
     dot: 'bg-ink-950',
   },
 }
@@ -72,12 +74,12 @@ function StatusBadge({ status, detail }: { status: RigStatusKind; detail: string
       <span
         data-testid="rig-status"
         data-status={status}
-        className={`inline-flex items-center gap-2 border px-3 py-1 font-mono text-sm ${className}`}
+        className={`inline-flex items-center gap-2 border px-3 py-1 font-mono text-body ${className}`}
       >
         <span aria-hidden className={`h-2 w-2 rounded-full ${dot}`} />
         [ {label} ]
       </span>
-      <span className="font-mono text-[11px] text-mist-400">{detail}</span>
+      <span className="font-mono text-caption text-mist-400">{detail}</span>
     </div>
   )
 }
@@ -86,10 +88,10 @@ function WorkersTable({ snapshot }: { snapshot: MinerSnapshot }) {
   if (snapshot.workers.length === 0) return null
   return (
     <div className="overflow-x-auto border-y border-hairline">
-      <table className="w-full min-w-[560px] text-sm">
+      <table className="w-full min-w-[560px] text-body">
         <caption className="sr-only">Workers desta carteira na pool</caption>
         <thead>
-          <tr className="border-b border-hairline font-mono text-[11px] text-mist-400">
+          <tr className="border-b border-hairline font-mono text-caption text-mist-400">
             <th scope="col" className="px-3 py-2.5 text-left font-medium">Worker</th>
             <th scope="col" className="px-3 py-2.5 text-right font-medium">Hashrate</th>
             <th scope="col" className="px-3 py-2.5 text-right font-medium">Shares válidas</th>
@@ -97,13 +99,13 @@ function WorkersTable({ snapshot }: { snapshot: MinerSnapshot }) {
             <th scope="col" className="px-3 py-2.5 text-right font-medium">Último sinal</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-hairline font-mono text-xs">
+        <tbody className="divide-y divide-hairline font-mono text-label">
           {snapshot.workers.map((worker) => (
             <tr key={worker.name} className={worker.offline ? 'text-mist-400' : ''}>
               <td className="px-3 py-2.5 whitespace-nowrap">
                 {worker.name}
                 {worker.offline && (
-                  <span className="ml-2 text-[11px] text-alert">[ offline ]</span>
+                  <span className="ml-2 text-caption text-bad">[ offline ]</span>
                 )}
               </td>
               <td className="px-3 py-2.5 text-right whitespace-nowrap">
@@ -219,12 +221,12 @@ export function RigDashboard({ config }: RigDashboardProps) {
       {/* ------- região dominante: o sinal do rig + rail com a pool ------- */}
       <section className="lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
-          <p className="font-mono text-[11px] tracking-wide text-mist-400">[ SINAL DO RIG ]</p>
+          <p className="font-mono text-caption tracking-wide text-mist-400">[ SINAL DO RIG ]</p>
           {statusReady ? (
             <>
               <p
-                className={`mt-1 text-[clamp(3.5rem,10vw,8rem)] leading-none font-semibold tracking-tighter ${
-                  status === 'offline' ? 'text-alert' : 'text-zeph-300'
+                className={`mt-1 text-headline font-semibold tracking-tighter ${
+                  status === 'offline' ? 'text-bad' : 'text-zeph-300'
                 }`}
               >
                 {orDash(signalHashrate, formatHashrate)}
@@ -244,7 +246,7 @@ export function RigDashboard({ config }: RigDashboardProps) {
         {/* Rail: as demais métricas da carteira na pool */}
         <aside className="mt-8 lg:mt-0 lg:border-l lg:border-hairline lg:pl-8">
           <header className="flex flex-wrap items-baseline justify-between gap-2 pb-3">
-            <h2 className="text-sm font-medium text-mist-100">
+            <h2 className="text-lede font-medium text-mist-100">
               Na pool{' '}
               <a
                 href={pool?.website}
@@ -255,7 +257,7 @@ export function RigDashboard({ config }: RigDashboardProps) {
                 {pool?.name}
               </a>
             </h2>
-            <p className="font-mono text-[11px] text-mist-400">
+            <p className="font-mono text-caption text-mist-400">
               a cada {POOL_POLL_MS / 1_000} s
               {poolPoll.lastUpdatedAt !== undefined &&
                 ` · ${formatTime(new Date(poolPoll.lastUpdatedAt))}`}
@@ -322,8 +324,8 @@ export function RigDashboard({ config }: RigDashboardProps) {
       {xmrigAddress !== undefined && (
         <section className="space-y-4">
           <header className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-sm font-medium text-mist-100">XMRig local</h2>
-            <p className="font-mono text-[11px] text-mist-400">
+            <h2 className="text-lede font-medium text-mist-100">XMRig local</h2>
+            <p className="font-mono text-caption text-mist-400">
               http://{xmrigAddress} · a cada {XMRIG_POLL_MS / 1_000} s
             </p>
           </header>
@@ -365,12 +367,12 @@ export function RigDashboard({ config }: RigDashboardProps) {
           ) : (
             // Degradação graciosa: XMRig fora do ar NÃO quebra a tela — os
             // dados da pool acima continuam de pé (requisito do módulo)
-            <div className="border-l-2 border-hairline py-1 pl-3 text-sm text-mist-300">
-              <span aria-hidden className="mr-2 font-mono text-[11px] text-mist-400">
+            <div className="border-l-2 border-hairline py-1 pl-3 text-body text-mist-300">
+              <span aria-hidden className="mr-2 font-mono text-caption text-mist-400">
                 [ SEM SINAL LOCAL ]
               </span>
               XMRig local não alcançável em http://{xmrigAddress} — mostrando só os dados da pool.
-              <span className="mt-1 block text-xs text-mist-400">
+              <span className="mt-1 block text-label text-mist-400">
                 Confira se o XMRig está rodando com <code className="font-mono">--http-enabled --http-port {xmrigAddress.split(':')[1] ?? ''}</code>{' '}
                 nesta máquina. Alguns navegadores (Safari, por exemplo) bloqueiam página https
                 acessando serviço local em http.

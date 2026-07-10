@@ -75,10 +75,15 @@ function compareRows(a: PoolRow, b: PoolRow, sort: SortState): number {
   return (Number(aValue) - Number(bValue)) * direction
 }
 
-// Destaque na convenção da direção: rótulo mono entre colchetes, sem pill
+// Destaque na convenção da direção: rótulo mono entre colchetes, sem pill.
+// Decisão v2 (documentada em NOTES.md): os chips seguem em zeph-300, NÃO em
+// verde — verde é voz de ESTADO (saudável/normal); "maior hashrate"/"menor
+// fee" é ranking comparativo, e pintar ranking de verde diluiria a semântica
+// binária good/bad (além de brigar com o laranja de "indisponível" na mesma
+// tabela).
 function highlightChip(text: string) {
   return (
-    <span className="font-mono text-[11px] whitespace-nowrap text-zeph-300">[ {text} ]</span>
+    <span className="font-mono text-caption whitespace-nowrap text-zeph-300">[ {text} ]</span>
   )
 }
 
@@ -106,7 +111,7 @@ function SortableHeader({ label, sortKey, sort, onSort, align = 'right' }: Sorta
         } ${align === 'right' ? 'justify-end text-right' : 'justify-start text-left'}`}
       >
         {label}
-        <span aria-hidden className={`text-[10px] ${isActive ? 'text-zeph-300' : 'text-mist-600'}`}>
+        <span aria-hidden className={`text-caption ${isActive ? 'text-zeph-300' : 'text-mist-600'}`}>
           {isActive ? (sort.dir === 'asc' ? '▲' : '▼') : '↕'}
         </span>
       </button>
@@ -171,12 +176,12 @@ export function PoolsPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Bússola de Pools</h1>
-          <p className="mt-1 text-sm text-mist-400">
+          <h1 className="text-data-md font-semibold tracking-tight">Bússola de Pools</h1>
+          <p className="mt-1 text-body text-mist-400">
             Comparador das pools ZEPH ativas — clique num cabeçalho pra ordenar.
           </p>
         </div>
-        <p className="font-mono text-[11px] text-mist-400">
+        <p className="font-mono text-caption text-mist-400">
           Atualização automática a cada {POLL_INTERVAL_MS / 1_000} s
           {poll.lastUpdatedAt !== undefined &&
             ` · última: ${formatTime(new Date(poll.lastUpdatedAt))}`}
@@ -192,13 +197,13 @@ export function PoolsPage() {
       )}
 
       <div className="overflow-x-auto border-y border-hairline">
-        <table className="w-full min-w-[920px] text-sm">
+        <table className="w-full min-w-[920px] text-body">
           <caption className="sr-only">
             Comparação das pools de mineração de Zephyr: fee, hashrate, mineradores, pagamento
             mínimo, luck e altura de bloco reportada
           </caption>
           <thead>
-            <tr className="border-b border-hairline font-mono text-[11px]">
+            <tr className="border-b border-hairline font-mono text-caption">
               <SortableHeader label="Pool" sortKey="name" sort={sort} onSort={handleSort} align="left" />
               <SortableHeader label="Fee" sortKey="fee" sort={sort} onSort={handleSort} />
               <SortableHeader label="Hashrate" sortKey="hashrate" sort={sort} onSort={handleSort} />
@@ -235,7 +240,7 @@ export function PoolsPage() {
                   {def.kind === 'unavailable' ? (
                     // Pool conhecida mas ainda sem integração viável do navegador
                     // (CORS/API) — motivo visível, detalhe nos TODOs de pools.ts
-                    <td colSpan={7} className="px-3 py-3 text-xs text-mist-400">
+                    <td colSpan={7} className="px-3 py-3 text-label text-mist-400">
                       sem integração — {def.reason}
                     </td>
                   ) : poll.isLoading ? (
@@ -244,31 +249,31 @@ export function PoolsPage() {
                     </td>
                   ) : errorMessage !== undefined ? (
                     // Falha só desta pool: a linha avisa e as demais seguem de pé
-                    <td colSpan={7} className="px-3 py-3 text-xs text-alert" title={errorMessage}>
-                      <span aria-hidden className="mr-1 font-mono text-[11px]">[ ! ]</span>
+                    <td colSpan={7} className="px-3 py-3 text-label text-bad" title={errorMessage}>
+                      <span aria-hidden className="mr-1 font-mono text-caption">[ ! ]</span>
                       indisponível agora — tentando de novo automaticamente
                     </td>
                   ) : (
                     <>
-                      <td className="px-3 py-3 text-right font-mono text-xs">
+                      <td className="px-3 py-3 text-right font-mono text-label">
                         {orDash(snapshot?.fee, (value) => `${formatNumber(value, 2)}%`)}
                       </td>
-                      <td className="px-3 py-3 text-right font-mono text-xs">
+                      <td className="px-3 py-3 text-right font-mono text-label">
                         {orDash(snapshot?.hashrate, formatHashrate)}
                       </td>
-                      <td className="px-3 py-3 text-right font-mono text-xs">
+                      <td className="px-3 py-3 text-right font-mono text-label">
                         {orDash(snapshot?.miners, formatInteger)}
                         {snapshot?.workers !== undefined && (
-                          <span className="block text-[11px] text-mist-400">
+                          <span className="block text-caption text-mist-400">
                             {formatInteger(snapshot.workers)} workers
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-right font-mono text-xs">
+                      <td className="px-3 py-3 text-right font-mono text-label">
                         {orDash(snapshot?.minPayout, (value) => formatZeph(value, 2))}
                       </td>
                       <td
-                        className="px-3 py-3 text-right font-mono text-xs"
+                        className="px-3 py-3 text-right font-mono text-label"
                         title={def.kind === 'integrated' ? def.luckNote : undefined}
                       >
                         {orDash(snapshot?.luck, (value) => `${formatNumber(value, 1)}%`)}
@@ -276,7 +281,7 @@ export function PoolsPage() {
                       <td className="px-3 py-3">
                         <LuckSparkline readings={luckHistory[def.id] ?? []} poolName={def.name} />
                       </td>
-                      <td className="px-3 py-3 text-right font-mono text-xs">
+                      <td className="px-3 py-3 text-right font-mono text-label">
                         {orDash(snapshot?.height, formatInteger)}
                       </td>
                     </>
@@ -288,7 +293,7 @@ export function PoolsPage() {
         </table>
       </div>
 
-      <div className="space-y-1 text-xs text-mist-400">
+      <div className="space-y-1 text-label text-mist-400">
         <p>
           Luck/effort: 100% = neutro; abaixo de 100% = blocos achados com menos trabalho que o
           esperado. A medição varia por pool (passe o mouse sobre o valor pra ver a fonte) —

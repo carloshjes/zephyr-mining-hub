@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>zeph 252° vs 244°</title>
+<style>
+  body { background:#0a0a0a; color:#edebf4; font-family:Consolas,"Cascadia Mono",monospace; padding:40px; margin:0; }
+  .row { display:flex; gap:64px; max-width:1100px; }
+  .col { flex:1; }
+  h2 { font-size:13px; font-weight:normal; color:#8b86a0; margin:0 0 16px; letter-spacing:.05em; }
+  .big { font-size:96px; font-weight:700; letter-spacing:-0.04em; line-height:1; margin:0 0 28px; }
+  .chip { display:flex; align-items:center; gap:14px; margin-bottom:12px; }
+  .sw { width:140px; height:48px; flex:none; }
+  .label { font-size:12px; color:#8b86a0; }
+  .ref { margin-top:40px; border-top:1px solid #221f29; padding-top:20px; }
+  .refsw { width:72px; height:36px; display:inline-block; margin-right:6px; vertical-align:middle; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="col">
+      <h2>[ R1 · MATIZ ≈250–252° · R &gt; G — puxa pra lavanda-quente ]</h2>
+      <div class="big" style="color:#a996f5">65,0%</div>
+      <div class="chip"><div class="sw" style="background:#a996f5"></div><span class="label">zeph-300 #a996f5 · h 252,0°</span></div>
+      <div class="chip"><div class="sw" style="background:#6f5fc4"></div><span class="label">zeph-500 #6f5fc4 · h 249,5°</span></div>
+      <div class="chip"><div class="sw" style="background:#463c77"></div><span class="label">zeph-700 #463c77 · h 250,2°</span></div>
+      <div class="chip"><div class="sw" style="background:#352d54"></div><span class="label">zeph-800 #352d54 · h 252,3°</span></div>
+    </div>
+    <div class="col">
+      <h2>[ v2 · MATIZ ≈244° · R ≈ G — o índigo do site oficial ]</h2>
+      <div class="big" style="color:#9c96f5">65,0%</div>
+      <div class="chip"><div class="sw" style="background:#9c96f5"></div><span class="label">zeph-300 #9c96f5 · h 243,8°</span></div>
+      <div class="chip"><div class="sw" style="background:#665fc4"></div><span class="label">zeph-500 #665fc4 · h 244,2°</span></div>
+      <div class="chip"><div class="sw" style="background:#403c77"></div><span class="label">zeph-700 #403c77 · h 244,1°</span></div>
+      <div class="chip"><div class="sw" style="background:#302d54"></div><span class="label">zeph-800 #302d54 · h 244,6°</span></div>
+    </div>
+  </div>
+  <div class="ref">
+    <span class="label">norte de matiz — paleta medida no zephyrprotocol.com (getComputedStyle):&nbsp;&nbsp;</span><br><br>
+    <span class="refsw" style="background:#c4c1e7"></span>
+    <span class="refsw" style="background:#827fae"></span>
+    <span class="refsw" style="background:#464372"></span>
+    <span class="refsw" style="background:#322f5e"></span>
+    <span class="refsw" style="background:#282554"></span>
+    <span class="label">&nbsp;#c4c1e7 · #827fae · #464372 · #322f5e · #282554 — todas ≈244°</span>
+  </div>
+</body>
+</html>

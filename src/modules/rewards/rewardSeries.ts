@@ -22,16 +22,36 @@ export interface RewardSeriesDef {
   color: string
   /** Opacidade do preenchimento (o degrau escuro precisa de mais presença). */
   washOpacity: number
+  /** Textura do preenchimento (v2): diferenciação de série que NÃO depende
+      de matiz — a rampa é monocromática por decisão de marca e as fatias são
+      dados neutros (não ganham verde/laranja de estado). Desenhada com
+      <line>/<circle> dentro de <pattern> (nunca <rect>/<path> — os seletores
+      do rewards-e2e contam paths por cor e acham o overlay por rect). */
+  texture?: 'hatch' | 'dot'
   /** Borda tracejada = encoding secundário da série fora da rampa roxa. */
   dashedEdge?: boolean
 }
 
 // Ordem = ordem de empilhamento (base → topo) E de dominância da rampa
 // (dominante = mais claro). Não reordenar sem revalidar a rampa.
+// Texturas: dominante fica lisa (calma), reserva = hachura diagonal,
+// yield = pontilhado — legíveis na legenda a distância de leitura normal.
 export const REWARD_SERIES: readonly RewardSeriesDef[] = [
   { key: 'miner', label: 'Minerador', color: 'var(--color-zeph-300)', washOpacity: 0.28 },
-  { key: 'reserve', label: 'Reserva', color: 'var(--color-zeph-500)', washOpacity: 0.28 },
-  { key: 'yield', label: 'Yield', color: 'var(--color-zeph-700)', washOpacity: 0.55 },
+  {
+    key: 'reserve',
+    label: 'Reserva',
+    color: 'var(--color-zeph-500)',
+    washOpacity: 0.22,
+    texture: 'hatch',
+  },
+  {
+    key: 'yield',
+    label: 'Yield',
+    color: 'var(--color-zeph-700)',
+    washOpacity: 0.45,
+    texture: 'dot',
+  },
   {
     key: 'governance',
     label: 'Governança',

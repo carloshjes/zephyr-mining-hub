@@ -1,38 +1,110 @@
 @import "tailwindcss";
 
-/* Tokens da direção visual "Sinal Técnico" (2026-07-09) — fonte única de cor
-   do produto. Nenhum componente usa hex próprio: ou utilitário Tailwind gerado
-   daqui, ou var(--color-*) quando a cor é data-driven (séries de gráfico).
+/* Tokens da direção visual "Sinal Técnico" v2 (2026-07-10) — fonte única de
+   cor E tipografia do produto. Nenhum componente usa hex ou tamanho de fonte
+   próprio: ou utilitário Tailwind gerado daqui, ou var(--color-*) quando o
+   valor é data-driven (séries de gráfico).
 
-   Contraste conferido com script real (WCAG 2.2) contra ink-950 #0A0A0E:
-   - mist-100 16,7:1 · mist-300 9,6:1 · mist-400 5,7:1 (piso pra texto corrido)
-   - zeph-300 7,9:1 (texto ok) · zeph-500 3,9:1 (gráfico/texto grande APENAS)
-   - alert 5,1:1 (texto de alerta ok)
-   - zeph-700 2,0:1 e zeph-800/mist-600/hairline: SÓ gráfico-com-alívio ou
-     decoração — nunca texto. Rampa do gráfico (zeph-300→500→700) validada
-     como ordinal com validate_palette.js da skill de dataviz. */
+   v2 sobre o R1 (evidência em NOTES.md, medição com scripts/contrast-check.mjs):
+   - Fundo neutralizado #0a0a0a (referência rig.ai medida: croma zero) +
+     textura scanline monocromática — a ÚNICA exceção à regra anti-gradiente.
+   - Família zeph recalibrada pro matiz ≈244° (paleta oficial medida no
+     zephyrprotocol.com via getComputedStyle); S e L preservados do R1.
+   - Vermelho alert REMOVIDO do sistema. Cor semântica agora é binária:
+     good (verde) = positivo/saudável · bad (laranja) = negativo/erro/offline.
+   - Escala tipográfica de 8 degraus em --text-* (fim do salto manchete→poeira).
+
+   Contraste MEDIDO (WCAG 2.2) contra ink-950 #0a0a0a / listra da textura
+   #0f0f0f / ink-900:
+   - mist-100 16,8:1 · mist-300 9,6:1 · mist-400 5,7:1 (piso de texto corrido;
+     5,5:1 no pior caso da listra — segue AA)
+   - zeph-300 7,6:1 (texto ok) · zeph-500 3,8:1 (gráfico/texto grande APENAS)
+   - good 8,7:1 e bad 7,1:1 (texto ok em qualquer fundo do sistema; texto
+     ink-950 sobre chapado good/bad: 8,7:1 / 7,1:1)
+   - zeph-700 2,0:1 (1,94:1 na listra) e zeph-800/mist-600/hairline: SÓ
+     gráfico-com-alívio ou decoração — nunca texto (mesma política do R1). */
 @theme {
-  /* Fundo unificado quase preto (não slate azulado) + superfície elevada */
-  --color-ink-950: #0a0a0e;
+  /* Fundo unificado quase preto NEUTRO (sem tinta azul) + superfície elevada.
+     ink-900 mantém tinta roxa de propósito: é a elevação de marca sobre o
+     fundo neutro (tooltip, thead sticky). */
+  --color-ink-950: #0a0a0a;
   --color-ink-900: #141119;
 
   /* Divisor hairline — substitui a borda pesada arredondada das caixas */
   --color-hairline: #221f29;
 
-  /* Família de roxo herdada da marca Zephyr */
-  --color-zeph-300: #a996f5; /* destaque, manchete, fatia dominante */
-  --color-zeph-500: #6f5fc4; /* fatia secundária, elementos de suporte */
-  --color-zeph-700: #463c77; /* fatia terciária nos GRÁFICOS (piso 2:1) */
-  --color-zeph-800: #352d54; /* decoração discreta (tints, ornamento) */
+  /* Família de roxo da marca Zephyr, matiz ≈244° (medido no site oficial;
+     antes ≈250–252°, que puxava pra lavanda-quente) */
+  --color-zeph-300: #9c96f5; /* destaque, manchete, fatia dominante */
+  --color-zeph-500: #665fc4; /* fatia secundária, elementos de suporte */
+  --color-zeph-700: #403c77; /* fatia terciária nos GRÁFICOS (piso 2:1) */
+  --color-zeph-800: #302d54; /* decoração discreta (tints, ornamento) */
 
-  /* Cinza-roxo pra texto sobre o fundo escuro (não cinza puro) */
+  /* Cinza-roxo pra texto sobre o fundo escuro (não cinza puro; croma baixo,
+     fica fora da recalibração de matiz — diferença imperceptível) */
   --color-mist-100: #edebf4; /* texto principal */
   --color-mist-300: #b7b2c9; /* texto secundário */
   --color-mist-400: #8b86a0; /* texto muted — piso AA de texto corrido */
   --color-mist-600: #57536a; /* SÓ decorativo (2,7:1) — nunca texto */
 
-  /* Vermelho RESERVADO pra alerta (reserva < 4,0, erro, offline). Nada mais. */
-  --color-alert: #e8492f;
+  /* Cores semânticas de estado — BINÁRIO, sem meio-termo:
+     good = positivo/saudável/normal · bad = negativo/crítico/erro/offline.
+     O vermelho alert do R1 saiu do sistema por completo. */
+  --color-good: #22c55e;
+  --color-bad: #f97316;
+
+  /* Escala tipográfica (8 degraus) — todo tamanho de fonte do produto vem
+     daqui; proibido text-[Npx] novo em componente.
+     caption  metadado mono, eixos, tags [ ... ]
+     label    legenda, célula de tabela, nota de rodapé
+     body     texto corrido
+     lede     parágrafo-destaque, título de seção
+     data-md  h1 de módulo, valor de stat no rail
+     data-lg  dígito médio (countdown, readout)
+     headline hero numérico dos módulos (rede/rig)
+     display  manchete full-bleed do Raio-X */
+  --text-caption: 0.6875rem;
+  --text-caption--line-height: 1.35;
+  --text-label: 0.75rem;
+  --text-label--line-height: 1.5;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.6;
+  --text-lede: 1rem;
+  --text-lede--line-height: 1.55;
+  --text-data-md: 1.375rem;
+  --text-data-md--line-height: 1.2;
+  --text-data-lg: 2.125rem;
+  --text-data-lg--line-height: 1.15;
+  --text-headline: clamp(3.5rem, 10vw, 8rem);
+  --text-headline--line-height: 1;
+  --text-display: clamp(4.5rem, 15vw, 13rem);
+  --text-display--line-height: 1;
+  /* Sub da manchete ("pro minerador") — subordinado ao display, só no Raio-X */
+  --text-display-sub: clamp(2.5rem, 8vw, 7rem);
+  --text-display-sub--line-height: 1;
+
+  /* Movimento (v2): entrada draw-in dos gráficos e pulso de "dado novo".
+     Todo uso vem acompanhado de motion-reduce:animate-none — sem exceção. */
+  --animate-chart-draw: chart-draw 700ms cubic-bezier(0.33, 1, 0.68, 1) both;
+  --animate-data-pulse: data-pulse 900ms ease-out;
+
+  @keyframes chart-draw {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @keyframes data-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    35% {
+      opacity: 0.45;
+    }
+  }
 
   /* Monoespaçada só pra metadado técnico (altura de bloco, timestamp,
      rótulos [ ENTRE COLCHETES ], eixos) — nunca corpo de texto */
@@ -44,5 +116,16 @@
 @layer base {
   body {
     @apply bg-ink-950 text-mist-100 antialiased;
+    /* Textura scanline monocromática (referência rig.ai): listra branca a 2%
+       a cada 3px. EXCEÇÃO explícita e única à regra "proibido gradiente" —
+       não abre precedente pra gradiente decorativo colorido em lugar nenhum.
+       Pior caso de contraste medido contra a listra #0f0f0f (NOTES.md). */
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgb(255 255 255 / 0.02) 0px,
+      rgb(255 255 255 / 0.02) 1px,
+      transparent 1px,
+      transparent 3px
+    );
   }
 }

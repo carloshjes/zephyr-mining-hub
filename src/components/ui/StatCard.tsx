@@ -4,9 +4,9 @@ import { Skeleton } from './Skeleton'
 
 // Stat tile padrão do produto (direção "Sinal Técnico"): sem caixa — régua
 // hairline no topo, rótulo em monoespaçada, valor em semibold. O delta é
-// NEUTRO nas duas direções (o glifo ▲/▼ + sinal carregam o sentido): o
-// vermelho é reservado pra alerta de verdade (piso, erro, offline) — uma
-// oscilação diária não é alerta.
+// NEUTRO nas duas direções (o glifo ▲/▼ + sinal carregam o sentido): na regra
+// v2, verde/laranja são pra ESTADO (saudável/negativo) — uma oscilação diária
+// de preço não é estado, então segue neutra.
 
 export interface StatDelta {
   /** Variação percentual (ex.: -3.2). */
@@ -29,7 +29,7 @@ interface StatCardProps {
 function DeltaChip({ percent, label }: StatDelta) {
   const isUp = percent >= 0
   return (
-    <span className="inline-flex items-baseline gap-1 font-mono text-xs text-mist-300">
+    <span className="inline-flex items-baseline gap-1 font-mono text-label text-mist-300">
       <span aria-hidden>{isUp ? '▲' : '▼'}</span>
       {`${isUp ? '+' : '−'}${formatNumber(Math.abs(percent), 1, 1)}%`}
       <span className="text-mist-400">{label}</span>
@@ -41,15 +41,15 @@ export function StatCard({ label, value, sub, delta, badge, isLoading }: StatCar
   return (
     <div className="border-t border-hairline pt-3">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-mono text-[11px] tracking-wide text-mist-400">{label}</h3>
+        <h3 className="font-mono text-caption tracking-wide text-mist-400">{label}</h3>
         {badge}
       </div>
-      <p className="mt-1.5 text-2xl font-semibold tracking-tight">
+      <p className="mt-1.5 text-data-md font-semibold tracking-tight">
         {isLoading ? <Skeleton /> : value}
       </p>
       <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         {delta && !isLoading && <DeltaChip {...delta} />}
-        {sub && <p className="text-xs text-mist-400">{sub}</p>}
+        {sub && <p className="text-label text-mist-400">{sub}</p>}
       </div>
     </div>
   )

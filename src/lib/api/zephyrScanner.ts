@@ -143,15 +143,46 @@ export async function getBlockRewardsRange(
 // não-determinístico no servidor: em 2026-07-09 a mesma chamada devolveu ora
 // um snapshot ~58 dias atrasado, ora ~15 h — nunca confiar nele pra "mais
 // recente".
-async function getAnchorHeight(signal?: AbortSignal): Promise<number> {
-  const info = await getNetworkInfo(signal)
-  if (info.height === undefined) {
-    throw new ApiError('Explorer não devolveu a altura atual da rede', `${BASE_URL}/blockrewards`)
+//
+// ÂNCORA COMPARTILHADA (v2, 2026-07-10): os consumidores paralelos da página
+// (série de recompensas E série de ratio; ×2 com o StrictMode em dev) pediam
+// cada um a PRÓPRIA âncora — probe real registrou 6 chamadas de networkinfo
+// numa única carga (NOTES.md). Quando só a chamada do ratio pendurava
+// (flakiness conhecida do explorer), o rail ficava dezenas de segundos em
+// skeleton com o resto da página viva — o "retângulo vazio". Uma promise
+// compartilhada por janela curta colapsa a rajada numa chamada só e amarra as
+// duas séries à MESMA âncora (o rótulo [ MESMA JANELA DE BLOCOS ] vira
+// literal, não aproximado).
+let sharedAnchor: { at: number; promise: Promise<number> } | undefined
+const ANCHOR_SHARE_MS = 5_000
+
+async function getAnchorHeight(_signal?: AbortSignal): Promise<number> {
+  const now = Date.now()
+  if (!sharedAnchor || now - sharedAnchor.at > ANCHOR_SHARE_MS) {
+    // Sem o signal do caller de propósito: o abort de um consumidor
+    // (unmount/refresh) não pode matar a âncora dos outros. Quem abortou
+    // descarta o resultado sozinho — o fetch seguinte dele recebe o signal
+    // já abortado e lança na hora.
+    const promise = getNetworkInfo().then((info) => {
+      if (info.height === undefined) {
+        throw new ApiError(
+          'Explorer não devolveu a altura atual da rede',
+          `${BASE_URL}/blockrewards`,
+        )
+      }
+      // `height` do daemon é a CONTAGEM de blocos (a próxima altura a
+      // minerar); o bloco mais novo minerado é height-1 — confirmado em
+      // 2026-07-09 (com âncora em `height`, janelas voltavam com N-1)
+      return info.height - 1
+    })
+    // Falha não fica cacheada: a próxima chamada tenta de novo (e o catch
+    // aqui evita unhandledrejection quando todos os awaiters já abortaram)
+    promise.catch(() => {
+      if (sharedAnchor?.promise === promise) sharedAnchor = undefined
+    })
+    sharedAnchor = { at: now, promise }
   }
-  // `height` do daemon é a CONTAGEM de blocos (a próxima altura a minerar);
-  // o bloco mais novo minerado é height-1 — confirmado em 2026-07-09
-  // (com âncora em `height`, janelas de N blocos voltavam com N-1)
-  return info.height - 1
+  return sharedAnchor.promise
 }
 
 // Folga acima da âncora: o indexador do Scanner pode estar alguns blocos à

@@ -23,7 +23,7 @@ export function LuckSparkline({ readings, poolName }: LuckSparklineProps) {
   // Com menos de 2 leituras não existe tendência — dizemos isso, sem fingir gráfico
   if (readings.length < 2) {
     return (
-      <span className="font-mono text-[11px] text-mist-400">
+      <span className="font-mono text-caption text-mist-400">
         coletando… ({readings.length}/2)
       </span>
     )

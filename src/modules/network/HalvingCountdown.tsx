@@ -35,8 +35,8 @@ function CountdownSegment({ value, unit }: { value: number; unit: string }) {
     <span className="flex flex-col items-center">
       {/* Dígitos em mono (metadado técnico, na convenção da direção) —
           a faixa é secundária: o hero da tela é o hashrate da rede */}
-      <span className="font-mono text-3xl font-medium sm:text-4xl">{value}</span>
-      <span className="mt-1 font-mono text-[10px] tracking-wide text-mist-400 uppercase">
+      <span className="font-mono text-data-lg font-medium">{value}</span>
+      <span className="mt-1 font-mono text-caption tracking-wide text-mist-400 uppercase">
         {unit}
       </span>
     </span>
@@ -59,7 +59,7 @@ export function HalvingCountdown({ baseRewardAtoms, isLoading }: HalvingCountdow
   }, [])
 
   const heading = (
-    <h2 className="font-mono text-[11px] tracking-wide text-zeph-300">[ PRÓXIMO HALVING ]</h2>
+    <h2 className="font-mono text-caption tracking-wide text-zeph-300">[ PRÓXIMO HALVING ]</h2>
   )
 
   if (isLoading || !projection) {
@@ -77,8 +77,8 @@ export function HalvingCountdown({ baseRewardAtoms, isLoading }: HalvingCountdow
     return (
       <section className="border-t border-hairline pt-6">
         {heading}
-        <p className="mt-3 text-2xl font-semibold">Emissão de cauda ativa</p>
-        <p className="mt-2 text-sm text-mist-400">
+        <p className="mt-3 text-data-md font-semibold">Emissão de cauda ativa</p>
+        <p className="mt-2 text-body text-mist-400">
           A recompensa base chegou ao piso de {formatZeph(projection.nextThresholdZeph, 1)}{' '}
           por bloco e não cai mais — não há próximos halvings.
         </p>
@@ -102,14 +102,14 @@ export function HalvingCountdown({ baseRewardAtoms, isLoading }: HalvingCountdow
           </div>
         </div>
         <div className="max-w-xl">
-          <p className="text-sm text-mist-300">
+          <p className="text-body text-mist-300">
             Faltam <strong className="font-mono text-mist-100">{formatInteger(projection.blocksRemaining)}</strong>{' '}
             blocos até a recompensa base cruzar{' '}
             <strong className="font-mono text-mist-100">{formatZeph(projection.nextThresholdZeph)}</strong>{' '}
             (hoje: {formatZeph(projection.baseRewardZeph)}) — por volta de{' '}
             <strong className="text-mist-100">{formatDateTime(projection.estimatedAt)}</strong>.
           </p>
-          <p className="mt-2 text-xs text-mist-400">
+          <p className="mt-2 text-label text-mist-400">
             A emissão do Zephyr é suave (estilo Monero): a recompensa cai um pouco a cada
             bloco, sem corte abrupto. O “halving” é o marco em que ela atinge metade do
             patamar anterior. Estimativa assume blocos de 120 s (a recompensa cai

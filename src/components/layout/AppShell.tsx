@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { LogoMark } from '../ui/LogoMark'
 
 // Casca comum de navegação — os 4 módulos do produto moram aqui dentro.
 // Indicador de rota ativa na convenção da direção "Sinal Técnico": rótulo
@@ -17,14 +18,18 @@ export function AppShell() {
     // aqui impede que isso vire scroll horizontal da página
     <div className="flex min-h-screen flex-col overflow-x-clip">
       <header className="border-b border-hairline bg-ink-950">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-2">
-            <span aria-hidden className="text-xl">⛏️</span>
-            <span className="text-lg font-semibold tracking-tight">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-4 py-3.5 sm:px-6">
+          <div className="flex items-center gap-3">
+            {/* Marca F3 (halftone, estática) — decorativa: o texto ao lado é o
+                nome acessível. 38px (v2): a variação tonal por ponto só lê a
+                partir de ~32px (docs/logo-exploracao.md) — 26px ficava no piso
+                de legibilidade e desperdiçava a cintilância. */}
+            <LogoMark size={38} className="shrink-0" />
+            <span className="text-data-md font-semibold tracking-tight">
               Zephyr <span className="text-zeph-300">Mining Hub</span>
             </span>
           </div>
-          <nav className="flex flex-wrap gap-x-5 gap-y-1 font-mono text-xs tracking-wide">
+          <nav className="flex flex-wrap gap-x-5 gap-y-1 font-mono text-label tracking-wide">
             {NAV_ITEMS.map((item) => (
               <NavLink
                 key={item.to}
@@ -56,7 +61,7 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <footer className="border-t border-hairline py-4 text-center text-xs text-mist-400">
+      <footer className="border-t border-hairline py-4 text-center text-label text-mist-400">
         Dados: Zephyr Scanner API (zephyrprotocol.com), explorer.zephyrprotocol.com e APIs
         públicas das pools · projeto comunitário, sem afiliação oficial
       </footer>

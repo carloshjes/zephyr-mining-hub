@@ -460,3 +460,244 @@ intactos; integração fica pra outro prompt).
   zeph-500/zeph-700, pesos 30/28/20/15/7). Medido em screenshot: em 24px perde
   ~meio degrau de brilho (teto mist-300, 9,6:1) mas segue legível; 16px
   continua caso do sólido. F1/F2 mantêm a rampa padrão.
+
+## Integração da logo F3 no produto (2026-07-10, fecha o Prompt L1)
+
+- **Header (`src/components/ui/LogoMark.tsx`)**: os 288 pontos foram
+  EXPORTADOS do gerador real — `scripts/logo-export.mjs` abre
+  `logo-preview.html` headless SEM `?anim=1`, lê os `<rect>` já renderizados
+  do card "F3 · CINTILÂNCIA" (grade 22×22, quadrado, haste t=.18, barra na
+  espessura da haste bh=.18, sparkle seed 11, pesos [.30,.28,.20,.15,.07],
+  rampa semBranco: mist-300/zeph-300/mist-400/zeph-500/zeph-700) e valida
+  antes de gravar: viewBox 0 0 22 22, todos os tons dentro da rampa, zero
+  opacity de glitch. As 95 classes `twN` da cintilação (o `assignTwinkle`
+  roda sempre no preview) foram DESCARTADAS no export — produção 100%
+  estática. Cor por ponto via `var(--color-*)` no style (regra do projeto).
+  **Prova de fidelidade**: sonda CDP comparou o LogoMark renderizado no app
+  rect a rect com o export — 288/288 idênticos em x/y/cor computada,
+  aria-hidden (o texto "Zephyr Mining Hub" ao lado é o nome acessível),
+  nenhuma animação computada. Tamanho no header: 26px (faixa validada ≥24).
+- **Favicon (`public/favicon.svg`)**: Z̶ SÓLIDO do card CONTROLE
+  (`solidSvg({t:.18, bar:'single'}, 16)` — barra calibrada 0,52·t da rodada
+  1), com token resolvido pra hex porque favicon vive fora da cascata do app.
+  **Achado novo do teste de aba real** (Edge com janela de verdade +
+  screenshot da tab strip, não o SVG ampliado): o tema do navegador desta
+  máquina é CLARO — a recomendação mist-100 do L1 (medida contra ink-950)
+  praticamente SOME na aba branca (#edebf4 sobre branco ≈ 1,1:1). O
+  **zeph-300 `#a996f5` venceu**: lê como Z̶ na aba clara (lupa 6×
+  nearest-neighbor confirma as 3 barras + diagonal) e segue ≥6:1 contra
+  chrome escuro típico. Evidência: `.e2e-out/tab-favicon-{mist,zeph}.png` +
+  `tab-favicon-zeph-lupa.png` (regeneráveis).
+- Emoji ⛏️ removido do AppShell (a picareta era placeholder desde o Prompt 1);
+  `public/icons.svg` e rotas/lógica intactos. `npm run build` limpo;
+  design-shots re-rodado — header ok nos 3 breakpoints, nav sem sobreposição.
+
+# NOTES — Redesign v2 "Sinal Técnico" (2026-07-10, Prompt R2)
+
+Evolução dirigida do R1 a partir de uso real (screenshots de 2026-07-10) e de
+inspeção ao vivo de duas referências via Claude in Chrome + getComputedStyle
+(valores MEDIDOS, não estimados): o rig.ai (fundo oklch(0.1448 0 0) — croma
+ZERO, ou seja #0a0a0a neutro; verde #22c55e; textura scanline por
+repeating-linear-gradient de baixíssima opacidade) e o zephyrprotocol.com
+(paleta oficial #282554/#322f5e/#464372/#827fae/#c4c1e7 — TODA em matiz ≈244°,
+canal R ≈ G; nosso zeph estava em ≈250–252° com R > G, puxando pra
+lavanda-quente). Medição desta rodada reproduzível: `node
+scripts/contrast-check.mjs`.
+
+## Recalibração de matiz da família zeph (S e L preservados, só o H → 244°)
+
+| token | R1 | v2 | matiz | contraste vs fundo v2 (era no R1) |
+|---|---|---|---|---|
+| zeph-300 | #a996f5 (252,0°) | **#9c96f5** (243,8°) | destaque/texto | 7,63:1 (7,87) |
+| zeph-500 | #6f5fc4 (249,5°) | **#665fc4** (244,2°) | gráfico/texto grande | 3,77:1 (3,87) |
+| zeph-700 | #463c77 (250,2°) | **#403c77** (244,1°) | gráfico c/ alívio | 2,01:1 (2,04) |
+| zeph-800 | #352d54 (252,3°) | **#302d54** (244,6°) | decoração | 1,54:1 |
+
+Todos os degraus mantêm a mesma classe de uso do R1 (nenhum cruzou limiar de
+AA pra baixo). A rampa ordinal dos gráficos segue válida: a separação é por
+LUMINOSIDADE (intocada) e o matiz mudou por igual na família inteira. mist/
+hairline/ink-900 ficam como estão de propósito: croma baixo demais pro matiz
+ler (e a tinta roxa da elevação é marca). O favicon (zeph-300 resolvido em
+hex, fora da cascata) acompanhou: #a996f5 → #9c96f5. A LogoMark referencia
+tokens via var() — acompanhou sozinha, geometria e rampa de pontos intactas.
+
+## Fundo neutralizado + textura scanline (a exceção documentada)
+
+- ink-950: #0a0a0e → **#0a0a0a**. A diferença do R1 era só a tinta azulada
+  (R=G=10 < B=14); claridade praticamente igual — neutralizou, não clareou.
+- Textura: `repeating-linear-gradient` de listra branca a **2%**, 1px a cada
+  3px, no body (src/index.css) — reprodução do que o rig.ai faz de verdade.
+  É a ÚNICA exceção à regra "proibido gradiente": monocromática, só no fundo,
+  não abre precedente pra gradiente decorativo colorido.
+- Pior caso de contraste = em cima da listra (#0f0f0f): mist-400 5,49:1
+  (piso de texto corrido segue AA), zeph-300 7,39:1, good 8,41:1, bad 6,84:1,
+  zeph-700 1,94:1 — o degrau escuro já exigia canais de alívio no R1 (rótulo
+  direto, legenda, tooltip, tabela) e a exigência continua.
+
+## Cores semânticas good/bad — o vermelho saiu do sistema
+
+Regra v2 (binária, sem meio-termo): **good #22c55e** = positivo/saudável/
+normal · **bad #f97316** = negativo/crítico/erro/offline. O alert #e8492f do
+R1 foi REMOVIDO do @theme e de todos os usos.
+
+- good: 8,69:1 no fundo / 8,41:1 na listra / 8,20:1 no ink-900 — é
+  literalmente o verde medido no rig.ai; #4ade80 (11,4:1) ficou pastel demais
+  pra voz de status e #16a34a perde folga em texto mono pequeno (6,0:1).
+- bad: 7,06:1 / 6,84:1 / 6,67:1 — MAIS contraste que o vermelho antigo
+  (5,11:1) e ainda lê como alarme; texto ink-950 sobre bad chapado (badge
+  offline sólido) = 7,06:1. #ea580c (5,56:1) reprovado pro uso pesado em
+  caption mono; #fb923c lê "pêssego", não alarme.
+- CVD: good vs bad se aproximam em deuteranopia — por isso nenhum estado do
+  produto é só-cor: sempre texto/glifo ([ ✓ ], [ ! ], [ FALHA ], rótulo por
+  extenso) e, quando dois estados negativos coexistem (rig: abaixo vs
+  offline), o peso diferencia (contorno vs sólido), não o matiz.
+- Achado colateral da medição: o hover do botão do form do rig (mist-100
+  sobre zeph-500) media **3,77:1 — reprovava AA desde o R1**; o hover agora
+  clareia pra bg-mist-100 com texto ink-950 (16,8:1).
+
+## Causa raiz — painel do reserve ratio rendia como "retângulo vazio"
+
+Reprodução determinística com probe CDP (Edge headless) atrasando as
+respostas do networkinfo do explorer em 12 s; screenshots em
+`.e2e-out/ratio-bug-{antes,depois}-t{7,16}.png`:
+
+1. **Âncoras duplicadas**: cada série da página (recompensas E ratio) chamava
+   o PRÓPRIO `getAnchorHeight` → networkinfo em paralelo pedindo o mesmo topo.
+   Probe no estado antes: **6 chamadas de networkinfo numa única carga** (2
+   séries × StrictMode, + o efeito de troca de janela re-disparando no 2º
+   mount do StrictMode). Em produção seriam 2 por carga — e o R1 já tinha
+   registrado que o explorer às vezes PENDURA uma das chamadas paralelas.
+2. **Assimetria**: quando só a âncora do ratio pendurava, a página inteira
+   vivia (manchete, gráfico principal, "agora:" do livestats — que não é
+   ancorado) e o rail ficava em skeleton. Com timeout de 10 s × 3 tentativas
+   do http.ts, o buraco chega a ~34 s por ciclo (no probe, a t+16 s o painel
+   AINDA estava vazio).
+3. **Apresentação**: o estado de loading/vazio do rail era um `Skeleton
+   h-48` SEM moldura (zeph-800/40 sobre o fundo ≈ caixa apagada de 319×192
+   px, medido no probe) — qualquer lentidão virava "painel quebrado".
+
+Fix nas três camadas:
+- `getAnchorHeight` virou **âncora compartilhada** (promise única por janela
+  de 5 s, sem o signal dos callers — o abort de um consumidor não mata a
+  âncora do outro; falha não fica cacheada). Probe depois: **1 chamada** na
+  carga (a 2ª do log é retry legítimo pós-timeout). Bônus: as duas séries
+  agora ancoram na MESMA altura — o rótulo [ MESMA JANELA DE BLOCOS ] virou
+  literal e a coluna de ratio da tabela casa 1:1 (o e2e já tolerava pontas).
+- O painel virou **readout com moldura hairline sempre presente**: cabeçalho
+  `[ RESERVE RATIO ]` + selo de estado (verde `[ ✓ NA FAIXA ALVO ]` em
+  4,0–8,0 / laranja `[ ! ABAIXO DO PISO ]` / neutro `[ ↑ ACIMA DA FAIXA ]` /
+  `[ AGUARDANDO SÉRIE ]`–`[ SEM DADO ]`) + valor corrente grande (data-lg).
+  Carregando, com dado ou em falha, o instrumento existe — probe depois:
+  `temMoldura: true` com o skeleton DENTRO do readout.
+- O valor "agora" continua vindo do livestats (não ancorado), então o readout
+  mostra número mesmo com a série pendurada.
+
+## Escala tipográfica (9 tokens --text-*, fim do salto manchete→poeira)
+
+caption 11px (metadado mono, eixos, tags) · label 12px (legenda, tabela,
+rodapé) · body 14px (texto corrido) · lede 16px (parágrafo-destaque, título
+de seção) · data-md 22px (h1 de módulo, valor de stat) · data-lg 34px
+(readout, countdown) · headline clamp(3.5rem,10vw,8rem) (hero rede/rig) ·
+display clamp(4.5rem,15vw,13rem) (manchete do Raio-X) · display-sub
+clamp(2.5rem,8vw,7rem) (o "pro minerador"). Zero `text-[Npx]` novo em
+componente; os degraus do meio (lede/data-md/data-lg) são a resposta ao
+diagnóstico "manchete gigante vs. poeira".
+
+## Diferenciação de série sem depender de matiz (Raio-X)
+
+A rampa continua monocromática (decisão de marca do R1) — a diferenciação
+nova é por TEXTURA: minerador liso (dominante fica calmo), reserva com
+hachura diagonal, yield pontilhado, governança segue borda tracejada.
+`<pattern>` compartilhado (SeriesSwatch.tsx) desenhado só com <line>/<circle>
+e swatch de legenda/tooltip que repete a receita exata da faixa (wash +
+textura + borda 2px) — restrição deliberada: os seletores do rewards-e2e
+contam <path> por cor computada e acham o overlay de hover por
+querySelector('rect'), então padrão não pode introduzir rect/path novos.
+Fatias são dado NEUTRO: não ganharam verde/laranja (good/bad é só estado).
+
+## Movimento (draw-in + pulso), com prova
+
+- Entrada: wipe esquerda→direita por clip-path animado (keyframes
+  chart-draw, 700 ms) no grupo de marcas de dado dos DOIS gráficos — grid,
+  eixos e piso aparecem na hora; só na montagem, poll não re-anima. Probe
+  capturou o wipe no meio (inset 75%→20%) e, com prefers-reduced-motion:
+  reduce emulado, animationName=none e clip=none (estado final imediato).
+- Pulso "dado novo": keyframes data-pulse (900 ms, opacity 1→0,45→1) via
+  useDataPulse — dispara quando a VERSÃO muda (altura do bloco/valor do
+  ratio), ignora a primeira chegada (o draw-in cobre). Capturado ao vivo no
+  readout quando o livestats girou. Todo uso em par com
+  motion-reduce:animate-none, sem exceção.
+
+## Desvio documentado — rewards-e2e.mjs (espelhos de token)
+
+O script se declara espelho dos tokens ("os valores rgb() abaixo são os
+tokens resolvidos") e o R1 fixou os hex de então. A recalibração + saída do
+vermelho exigiu atualizar SÓ isso: os 4 espelhos de cor (zeph-300/500/700 e
+alert→bad), o nome da constante (STROKE_ALERT→STROKE_BAD) e o rótulo de um
+check ("vermelho reservado"→"laranja de estado negativo"). Zero mudança de
+lógica, seletor ou texto-contrato — rig-e2e e pools-e2e não têm cor nenhuma e
+ficaram intactos. Suíte re-executada: rewards normal (24 checks) + lowratio +
+brokenrewards **TUDO PASSOU em 2026-07-10** (v2).
+
+## Armadilha descoberta — compositor lento congela o draw-in (e a trava)
+
+A primeira rodada do design-shots v2 capturou os DOIS gráficos do Raio-X
+truncados a ~12% da largura em tablet/mobile — as gridlines (fora do grupo
+animado) completas e a série (dentro) cortada: o wipe do clip-path congelado
+no meio do frame. Probe ao vivo mostrou a animação COMPLETANDO normalmente
+(running → finished aos 700 ms), mas com o relógio dela andando a ~1/4 da
+velocidade real nos primeiros ~300 ms (throttling de raster do headless nos
+primeiros frames de uma navegação — hardware fraco real teria o mesmo
+sintoma). Fix: `useChartEntrance` devolve a classe de animação por 1 s a
+partir da montagem e depois a REMOVE — remover a classe salta pro estado
+final (sem clip). Navegador normal: animação de 700 ms termina antes, remoção
+invisível (na curva ease-out usada, 600/700 ms ≈ 99% do caminho). Ambiente
+lento: pula/encurta o draw-in em vez de exibir gráfico truncado. Probe pós-
+fix: anima → finished → classe some a ~1 s; design-shots re-rodado, 12/12
+capturas com gráficos completos.
+
+## Decisão — chips de destaque das pools NÃO viram verdes
+
+Avaliado (o brief deixava a escolha comigo): [ maior hashrate ]/[ menor fee ]
+seguem em zeph-300. Verde no v2 é voz de ESTADO (saudável/normal — rig
+minerando, reserva na faixa); os chips são RANKING comparativo entre pools.
+Pintá-los de verde diluiria a semântica binária good/bad e brigaria com o
+laranja de "indisponível agora" na mesma tabela (a tabela viraria painel de
+status, não comparador). Registrado também em comentário no PoolsPage.tsx.
+
+## Auto-check v2 — rubrica de 7 perguntas (6 do R1 + daltonismo)
+
+Sétima pergunta desta rodada: "um estado positivo e um negativo na mesma tela
+são diferenciáveis por alguém com daltonismo (não só pela cor)?". As 12
+capturas re-revisadas (4 telas × 3 breakpoints, .e2e-out/shot-*.png de
+2026-07-10 pós-fix da trava):
+
+- /recompensa: hierarquia sobrevive em P&B (escada display→data-lg→lede→
+  body→caption + dominância por escala); uma região dominante (manchete +
+  gráfico principal; readout no rail é secundário); anti-genérico (colchetes,
+  manchete cortada, readout-instrumento, scanline); sem cor a diferenciação
+  de série fica com as TEXTURAS (hachura/pontilhado) e rótulos; mobile
+  recompõe (rótulo gigante some, rail empilha, moldura fica); daltonismo:
+  selo verde `[ ✓ NA FAIXA ALVO ]` vs banner/trechos laranja — glifo (✓ vs !)
+  + texto por extenso carregam o sentido, não o matiz. **7/7.**
+- /rede: hashrate dominante; badge ✓/⚠ + texto; countdown em data-lg;
+  recomposição mobile ok. **7/7** (positivo e negativo não coexistem — a
+  troca de estado mantém glifo+texto).
+- /pools: tabela dominante; chips são texto; linha indisponível tem [ ! ] +
+  frase; rolagem horizontal contida no container no mobile. **7/7.**
+- /meu-rig: a tela onde positivo e negativo COEXISTEM — verde
+  `[ Minerando normal ]` (contorno + ponto + frase) contra laranja
+  `[ offline ]` nos workers (tag + linha esmaecida) e
+  `[ Hashrate abaixo do esperado ]` (contorno + frase; offline é SÓLIDO —
+  peso distingue os dois negativos entre si). Em escala de cinza todos os
+  estados continuam nomeados por texto. **7/7.**
+
+Nenhuma tela falhou em pergunta alguma (critério era ≤1 falha por tela).
+
+Evidências regeneráveis desta rodada em .e2e-out/: shot-*-{desktop,tablet,
+mobile}.png (12), ratio-bug-{antes,depois}-t{7,16}.png (bug do painel),
+zeph-hue-comparison.png (matiz antigo vs novo — página-fonte em
+scripts/zeph-hue-compare.html), rewards-{desktop,tablet,mobile,lowratio,
+brokenrewards}.png e rig-*.png/pools-normal.png dos e2e. Suíte final v2:
+rewards normal/lowratio/brokenrewards + rig normal/notfound + pools normal —
+**TUDO PASSOU em 2026-07-10**; `npm run build` limpo.

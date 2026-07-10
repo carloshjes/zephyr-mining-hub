@@ -1,16 +1,25 @@
-import { useMemo, useState, type KeyboardEvent, type PointerEvent } from 'react'
+import { useId, useMemo, useState, type KeyboardEvent, type PointerEvent } from 'react'
+import { useChartEntrance } from '../../hooks/useChartEntrance'
 import { useElementWidth } from '../../hooks/useElementWidth'
 import { formatInteger, formatNumber, formatZeph } from '../../lib/format'
 import { axisTicks, niceCeil, niceStep, type ChartMargins } from './chartGeometry'
 import { REWARD_SERIES, sharePercent, type RewardSlices } from './rewardSeries'
+import { SeriesSwatch, SeriesTexturePattern, seriesPatternId } from './SeriesSwatch'
 
 // Área empilhada da divisão da recompensa, bloco a bloco. Especificação de
 // marca da skill de dataviz: preenchimento como "wash" (~25% de opacidade) com
 // a borda superior de cada faixa em linha sólida de 2px na cor da série — a
 // borda é o encoding secundário exigido pela validação CVD (ver
-// rewardSeries.ts). Grid em hairline recessiva, rótulos em tokens de texto
-// (nunca na cor da série), tooltip via crosshair (mouse E teclado) e rótulos
-// diretos só na borda direita — o resto fica com eixo, legenda e tabela.
+// rewardSeries.ts). v2: as faixas não-dominantes ganham TEXTURA (hachura/
+// pontilhado, rewardSeries.ts) por cima do wash — diferenciação que não
+// depende de matiz, já que a rampa é monocromática de propósito. Grid em
+// hairline recessiva, rótulos em tokens de texto (nunca na cor da série),
+// tooltip via crosshair (mouse E teclado) e rótulos diretos só na borda
+// direita — o resto fica com eixo, legenda e tabela.
+//
+// Movimento (v2): o grupo de faixas entra com draw-in (wipe da esquerda pra
+// direita via clip-path) SÓ na montagem — polls seguintes não re-animam; o
+// motion-reduce:animate-none devolve o estado final estático imediato.
 
 const CHART_HEIGHT = 288
 const MARGINS: ChartMargins = { top: 14, right: 56, bottom: 28, left: 48 }
@@ -32,6 +41,8 @@ interface HoverState {
 export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
   const [containerRef, width] = useElementWidth<HTMLDivElement>()
   const [hover, setHover] = useState<HoverState | null>(null)
+  const patternBase = useId()
+  const entranceClass = useChartEntrance()
 
   const count = slices.length
   const plotWidth = Math.max(width - MARGINS.left - MARGINS.right, 0)
@@ -75,7 +86,7 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
     return (
       <div ref={containerRef} className="h-72">
         {count < 2 && width > 0 && (
-          <p className="pt-8 text-center text-sm text-mist-400">
+          <p className="pt-8 text-center text-body text-mist-400">
             Sem blocos suficientes pra desenhar a série.
           </p>
         )}
@@ -186,6 +197,20 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
       onBlur={() => hover?.source === 'keyboard' && setHover(null)}
     >
       <svg width={width} height={CHART_HEIGHT} role="img" aria-hidden>
+        {/* Padrões de textura das séries ativas (line/circle apenas — ver
+            SeriesSwatch.tsx pras restrições de seletor do e2e) */}
+        <defs>
+          {REWARD_SERIES.map((def, s) =>
+            seriesIsActive[s] && def.texture ? (
+              <SeriesTexturePattern
+                key={def.key}
+                def={def}
+                id={seriesPatternId(patternBase, def.key)}
+              />
+            ) : null,
+          )}
+        </defs>
+
         {/* Grid horizontal recessiva + rótulos do eixo y */}
         {yTicks.map((tick) => (
           <g key={tick}>
@@ -201,37 +226,60 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
               x={MARGINS.left - 8}
               y={y(tick) + 3}
               textAnchor="end"
-              className="fill-mist-400 font-mono text-[10px]"
+              className="fill-mist-400 font-mono text-caption"
             >
               {unit === 'percent' ? `${tick}%` : formatNumber(tick, 2)}
             </text>
           </g>
         ))}
-        <text x={4} y={MARGINS.top - 4} className="fill-mist-400 font-mono text-[10px]">
+        <text x={4} y={MARGINS.top - 4} className="fill-mist-400 font-mono text-caption">
           {unit === 'percent' ? '% do bloco' : 'ZEPH'}
         </text>
 
-        {/* Faixas: wash + borda superior sólida na cor da série (a cor vem de
-            var(--color-*) — em SVG isso só resolve via style, não atributo) */}
-        {REWARD_SERIES.map((def, s) =>
-          seriesIsActive[s] ? (
-            <g key={def.key}>
-              <path
-                d={bandPath(s)}
-                style={{ fill: def.color, fillOpacity: def.washOpacity }}
-              />
-              <polyline
-                points={edgePoints(s)}
-                fill="none"
-                strokeWidth={2}
-                strokeLinejoin="round"
-                strokeLinecap="round"
-                strokeDasharray={def.dashedEdge ? '4 3' : undefined}
-                style={{ stroke: def.color }}
-              />
-            </g>
-          ) : null,
-        )}
+        {/* Faixas: wash + textura + borda superior sólida na cor da série (a
+            cor vem de var(--color-*) — em SVG isso só resolve via style, não
+            atributo). O grupo inteiro entra com draw-in na montagem, com a
+            trava de assentamento do useChartEntrance. */}
+        <g className={entranceClass}>
+          {REWARD_SERIES.map((def, s) =>
+            seriesIsActive[s] ? (
+              <g key={def.key}>
+                <path
+                  d={bandPath(s)}
+                  style={{ fill: def.color, fillOpacity: def.washOpacity }}
+                />
+                {def.texture && (
+                  <path
+                    d={bandPath(s)}
+                    style={{ fill: `url(#${seriesPatternId(patternBase, def.key)})` }}
+                  />
+                )}
+                <polyline
+                  points={edgePoints(s)}
+                  fill="none"
+                  strokeWidth={2}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  strokeDasharray={def.dashedEdge ? '4 3' : undefined}
+                  style={{ stroke: def.color }}
+                />
+              </g>
+            ) : null,
+          )}
+
+          {/* Rótulos diretos: % de cada fatia no bloco mais recente — dentro
+              do grupo animado, aparecem no fim do wipe */}
+          {endLabels.map((label) => (
+            <text
+              key={label.key}
+              x={MARGINS.left + plotWidth + 6}
+              y={label.y + 3}
+              className="fill-mist-100 font-mono text-caption"
+            >
+              {label.text}
+            </text>
+          ))}
+        </g>
 
         {/* Rótulos do eixo x (alturas de bloco) */}
         {xTicks.map((tick) => (
@@ -240,21 +288,9 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
             x={xForHeight(tick)}
             y={CHART_HEIGHT - 8}
             textAnchor="middle"
-            className="fill-mist-400 font-mono text-[10px]"
+            className="fill-mist-400 font-mono text-caption"
           >
             {formatInteger(tick)}
-          </text>
-        ))}
-
-        {/* Rótulos diretos: % de cada fatia no bloco mais recente */}
-        {endLabels.map((label) => (
-          <text
-            key={label.key}
-            x={MARGINS.left + plotWidth + 6}
-            y={label.y + 3}
-            className="fill-mist-100 font-mono text-[11px]"
-          >
-            {label.text}
           </text>
         ))}
 
@@ -285,19 +321,15 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
 
       {hovered && (
         <div
-          className="pointer-events-none absolute top-2 z-10 w-max -translate-x-1/2 border border-hairline bg-ink-900 px-3 py-2 text-xs"
+          className="pointer-events-none absolute top-2 z-10 w-max -translate-x-1/2 border border-hairline bg-ink-900 px-3 py-2 text-label"
           style={{ left: tooltipLeft }}
         >
-          <p className="mb-1 font-mono text-[11px] text-mist-400">
+          <p className="mb-1 font-mono text-caption text-mist-400">
             [ BLOCO {formatInteger(hovered.height)} ]
           </p>
           {REWARD_SERIES.map((def) => (
             <p key={def.key} className="flex items-center gap-2 leading-5">
-              <span
-                aria-hidden
-                className="inline-block h-0.5 w-3"
-                style={{ backgroundColor: def.color }}
-              />
+              <SeriesSwatch def={def} width={12} height={9} />
               <span className="font-mono font-semibold text-mist-100">
                 {formatZeph(hovered.values[def.key], 3)}
               </span>

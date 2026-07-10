@@ -17,26 +17,62 @@ rewrite/proxy do Vercel em produção (mesma ideia do proxy do Vite dev server).
 - Campo ausente na resposta da API vira "—" na tela. Nunca inventar/mockar valor.
 - Loading e erro usam um componente compartilhado (não reinventar por módulo).
 
-## Direção visual — "Sinal Técnico" (aplicada em 2026-07-09, ver NOTES.md)
+## Direção visual — "Sinal Técnico" (R1 2026-07-09 · v2 2026-07-10, ver NOTES.md)
 Tokens centralizados no `@theme` de `src/index.css` — NUNCA hex solto em componente
 (utilitário Tailwind ou `var(--color-*)`; em SVG data-driven, via `style`, não atributo).
-- Fundo unificado ink-950 `#0a0a0e` (sem caixas navy) + divisor hairline `#221f29`;
-  superfície elevada ink-900 só pra tooltip/thead sticky.
-- Família roxa da marca: zeph-300 `#a996f5` (destaque/manchete/fatia dominante, 7,9:1),
-  zeph-500 `#6f5fc4` (suporte/gráfico, 3,9:1), zeph-700 `#463c77` (gráfico com alívio),
-  zeph-800 `#352d54` (SÓ decoração).
-- Texto cinza-roxo: mist-100/300/400 (piso de texto corrido = mist-400, 5,7:1);
-  mist-600 `#57536a` é SÓ decorativo (2,7:1) — nunca texto de conteúdo.
-- Vermelho alert `#e8492f` RESERVADO: erro, offline, reserve ratio abaixo do piso 4,0.
-  Proibida qualquer 4ª cor de destaque (nada de verde/âmbar/azul).
+Contraste MEDIDO com `scripts/contrast-check.mjs` (WCAG 2.2) contra o fundo, a listra
+da textura (#0f0f0f, pior caso) e o ink-900 — números em NOTES.md.
+- Fundo unificado ink-950 `#0a0a0a` NEUTRO (v2 — o #0a0a0e do R1 tinha tinta azul) +
+  textura scanline monocromática no body (listra branca a 2%, 1px a cada 3px): EXCEÇÃO
+  única e documentada à regra anti-gradiente — não abre precedente pra gradiente em
+  nenhum outro uso. Divisor hairline `#221f29`; superfície elevada ink-900 `#141119`
+  só pra tooltip/thead sticky (tinta roxa de marca, mantida de propósito).
+- Família roxa recalibrada pro matiz ≈244° (paleta oficial medida no zephyrprotocol.com;
+  a do R1 em ≈250–252° puxava pra lavanda-quente): zeph-300 `#9c96f5`
+  (destaque/manchete/fatia dominante, 7,6:1), zeph-500 `#665fc4` (suporte/gráfico,
+  3,8:1), zeph-700 `#403c77` (SÓ gráfico com alívio, 2,0:1), zeph-800 `#302d54`
+  (SÓ decoração). Lado a lado antigo vs novo: `scripts/zeph-hue-compare.html`.
+- Texto cinza-roxo: mist-100/300/400 (piso de texto corrido = mist-400, 5,7:1 — 5,5:1
+  na listra, segue AA); mist-600 `#57536a` é SÓ decorativo — nunca texto de conteúdo.
+- COR DE ESTADO É BINÁRIA (v2): good `#22c55e` (8,7:1) = positivo/saudável/normal ·
+  bad `#f97316` (7,1:1) = negativo/erro/offline/abaixo do piso. O vermelho alert do R1
+  SAIU do sistema por completo. Proibida qualquer outra cor de destaque. Nenhum estado
+  é só-cor: sempre texto/glifo junto, e dois negativos na mesma tela (rig: abaixo vs
+  offline) se distinguem por peso (contorno vs sólido), nunca por matiz. Destaque
+  COMPARATIVO (chips [ maior hashrate ]/[ menor fee ]) não é estado → segue zeph-300.
+- Escala tipográfica em tokens `--text-*` (proibido `text-[Npx]` novo em componente):
+  caption 11 (mono/eixos/tags) · label 12 (legenda/tabela) · body 14 (corrido) ·
+  lede 16 (destaque/título de seção) · data-md 22 (h1/valor de stat) · data-lg 34
+  (readout/countdown) · headline clamp(3.5rem,10vw,8rem) (hero rede/rig) · display
+  clamp(4.5rem,15vw,13rem) (manchete Raio-X) · display-sub clamp(2.5rem,8vw,7rem).
 - Mono (`font-mono`, system stack) só pra metadado técnico: altura de bloco, timestamp,
   eixos, rótulos `[ ENTRE COLCHETES ]` (rota ativa, status, tags). Nunca corpo de texto.
-- Composição: cada tela tem UMA região dominante + rail secundário (não caixas empilhadas
-  de peso igual). Proibido: gradiente, glassmorphism, blur, glow, sombra decorativa.
-- Rampa dos gráficos (rewardSeries.ts): monocromática roxa validada como ordinal contra
-  ink-950 (skill dataviz) — não reordenar/trocar cor sem revalidar; degraus escuros exigem
-  os canais de alívio (rótulo direto, legenda, tooltip, tabela).
-- `scripts/design-shots.mjs` fotografa as 4 telas em 3 breakpoints pra revisão visual.
+- Composição: cada tela tem UMA região dominante + rail secundário. O painel de reserve
+  ratio do Raio-X é um READOUT com moldura hairline sempre presente + selo de saúde —
+  nunca rende como retângulo vazio (causa raiz do bug e fix em NOTES.md; a âncora de
+  janela das duas séries é COMPARTILHADA em zephyrScanner.ts, não duplique).
+  Proibido continua: gradiente (fora a exceção acima), glassmorphism, blur, glow,
+  sombra decorativa.
+- Séries do Raio-X (rewardSeries.ts): rampa monocromática ordinal validada + TEXTURA
+  por série (v2): minerador liso, reserva hachura diagonal, yield pontilhado —
+  diferenciação que não depende de matiz; legenda/tooltip usam a mesma receita via
+  `SeriesSwatch.tsx`. Patterns SÓ com `<line>`/`<circle>` (os seletores do rewards-e2e
+  contam `<path>` por cor e acham o overlay por `rect`). Degraus escuros seguem
+  exigindo canais de alívio (rótulo direto, legenda, tooltip, tabela).
+- Movimento (v2): draw-in dos gráficos na montagem (`animate-chart-draw` via
+  `useChartEntrance`, que tem trava de assentamento de 1 s — compositor lento salta
+  pro estado final, medido em NOTES.md) + pulso sutil de dado novo
+  (`animate-data-pulse` via `useDataPulse`). TODO uso de animação vem em par com
+  `motion-reduce:animate-none`, sem exceção.
+- `scripts/design-shots.mjs` fotografa as 4 telas em 3 breakpoints; rubrica de revisão
+  agora tem 7 perguntas (as 6 do R1 + "positivo e negativo na mesma tela distinguíveis
+  por daltonismo?") — resultado em NOTES.md.
+- Marca integrada (2026-07-10): header usa `LogoMark` em 38px (v2 — 26px ficava no piso;
+  a variação tonal por ponto só lê a partir de ~32px, ver docs/logo-exploracao.md).
+  NÃO editar os pontos à mão, regenerar com `scripts/logo-export.mjs`; a rampa de pontos
+  referencia tokens via var(), então a recalibração de matiz fluiu sozinha. Favicon é o
+  Z̶ sólido em zeph-300 resolvido pra hex `#9c96f5` (favicon vive fora da cascata do app,
+  var() não resolve lá; acompanhou a recalibração) — decisão e evidência em NOTES.md.
 
 ## Módulos (rotas)
 - /rede — Pulso da Rede: hashrate/dificuldade de rede, halving, saúde do reserve ratio.

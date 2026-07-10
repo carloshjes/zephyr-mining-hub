@@ -34,12 +34,15 @@ const APP_URL = 'http://localhost:5173/recompensa'
 const PORT = 9224
 const SCANNER = 'https://zephyrprotocol.com/api/v1'
 
-// Tokens resolvidos (ver @theme em src/index.css)
-const FILL_MINER = 'rgb(169, 150, 245)' // zeph-300
-const FILL_RESERVE = 'rgb(111, 95, 196)' // zeph-500
-const FILL_YIELD = 'rgb(70, 60, 119)' // zeph-700
+// Tokens resolvidos (ver @theme em src/index.css) — v2 2026-07-10: família
+// zeph recalibrada pra matiz 244° e o vermelho alert substituído pelo laranja
+// de estado negativo (bad). Só estes espelhos mudaram; a lógica dos checks é
+// a mesma do R1.
+const FILL_MINER = 'rgb(156, 150, 245)' // zeph-300
+const FILL_RESERVE = 'rgb(102, 95, 196)' // zeph-500
+const FILL_YIELD = 'rgb(64, 60, 119)' // zeph-700
 const FILL_GOVERNANCE = 'rgb(139, 134, 160)' // mist-400
-const STROKE_ALERT = 'rgb(232, 73, 47)' // alert
+const STROKE_BAD = 'rgb(249, 115, 22)' // bad
 
 // Profile do Edge SEMPRE fora do repo (dentro dele o watcher do Vite morre
 // com EBUSY no cache.db — ver NOTES.md do Prompt 2)
@@ -237,8 +240,8 @@ if (MODE === 'brokenrewards') {
     `document.querySelector('[data-testid="ratio-alert-segment"]') !== null`,
     30_000, 'trecho da linha abaixo do piso',
   )
-  check('trechos abaixo do piso no vermelho reservado',
-    await evaluate(`getComputedStyle(document.querySelector('[data-testid="ratio-alert-segment"]')).stroke === '${STROKE_ALERT}'`))
+  check('trechos abaixo do piso no laranja de estado negativo',
+    await evaluate(`getComputedStyle(document.querySelector('[data-testid="ratio-alert-segment"]')).stroke === '${STROKE_BAD}'`))
   check('rótulo do piso visível',
     await evaluate(`Array.from(document.querySelectorAll('svg text')).some((t) => t.textContent.includes('piso da faixa alvo'))`))
   await screenshot('rewards-lowratio.png')

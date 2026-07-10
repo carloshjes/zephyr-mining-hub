@@ -63,16 +63,17 @@ function deltaVsYesterday(
 }
 
 // Faixa de saúde do reserve ratio do protocolo (Djed): alvo entre 4,0 e 8,0.
-// Sempre texto + glifo, nunca só cor — e o vermelho SÓ no caso de alerta
-// (abaixo do piso), na convenção mono de colchetes da direção.
+// Sempre texto + glifo, nunca só cor. Semântica v2: saudável=verde (good),
+// abaixo do piso=laranja (bad); acima da faixa é atípico mas não é alarme —
+// fica neutro, na convenção mono de colchetes da direção.
 function reserveRatioBadge(ratio: number | undefined) {
   if (ratio === undefined) return undefined
   const chip = (text: string, className: string) => (
-    <span className={`font-mono text-[11px] whitespace-nowrap ${className}`}>[ {text} ]</span>
+    <span className={`font-mono text-caption whitespace-nowrap ${className}`}>[ {text} ]</span>
   )
-  if (ratio < 4) return chip('⚠ abaixo da faixa', 'text-alert')
+  if (ratio < 4) return chip('⚠ abaixo da faixa', 'text-bad')
   if (ratio > 8) return chip('↑ acima da faixa', 'text-mist-300')
-  return chip('✓ saudável', 'text-zeph-300')
+  return chip('✓ saudável', 'text-good')
 }
 
 export function NetworkPulsePage() {
@@ -123,12 +124,12 @@ export function NetworkPulsePage() {
     <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Pulso da Rede</h1>
-          <p className="mt-1 text-sm text-mist-400">
+          <h1 className="text-data-md font-semibold tracking-tight">Pulso da Rede</h1>
+          <p className="mt-1 text-body text-mist-400">
             Saúde da rede Zephyr em tempo quase-real, direto das APIs públicas.
           </p>
         </div>
-        <p className="font-mono text-[11px] text-mist-400">
+        <p className="font-mono text-caption text-mist-400">
           Atualização automática a cada {SCANNER_CACHE_SECONDS} s (cache da API)
           {lastUpdatedAt > 0 && ` · última: ${formatTime(new Date(lastUpdatedAt))}`}
         </p>
@@ -149,7 +150,7 @@ export function NetworkPulsePage() {
       {/* Região dominante: o pulso (hashrate) + rail quieto com o resto */}
       <section className="lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="min-w-0">
-          <p className="font-mono text-[11px] tracking-wide text-mist-400">
+          <p className="font-mono text-caption tracking-wide text-mist-400">
             [ HASHRATE DA REDE ]
           </p>
           {networkInfo.isLoading ? (
@@ -159,15 +160,15 @@ export function NetworkPulsePage() {
             </div>
           ) : (
             <>
-              <p className="mt-1 text-[clamp(3.5rem,10vw,8rem)] leading-none font-semibold tracking-tighter text-zeph-300">
+              <p className="mt-1 text-headline font-semibold tracking-tighter text-zeph-300">
                 {orDash(networkInfo.data?.hash_rate, formatHashrate)}
               </p>
-              <p className="mt-3 font-mono text-[11px] text-mist-400">
+              <p className="mt-3 font-mono text-caption text-mist-400">
                 dificuldade {orDash(difficulty, formatCompact)}
                 {difficulty !== undefined && ` (${formatInteger(difficulty)})`} · bloco{' '}
                 {orDash(networkInfo.data?.height, formatInteger)} · um novo a cada ~120 s
               </p>
-              <p className="mt-1 text-xs text-mist-400">
+              <p className="mt-1 text-label text-mist-400">
                 estimado pelo daemon da rede (dificuldade ÷ 120 s), via explorer
               </p>
             </>
