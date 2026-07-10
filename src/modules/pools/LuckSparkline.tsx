@@ -23,7 +23,7 @@ export function LuckSparkline({ readings, poolName }: LuckSparklineProps) {
   // Com menos de 2 leituras não existe tendência — dizemos isso, sem fingir gráfico
   if (readings.length < 2) {
     return (
-      <span className="text-xs text-slate-600">
+      <span className="font-mono text-[11px] text-mist-400">
         coletando… ({readings.length}/2)
       </span>
     )
@@ -61,7 +61,7 @@ export function LuckSparkline({ readings, poolName }: LuckSparklineProps) {
         y1={y(100)}
         y2={y(100)}
         strokeWidth={1}
-        className="stroke-slate-800"
+        className="stroke-hairline"
       />
       <polyline
         points={points}
@@ -69,14 +69,14 @@ export function LuckSparkline({ readings, poolName }: LuckSparklineProps) {
         strokeWidth={2}
         strokeLinejoin="round"
         strokeLinecap="round"
-        className="stroke-slate-500"
+        className="stroke-mist-600"
       />
       <circle
         cx={x(values.length - 1)}
         cy={y(current)}
         r={4}
         strokeWidth={2}
-        className="fill-sky-400 stroke-slate-900"
+        className="fill-zeph-300 stroke-ink-950"
       />
     </svg>
   )

@@ -27,6 +27,11 @@ import {
 
 // Dashboard do rig configurado. O componente é REMONTADO (via key no pai)
 // quando a config muda — garante polling zerado pra nova carteira/pool.
+//
+// Composição (direção "Sinal Técnico"): o hashrate do SINAL (a métrica que
+// alimenta o estado minerando/abaixo/offline) é a região dominante; as
+// demais métricas da pool encolhem pra um rail hairline ao lado — acabou o
+// card farm de 4 caixas iguais.
 
 // APIs de pool têm cache de ~30 s; 60 s é o mesmo passo da Bússola de Pools
 const POOL_POLL_MS = 60_000
@@ -37,24 +42,26 @@ interface RigDashboardProps {
   config: RigConfig
 }
 
+// Vermelho SÓ pra alerta: "abaixo" é alerta em contorno, "offline" é alerta
+// sólido; o estado bom fica no roxo de marca. Sempre texto, nunca só cor.
 const STATUS_PRESENTATION: Record<
   RigStatusKind,
   { label: string; className: string; dot: string }
 > = {
   normal: {
     label: 'Minerando normal',
-    className: 'border-emerald-800 bg-emerald-950/60 text-emerald-300',
-    dot: 'bg-emerald-400',
+    className: 'border-zeph-500/60 text-zeph-300',
+    dot: 'bg-zeph-300',
   },
   below: {
     label: 'Hashrate abaixo do esperado',
-    className: 'border-amber-800 bg-amber-950/60 text-amber-300',
-    dot: 'bg-amber-400',
+    className: 'border-alert/60 text-alert',
+    dot: 'bg-alert',
   },
   offline: {
     label: 'Offline',
-    className: 'border-rose-800 bg-rose-950/60 text-rose-300',
-    dot: 'bg-rose-400',
+    className: 'border-alert bg-alert text-ink-950 font-semibold',
+    dot: 'bg-ink-950',
   },
 }
 
@@ -65,12 +72,12 @@ function StatusBadge({ status, detail }: { status: RigStatusKind; detail: string
       <span
         data-testid="rig-status"
         data-status={status}
-        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium ${className}`}
+        className={`inline-flex items-center gap-2 border px-3 py-1 font-mono text-sm ${className}`}
       >
         <span aria-hidden className={`h-2 w-2 rounded-full ${dot}`} />
-        {label}
+        [ {label} ]
       </span>
-      <span className="text-xs text-slate-500">{detail}</span>
+      <span className="font-mono text-[11px] text-mist-400">{detail}</span>
     </div>
   )
 }
@@ -78,11 +85,11 @@ function StatusBadge({ status, detail }: { status: RigStatusKind; detail: string
 function WorkersTable({ snapshot }: { snapshot: MinerSnapshot }) {
   if (snapshot.workers.length === 0) return null
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
+    <div className="overflow-x-auto border-y border-hairline">
       <table className="w-full min-w-[560px] text-sm">
         <caption className="sr-only">Workers desta carteira na pool</caption>
         <thead>
-          <tr className="border-b border-slate-800 text-xs text-slate-400">
+          <tr className="border-b border-hairline font-mono text-[11px] text-mist-400">
             <th scope="col" className="px-3 py-2.5 text-left font-medium">Worker</th>
             <th scope="col" className="px-3 py-2.5 text-right font-medium">Hashrate</th>
             <th scope="col" className="px-3 py-2.5 text-right font-medium">Shares válidas</th>
@@ -90,27 +97,25 @@ function WorkersTable({ snapshot }: { snapshot: MinerSnapshot }) {
             <th scope="col" className="px-3 py-2.5 text-right font-medium">Último sinal</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-800/70">
+        <tbody className="divide-y divide-hairline font-mono text-xs">
           {snapshot.workers.map((worker) => (
-            <tr key={worker.name} className={worker.offline ? 'text-slate-500' : ''}>
-              <td className="px-3 py-2.5 font-mono text-xs">
+            <tr key={worker.name} className={worker.offline ? 'text-mist-400' : ''}>
+              <td className="px-3 py-2.5 whitespace-nowrap">
                 {worker.name}
                 {worker.offline && (
-                  <span className="ml-2 rounded-full border border-rose-900 bg-rose-950/60 px-2 py-0.5 text-[11px] text-rose-300">
-                    offline
-                  </span>
+                  <span className="ml-2 text-[11px] text-alert">[ offline ]</span>
                 )}
               </td>
-              <td className="px-3 py-2.5 text-right tabular-nums">
+              <td className="px-3 py-2.5 text-right whitespace-nowrap">
                 {orDash(worker.hashrate, formatHashrate)}
               </td>
-              <td className="px-3 py-2.5 text-right tabular-nums">
+              <td className="px-3 py-2.5 text-right whitespace-nowrap">
                 {orDash(worker.sharesValid, formatInteger)}
               </td>
-              <td className="px-3 py-2.5 text-right tabular-nums">
+              <td className="px-3 py-2.5 text-right whitespace-nowrap">
                 {orDash(worker.sharesInvalid, formatInteger)}
               </td>
-              <td className="px-3 py-2.5 text-right tabular-nums">
+              <td className="px-3 py-2.5 text-right whitespace-nowrap">
                 {orDash(worker.lastSeenAt, formatAgo)}
               </td>
             </tr>
@@ -183,7 +188,6 @@ export function RigDashboard({ config }: RigDashboardProps) {
   const statusReady = !poolPoll.isLoading || xmrig !== undefined
   const statusDetail = [
     `fonte: ${statusSource === 'xmrig' ? 'XMRig local (tempo real)' : `hashrate na ${pool?.name ?? 'pool'}`}`,
-    signalHashrate !== undefined ? `atual: ${formatHashrate(signalHashrate)}` : undefined,
     reference !== undefined
       ? `média das últimas ${histories[statusSource].length} leituras: ${formatHashrate(reference)}`
       : 'coletando leituras de referência',
@@ -194,119 +198,138 @@ export function RigDashboard({ config }: RigDashboardProps) {
   const notFound = poolPoll.error instanceof MinerNotFoundError
 
   return (
-    <div className="space-y-6">
-      {statusReady ? (
-        <StatusBadge status={status} detail={statusDetail} />
+    <div className="space-y-8">
+      {/* Falhas sempre visíveis, em largura cheia, acima da composição */}
+      {notFound && poolPoll.data === undefined ? (
+        <ErrorNotice
+          variant="blocking"
+          title="Endereço ainda não visto nesta pool."
+          detail={`${poolPoll.error?.message} A busca continua automática — assim que a pool registrar o primeiro share, os dados aparecem aqui.`}
+        />
+      ) : poolPoll.error !== undefined && poolPoll.data === undefined ? (
+        <ErrorNotice
+          variant="blocking"
+          title={`Sem resposta da ${pool?.name ?? 'pool'} no momento — tentando de novo automaticamente.`}
+          detail={poolPoll.error.message}
+        />
       ) : (
-        <Skeleton className="h-7 w-56" />
+        poolPoll.error !== undefined && <ErrorNotice detail={poolPoll.error.message} />
       )}
 
-      {/* ------------------------------- pool ------------------------------- */}
-      <section className="space-y-4">
-        <header className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold tracking-tight">
-            Na pool{' '}
-            <a
-              href={pool?.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sky-400 underline decoration-slate-700 underline-offset-4 hover:decoration-sky-400"
-            >
-              {pool?.name}
-            </a>
-          </h2>
-          <p className="text-xs text-slate-500">
-            Atualização a cada {POOL_POLL_MS / 1_000} s
-            {poolPoll.lastUpdatedAt !== undefined &&
-              ` · última: ${formatTime(new Date(poolPoll.lastUpdatedAt))}`}
-          </p>
-        </header>
-
-        {notFound && poolPoll.data === undefined ? (
-          <ErrorNotice
-            variant="blocking"
-            title="Endereço ainda não visto nesta pool."
-            detail={`${poolPoll.error?.message} A busca continua automática — assim que a pool registrar o primeiro share, os dados aparecem aqui.`}
-          />
-        ) : poolPoll.error !== undefined && poolPoll.data === undefined ? (
-          <ErrorNotice
-            variant="blocking"
-            title={`Sem resposta da ${pool?.name ?? 'pool'} no momento — tentando de novo automaticamente.`}
-            detail={poolPoll.error.message}
-          />
-        ) : (
-          <>
-            {poolPoll.error !== undefined && (
-              <ErrorNotice detail={poolPoll.error.message} />
-            )}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard
-                label="Hashrate na pool"
-                value={orDash(poolPoll.data?.currentHashrate, formatHashrate)}
-                sub={
-                  poolPoll.data?.averageHashrate !== undefined
-                    ? `média longa: ${formatHashrate(poolPoll.data.averageHashrate)} · ${pool?.hashrateNote ?? ''}`
-                    : pool?.hashrateNote
-                }
-                isLoading={poolPoll.isLoading}
-              />
-              <StatCard
-                label="Workers"
-                value={
-                  poolPoll.data?.workersOnline !== undefined
-                    ? `${formatInteger(poolPoll.data.workersOnline)} / ${orDash(poolPoll.data.workersTotal, formatInteger)}`
-                    : orDash(poolPoll.data?.workersTotal, formatInteger)
-                }
-                sub={
-                  poolPoll.data?.workersOnline !== undefined
-                    ? 'online / total registrados na pool'
-                    : 'workers vistos pela pool'
-                }
-                isLoading={poolPoll.isLoading}
-              />
-              <StatCard
-                label="Shares da rodada"
-                value={orDash(poolPoll.data?.sharesValid, formatInteger)}
-                sub={[
-                  poolPoll.data?.sharesInvalid !== undefined
-                    ? `inválidas: ${formatInteger(poolPoll.data.sharesInvalid)}`
-                    : undefined,
-                  poolPoll.data?.lastShareAt !== undefined
-                    ? `último share: ${formatAgo(poolPoll.data.lastShareAt)}`
-                    : undefined,
-                ]
-                  .filter((part) => part !== undefined)
-                  .join(' · ') || undefined}
-                isLoading={poolPoll.isLoading}
-              />
-              <StatCard
-                label="Saldo pendente"
-                value={orDash(poolPoll.data?.pendingBalance, (value) => formatZeph(value, 4))}
-                sub={
-                  poolPoll.data?.totalPaid !== undefined
-                    ? `pago no total: ${formatZeph(poolPoll.data.totalPaid, 2)}`
-                    : undefined
-                }
-                isLoading={poolPoll.isLoading}
-              />
+      {/* ------- região dominante: o sinal do rig + rail com a pool ------- */}
+      <section className="lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="min-w-0">
+          <p className="font-mono text-[11px] tracking-wide text-mist-400">[ SINAL DO RIG ]</p>
+          {statusReady ? (
+            <>
+              <p
+                className={`mt-1 text-[clamp(3.5rem,10vw,8rem)] leading-none font-semibold tracking-tighter ${
+                  status === 'offline' ? 'text-alert' : 'text-zeph-300'
+                }`}
+              >
+                {orDash(signalHashrate, formatHashrate)}
+              </p>
+              <div className="mt-4">
+                <StatusBadge status={status} detail={statusDetail} />
+              </div>
+            </>
+          ) : (
+            <div className="mt-2 space-y-4">
+              <Skeleton className="h-20 w-72" />
+              <Skeleton className="h-7 w-56" />
             </div>
-            {poolPoll.data && <WorkersTable snapshot={poolPoll.data} />}
-          </>
-        )}
+          )}
+        </div>
+
+        {/* Rail: as demais métricas da carteira na pool */}
+        <aside className="mt-8 lg:mt-0 lg:border-l lg:border-hairline lg:pl-8">
+          <header className="flex flex-wrap items-baseline justify-between gap-2 pb-3">
+            <h2 className="text-sm font-medium text-mist-100">
+              Na pool{' '}
+              <a
+                href={pool?.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-zeph-300 underline decoration-hairline underline-offset-4 hover:decoration-zeph-300"
+              >
+                {pool?.name}
+              </a>
+            </h2>
+            <p className="font-mono text-[11px] text-mist-400">
+              a cada {POOL_POLL_MS / 1_000} s
+              {poolPoll.lastUpdatedAt !== undefined &&
+                ` · ${formatTime(new Date(poolPoll.lastUpdatedAt))}`}
+            </p>
+          </header>
+          <div className="space-y-4">
+            <StatCard
+              label="Hashrate na pool"
+              value={orDash(poolPoll.data?.currentHashrate, formatHashrate)}
+              sub={
+                poolPoll.data?.averageHashrate !== undefined
+                  ? `média longa: ${formatHashrate(poolPoll.data.averageHashrate)} · ${pool?.hashrateNote ?? ''}`
+                  : pool?.hashrateNote
+              }
+              isLoading={poolPoll.isLoading}
+            />
+            <StatCard
+              label="Workers"
+              value={
+                poolPoll.data?.workersOnline !== undefined
+                  ? `${formatInteger(poolPoll.data.workersOnline)} / ${orDash(poolPoll.data.workersTotal, formatInteger)}`
+                  : orDash(poolPoll.data?.workersTotal, formatInteger)
+              }
+              sub={
+                poolPoll.data?.workersOnline !== undefined
+                  ? 'online / total registrados na pool'
+                  : 'workers vistos pela pool'
+              }
+              isLoading={poolPoll.isLoading}
+            />
+            <StatCard
+              label="Shares da rodada"
+              value={orDash(poolPoll.data?.sharesValid, formatInteger)}
+              sub={[
+                poolPoll.data?.sharesInvalid !== undefined
+                  ? `inválidas: ${formatInteger(poolPoll.data.sharesInvalid)}`
+                  : undefined,
+                poolPoll.data?.lastShareAt !== undefined
+                  ? `último share: ${formatAgo(poolPoll.data.lastShareAt)}`
+                  : undefined,
+              ]
+                .filter((part) => part !== undefined)
+                .join(' · ') || undefined}
+              isLoading={poolPoll.isLoading}
+            />
+            <StatCard
+              label="Saldo pendente"
+              value={orDash(poolPoll.data?.pendingBalance, (value) => formatZeph(value, 4))}
+              sub={
+                poolPoll.data?.totalPaid !== undefined
+                  ? `pago no total: ${formatZeph(poolPoll.data.totalPaid, 2)}`
+                  : undefined
+              }
+              isLoading={poolPoll.isLoading}
+            />
+          </div>
+        </aside>
       </section>
+
+      {/* Workers da carteira — mesmo tratamento hairline/mono da tabela do Raio-X */}
+      {poolPoll.data && <WorkersTable snapshot={poolPoll.data} />}
 
       {/* --------------------------- XMRig local --------------------------- */}
       {xmrigAddress !== undefined && (
         <section className="space-y-4">
           <header className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-lg font-semibold tracking-tight">XMRig local</h2>
-            <p className="text-xs text-slate-500">
+            <h2 className="text-sm font-medium text-mist-100">XMRig local</h2>
+            <p className="font-mono text-[11px] text-mist-400">
               http://{xmrigAddress} · a cada {XMRIG_POLL_MS / 1_000} s
             </p>
           </header>
 
           {xmrig !== undefined ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
               <StatCard
                 label="Hashrate local (60 s)"
                 value={orDash(xmrig.hashrate60s ?? xmrig.hashrate10s, formatHashrate)}
@@ -342,11 +365,13 @@ export function RigDashboard({ config }: RigDashboardProps) {
           ) : (
             // Degradação graciosa: XMRig fora do ar NÃO quebra a tela — os
             // dados da pool acima continuam de pé (requisito do módulo)
-            <div className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-400">
-              <span aria-hidden>🔌 </span>
+            <div className="border-l-2 border-hairline py-1 pl-3 text-sm text-mist-300">
+              <span aria-hidden className="mr-2 font-mono text-[11px] text-mist-400">
+                [ SEM SINAL LOCAL ]
+              </span>
               XMRig local não alcançável em http://{xmrigAddress} — mostrando só os dados da pool.
-              <span className="mt-1 block text-xs text-slate-500">
-                Confira se o XMRig está rodando com <code>--http-enabled --http-port {xmrigAddress.split(':')[1] ?? ''}</code>{' '}
+              <span className="mt-1 block text-xs text-mist-400">
+                Confira se o XMRig está rodando com <code className="font-mono">--http-enabled --http-port {xmrigAddress.split(':')[1] ?? ''}</code>{' '}
                 nesta máquina. Alguns navegadores (Safari, por exemplo) bloqueiam página https
                 acessando serviço local em http.
               </span>

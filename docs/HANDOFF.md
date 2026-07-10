@@ -42,51 +42,30 @@ rewrite resolve isso sem backend próprio).
 |---|--------|--------|--------|
 | 1 (Fable) | Fundação + Pulso da Rede | ✅ feito, commitado, enviado | `65be1b2` |
 | 2 (Fable) | Bússola de Pools | ✅ feito, commitado, enviado | `57044c9` |
-| 3 (Fable) | Raio-X da Recompensa | ✅ feito, commitado | `21de8e5` — **falta enviar, ver "Ação pendente"** |
-| 4 (Fable) | Monitor do Rig | ⬜ não iniciado | — |
-| 5 (Fable) | Integração final | ⬜ não iniciado | — |
+| 3 (Fable) | Raio-X da Recompensa | ✅ feito, commitado, enviado | `21de8e5` |
+| 4 (Fable) | Monitor do Rig | ✅ feito, commitado, enviado | `eb18d89` |
+| 5 (Fable) | Integração final | ⬜ não iniciado — entra depois do Prompt R1 | — |
+| R1 (Fable) | Redesign visual "Sinal Técnico" | ⬜ prompt escrito, pronto pra colar | — |
+| — | Tradução pro inglês | ⬜ sessão separada, depois do R1 (não escrita ainda) | — |
 | — | Prompt de deploy no Vercel | ⬜ ainda não escrito | — |
 | — | Skills (auditoria/limpeza/visual) | ⬜ não rodadas | — |
 
-## AÇÃO PENDENTE — resolver antes de abrir a sessão do Prompt 4
+## Lições da sessão de 2026-07-09 (git + sessão do Fable concorrente)
 
-Histórico: duas rodadas de checagem real (`git log`/`git status`/`git diff` direto no
-repo) já encontraram e corrigiram pendências de commit/push do Prompt 3 — mas na
-segunda checagem (2026-07-09, montando este handoff) o repo ainda estava com **2
-commits locais não enviados** (`21de8e5` e um commit de docs seguinte) e alterações
-não commitadas de novo em `CLAUDE.md`/`.gitignore`/`docs/HANDOFF.md`. Provável causa
-de pelo menos parte disso: normalização de quebra de linha (CRLF/LF) no Windows —
-`CLAUDE.md` apareceu com ~100% das linhas "mudadas" no diff mesmo sem mudança de
-conteúdo real; conteúdo confirmado igual por leitura direta do arquivo. Isso não é
-motivo de alarme, só motivo de commitar nas duas ocasiões.
+Dois problemas de git apareceram e foram resolvidos nessa sessão — registrados aqui
+porque tendem a se repetir:
 
-**Peça pro Carlos rodar isto em passos separados (não tudo colado de uma vez), e
-CONFERIR a saída de cada um antes do próximo — os dois `push` anteriores parecem não
-ter rodado de fato, então desta vez precisa de confirmação visual:**
-
-```powershell
-cd C:\Projetos\zephyr-mining-hub
-git add -A
-git status
-```
-→ deve listar `CLAUDE.md`, `.gitignore`, `docs/HANDOFF.md` (e talvez mais) em "Changes
-to be committed". Se a lista parecer estranha, pare e cole a saída pro chat antes de
-continuar.
-
-```powershell
-git commit -m "docs: sincroniza CLAUDE.md e handoff, fecha pendencias de gitignore"
-git push
-```
-→ o `push` precisa terminar mostrando algo como `main -> main` sem erro. Se pedir
-login do GitHub, complete o login.
-
-```powershell
-git status
-git log --oneline -3
-```
-→ **critério de sucesso:** `git status` mostra exatamente "nothing to commit, working
-tree clean" E "Your branch is up to date with 'origin/main'". Se faltar qualquer uma
-dessas duas frases, NÃO prossiga pro Prompt 4 — volte pro chat com a saída completa.
+1. **CRLF/LF fantasma:** sem `.gitattributes`, CLAUDE.md aparecia com quase 100% das
+   linhas "mudadas" sem nenhuma mudança de conteúdo real (confirmado com
+   `git diff -b`). Fix aplicado: `.gitattributes` com `* text=auto eol=lf` na raiz.
+2. **Lock do índice por processo concorrente:** com a sessão do Fable ainda aberta
+   depois do relato final, comandos git rodados numa PowerShell separada bateram em
+   `Unable to create '.git/index.lock': File exists` repetidas vezes — inclusive com
+   o lock reaparecendo em tempo real numa tentativa, confirmando processo ativo (não
+   só lock órfão). Sintoma extra observado: `git status` chegou a mostrar arquivos já
+   commitados como "deleted" (staged) e "untracked" ao mesmo tempo; conteúdo
+   confirmado idêntico ao HEAD byte a byte nos dois casos — nenhum dado perdido, só
+   índice temporariamente inconsistente pela escrita concorrente. Ver regra 6 abaixo.
 
 ## Arquivos que importam
 
@@ -152,19 +131,30 @@ dessas duas frases, NÃO prossiga pro Prompt 4 — volte pro chat com a saída c
    visível, só fica pendente silenciosamente. Isso já causou pelo menos duas rodadas
    de "push que não pegou". Instrua sempre: abrir uma PowerShell nova (não a que tem
    `claude` rodando) e rodar os comandos git ali.
+6. **Feche a janela/sessão do Fable assim que tiver o relato final, antes de rodar
+   qualquer comando git em outra janela.** Reforça a regra 5: uma sessão `claude`
+   aberta pode disparar git por conta própria (checagem/revisão interna) mesmo sem
+   instrução explícita, e isso colide com comandos rodados em paralelo — já causou
+   lock de índice preso e staging inconsistente (regra "Lições da sessão de
+   2026-07-09" acima). Ordem seguem: pega o relato → fecha a sessão → só então abre a
+   PowerShell limpa pro commit.
 
 ## Próximos passos, em ordem
 
-1. Resolver a "Ação pendente" acima.
-2. Sessão nova, colar o Prompt 4 (Monitor do Rig) de `docs/zephyr-mining-hub-prompts.md`
-   sem alteração.
-3. Prompt 5 (integração final) — também já pronto no mesmo arquivo.
-4. Escrever o prompt de deploy no Vercel — **ainda não existe**, precisa ser montado
-   seguindo o mesmo estilo dos outros 5 (ver `docs/guia_conversar_com_llm.md`). Ponto
-   de partida: o `CLAUDE.md` já explica que precisa de um rewrite equivalente ao proxy
-   configurado em `vite.config.ts` — leia esse arquivo no repo antes de escrever o
-   prompt.
-5. Rodar as skills `backend-structure-auditor` (deriva de padrão entre os 4 módulos) e
-   `code-audit-cleanup` (limpeza final) — via Skill tool deste chat, não via Claude
-   Code. `creative-ui-director` é opcional, pra uma passada de direção visual mais
-   autoral; pode rodar antes do Prompt 4/5 ou depois, não é sequencial.
+1. ~~Prompt 4 (Monitor do Rig)~~ — feito, commitado, enviado (`eb18d89`).
+2. **Prompt R1 — Redesign visual "Sinal Técnico"** — já escrito em
+   `docs/zephyr-mining-hub-prompts.md`, pronto pra colar. Direção decidida via
+   `creative-ui-director` a partir de zephyrprotocol.com (paleta roxo), rig.ai (fundo
+   quase preto, anotação monoespaçada, referência principal do Carlos) e labs.scale.com
+   (tratamento pontual de tabela). Sessão única cobrindo os 4 módulos + nav, um módulo
+   de cada vez dentro da mesma sessão (tokens definidos uma vez, aplicados em sequência
+   — ver justificativa no prompt). Fable tem autonomia de acabamento (microinteração,
+   hover, espaçamento fino), mas NÃO de estrutura/paleta — isso já foi decidido.
+3. Tradução pro inglês — sessão separada, DEPOIS do R1 (prompt ainda não escrito).
+4. Prompt 5 (integração final) — já pronto em `docs/zephyr-mining-hub-prompts.md`, mas
+   só depois dos passos 2 e 3 (senão revisa uma UI que muda de novo logo em seguida).
+5. Escrever o prompt de deploy no Vercel — **ainda não existe**, mesmo estilo dos
+   outros (ver `docs/guia_conversar_com_llm.md`); parte do rewrite já usado em
+   `vite.config.ts`.
+6. Rodar as skills `backend-structure-auditor` e `code-audit-cleanup` — via Skill tool
+   deste chat, não via Claude Code.

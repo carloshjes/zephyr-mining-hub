@@ -11,12 +11,18 @@ import { ErrorNotice } from '../../components/ui/ErrorNotice'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { REWARD_SERIES, sharePercent, toRewardSlices, type RewardSlices } from './rewardSeries'
 import { RewardSplitChart, type SplitUnit } from './RewardSplitChart'
-import { ReserveRatioChart, type RatioPoint } from './ReserveRatioChart'
+import { ReserveRatioChart, TARGET_FLOOR, type RatioPoint } from './ReserveRatioChart'
 
 // Raio-X da Recompensa — torna visível a mecânica exclusiva do Zephyr: o
 // prêmio de bloco NÃO vai inteiro pro minerador, é fatiado entre minerador,
 // reserva e yield. Um bloco novo a cada ~120 s, então 60 s de polling é
 // folgado (e respeita o cache de 30 s da Scanner API).
+//
+// Composição (direção "Sinal Técnico"): manchete numérica dominante em
+// full-bleed (corta na borda da tela em telas largas, de propósito), gráfico
+// de divisão como região principal e um rail secundário mais quieto com o
+// reserve ratio + explicação — os dois gráficos conectados por um trilho
+// tracejado e o rótulo [ MESMA JANELA DE BLOCOS ] (observação, não fórmula).
 const SERIES_POLL_MS = 60_000
 const LIVESTATS_POLL_MS = SCANNER_CACHE_SECONDS * 1_000
 
@@ -40,7 +46,7 @@ interface RatiosWindow {
 const EXPLAINER_SENTENCES = [
   'Além do ZEPH que você minera, a rede Zephyr mantém uma segunda moeda, o ZSD, feita pra valer sempre perto de 1 dólar — e o que garante esse valor é um cofre coletivo cheio de ZEPH.',
   'Por isso o prêmio de cada bloco não vai inteiro pro minerador, como acontece em Monero: uma fatia é depositada automaticamente nesse cofre (a “reserva”) e outra, menor, vira rendimento pra quem deixa dinheiro aplicado no protocolo (o “yield”).',
-  'O reserve ratio, no gráfico de baixo, mede quão cheio esse cofre está em relação ao que ele precisa garantir — quanto maior o número, mais folgada a garantia.',
+  'O reserve ratio, no gráfico desta página, mede quão cheio esse cofre está em relação ao que ele precisa garantir — quanto maior o número, mais folgada a garantia.',
 ]
 
 interface SegmentedOption<T extends string | number> {
@@ -63,8 +69,8 @@ function SegmentedControl<T extends string | number>({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-slate-500">{label}</span>
-      <div className="inline-flex overflow-hidden rounded-lg border border-slate-700">
+      <span className="font-mono text-[11px] text-mist-400">{label}</span>
+      <div className="inline-flex border border-hairline">
         {options.map((option, index) => {
           const isActive = option.value === value
           return (
@@ -73,12 +79,12 @@ function SegmentedControl<T extends string | number>({
               type="button"
               aria-pressed={isActive}
               onClick={() => onChange(option.value)}
-              className={`px-3 py-1.5 text-xs transition-colors ${
-                index > 0 ? 'border-l border-slate-700' : ''
+              className={`px-3 py-1.5 font-mono text-[11px] transition-colors ${
+                index > 0 ? 'border-l border-hairline' : ''
               } ${
                 isActive
-                  ? 'bg-sky-950/60 font-medium text-sky-300'
-                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                  ? 'bg-zeph-800/40 text-zeph-300'
+                  : 'text-mist-400 hover:bg-ink-900 hover:text-mist-100'
               }`}
             >
               {option.label}
@@ -177,16 +183,21 @@ export function RewardsPage() {
 
   const windowHours = (blockCount * 120) / 3_600
 
+  // Estado de alerta do piso: o valor corrente (livestats; na falta dele, o
+  // último ponto da série) abaixo de 4,0 aciona o vermelho reservado
+  const currentRatio = liveStats.data?.reserve_ratio ?? ratiosData?.points.at(-1)?.ratio
+  const ratioBelowFloor = currentRatio !== undefined && currentRatio < TARGET_FLOOR
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Raio-X da Recompensa</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-mist-400">
             Como o prêmio de cada bloco se divide entre minerador, reserva e yield — e por quê.
           </p>
         </div>
-        <p className="text-xs text-slate-500">
+        <p className="font-mono text-[11px] text-mist-400">
           Atualização automática a cada {SERIES_POLL_MS / 1_000} s
           {lastUpdatedAt > 0 && ` · última: ${formatTime(new Date(lastUpdatedAt))}`}
         </p>
@@ -204,219 +215,280 @@ export function RewardsPage() {
         )
       )}
 
-      {/* Manchete: a divisão do bloco mais recente, em uma frase + barra */}
-      <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-        {rewardsPoll.isLoading ? (
-          <Skeleton className="h-16 w-full max-w-2xl" />
-        ) : latest ? (
-          <>
-            <p className="text-lg leading-relaxed text-slate-200">
-              Agora, de cada bloco de{' '}
-              <strong className="font-semibold text-slate-50">{formatZeph(latest.total, 3)}</strong>,{' '}
-              <strong className="font-semibold text-slate-50">
-                {formatNumber(sharePercent(latest, 'miner'), 1, 1)}%
-              </strong>{' '}
-              vai pro minerador,{' '}
-              <strong className="font-semibold text-slate-50">
-                {formatNumber(sharePercent(latest, 'reserve'), 1, 1)}%
-              </strong>{' '}
-              pra reserva e{' '}
-              <strong className="font-semibold text-slate-50">
-                {formatNumber(sharePercent(latest, 'yield'), 1, 1)}%
-              </strong>{' '}
-              pro yield
-              {latest.values.governance > 0 && (
-                <>
+      {/* Manchete dominante da dobra — full-bleed: em telas largas o rótulo
+          gigante corta na borda da tela (recurso de composição, de propósito).
+          A frase completa e acessível vem logo abaixo em tamanho de leitura. */}
+      <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-clip">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          {rewardsPoll.isLoading ? (
+            <Skeleton className="h-32 w-full max-w-2xl" />
+          ) : latest ? (
+            <>
+              <p className="font-mono text-[11px] tracking-wide text-mist-400">
+                [ MEDIDO NO BLOCO {formatInteger(latest.height)} · O MAIS RECENTE COM DADO DE
+                RECOMPENSA ]
+              </p>
+              <p
+                aria-hidden
+                className="mt-1 leading-none font-semibold tracking-tighter whitespace-nowrap"
+              >
+                <span className="text-[clamp(4.5rem,15vw,13rem)] text-zeph-300">
+                  {formatNumber(sharePercent(latest, 'miner'), 1, 1)}%
+                </span>
+                <span className="hidden text-[clamp(2.5rem,8vw,7rem)] text-mist-600 md:inline">
                   {' '}
-                  (e{' '}
-                  <strong className="font-semibold text-slate-50">
-                    {formatNumber(sharePercent(latest, 'governance'), 1, 1)}%
-                  </strong>{' '}
-                  pra governança)
-                </>
+                  pro minerador
+                </span>
+              </p>
+              <p className="mt-4 max-w-3xl text-sm leading-relaxed text-mist-300 sm:text-base">
+                Agora, de cada bloco de{' '}
+                <strong className="font-semibold text-mist-100">
+                  {formatZeph(latest.total, 3)}
+                </strong>
+                ,{' '}
+                <strong className="font-semibold text-mist-100">
+                  {formatNumber(sharePercent(latest, 'miner'), 1, 1)}%
+                </strong>{' '}
+                vai pro minerador,{' '}
+                <strong className="font-semibold text-mist-100">
+                  {formatNumber(sharePercent(latest, 'reserve'), 1, 1)}%
+                </strong>{' '}
+                pra reserva e{' '}
+                <strong className="font-semibold text-mist-100">
+                  {formatNumber(sharePercent(latest, 'yield'), 1, 1)}%
+                </strong>{' '}
+                pro yield
+                {latest.values.governance > 0 && (
+                  <>
+                    {' '}
+                    (e{' '}
+                    <strong className="font-semibold text-mist-100">
+                      {formatNumber(sharePercent(latest, 'governance'), 1, 1)}%
+                    </strong>{' '}
+                    pra governança)
+                  </>
+                )}
+                .
+              </p>
+              <div aria-hidden className="mt-4 flex h-2.5 max-w-3xl gap-0.5 overflow-hidden">
+                {REWARD_SERIES.filter((def) => latest.values[def.key] > 0).map((def) => (
+                  <div
+                    key={def.key}
+                    style={{
+                      width: `${sharePercent(latest, def.key)}%`,
+                      backgroundColor: def.color,
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs">
+                {REWARD_SERIES.map((def) => {
+                  const isZero = latest.values[def.key] === 0
+                  return (
+                    <span
+                      key={def.key}
+                      className={`inline-flex items-center gap-1.5 ${
+                        isZero ? 'text-mist-400' : 'text-mist-300'
+                      }`}
+                    >
+                      <span
+                        aria-hidden
+                        className="h-2.5 w-2.5"
+                        style={{ backgroundColor: def.color, opacity: isZero ? 0.35 : 1 }}
+                      />
+                      {def.label.toLowerCase()}{' '}
+                      <span className="font-mono">{formatZeph(latest.values[def.key], 3)}</span>
+                    </span>
+                  )
+                })}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-mist-400">Sem dado de recompensa no momento.</p>
+          )}
+        </div>
+      </section>
+
+      {/* Região dominante (divisão bloco a bloco) + rail quieto (reserve
+          ratio e contexto), conectados pelo trilho tracejado */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0 space-y-4">
+          {/* Filtros — uma linha só, valendo pros dois gráficos e pra tabela */}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <SegmentedControl
+              label="Janela"
+              options={WINDOW_PRESETS.map((preset) => ({
+                value: preset,
+                label: `${formatInteger(preset)} blocos`,
+              }))}
+              value={blockCount}
+              onChange={setBlockCount}
+            />
+            <SegmentedControl
+              label="Escala"
+              options={[
+                { value: 'zeph', label: 'ZEPH' },
+                { value: 'percent', label: '% do bloco' },
+              ]}
+              value={unit}
+              onChange={setUnit}
+            />
+            <span className="font-mono text-[11px] text-mist-400">
+              ≈ {formatNumber(windowHours, 1)} h de rede (um bloco a cada ~120 s)
+            </span>
+          </div>
+
+          {/* Gráfico principal: área empilhada das 4 fatias */}
+          <section className={`transition-opacity ${rewardsOutdated ? 'opacity-60' : ''}`}>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-sm font-medium text-mist-100">
+                Divisão da recompensa, bloco a bloco
+              </h2>
+              {rewardsOutdated ? (
+                <span className="font-mono text-[11px] text-mist-400">[ ATUALIZANDO JANELA… ]</span>
+              ) : (
+                slices.length > 0 && (
+                  <span className="font-mono text-[11px] text-mist-400">
+                    [ BLOCOS {formatInteger(slices[0].height)} – {formatInteger(latest!.height)} ]
+                  </span>
+                )
               )}
-              .
-            </p>
-            <div aria-hidden className="mt-4 flex h-3 gap-0.5 overflow-hidden rounded-full">
-              {REWARD_SERIES.filter((def) => latest.values[def.key] > 0).map((def) => (
-                <div
-                  key={def.key}
-                  style={{
-                    width: `${sharePercent(latest, def.key)}%`,
-                    backgroundColor: def.color,
-                  }}
-                />
-              ))}
             </div>
-            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs">
+            <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs">
               {REWARD_SERIES.map((def) => {
-                const isZero = latest.values[def.key] === 0
+                const inactive = governanceIsZero && def.key === 'governance'
                 return (
                   <span
                     key={def.key}
-                    className={`inline-flex items-center gap-1.5 ${isZero ? 'text-slate-600' : 'text-slate-300'}`}
+                    className={`inline-flex items-center gap-1.5 ${
+                      inactive ? 'text-mist-400' : 'text-mist-300'
+                    }`}
                   >
                     <span
                       aria-hidden
-                      className="h-2.5 w-2.5 rounded-sm"
-                      style={{ backgroundColor: def.color, opacity: isZero ? 0.35 : 1 }}
+                      className="h-2.5 w-2.5"
+                      style={{ backgroundColor: def.color, opacity: inactive ? 0.35 : 1 }}
                     />
-                    {def.label.toLowerCase()} {formatZeph(latest.values[def.key], 3)}
+                    {def.label}
+                    {inactive && ' · 0 na janela'}
                   </span>
                 )
               })}
             </div>
-            <p className="mt-3 text-xs text-slate-500">
-              Medido no bloco {formatInteger(latest.height)}, o mais recente com dado de
-              recompensa na Scanner API.
+            <div className="mt-4">
+              {rewardsPoll.isLoading ? (
+                <Skeleton className="h-72 w-full" />
+              ) : slices.length > 0 ? (
+                <RewardSplitChart slices={slices} unit={unit} />
+              ) : (
+                <p className="py-10 text-center text-sm text-mist-400">
+                  {rewardsPoll.error
+                    ? 'Sem dado de recompensa no momento — tentando de novo automaticamente.'
+                    : 'A API não devolveu blocos pra esta janela.'}
+                </p>
+              )}
+            </div>
+            {rewardsData !== undefined && rewardsData.incompleteCount > 0 && (
+              <p className="mt-2 text-xs text-mist-400">
+                {formatInteger(rewardsData.incompleteCount)} bloco(s) vieram sem todas as fatias na
+                resposta da API e ficaram fora do gráfico.
+              </p>
+            )}
+          </section>
+        </div>
+
+        {/* Rail: reserve ratio na mesma janela + a ponte honesta entre os dois */}
+        <aside className="relative mt-10 border-t border-dashed border-zeph-800 pt-6 lg:mt-0 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
+          <div className="relative">
+            <span
+              aria-hidden
+              className="absolute top-2 -left-8 hidden w-8 border-t border-dashed border-zeph-500 lg:block"
+            />
+            <p className="font-mono text-[11px] tracking-wide text-zeph-300">
+              [ MESMA JANELA DE BLOCOS ]
             </p>
-          </>
-        ) : (
-          <p className="text-sm text-slate-500">Sem dado de recompensa no momento.</p>
-        )}
-      </section>
+          </div>
 
-      {/* O "porquê" da mecânica — texto fixo, sem jargão de DeFi */}
-      <section className="rounded-xl border border-slate-800 bg-slate-900 p-5">
-        <h2 className="flex items-center gap-2 text-sm font-medium text-slate-300">
-          <span aria-hidden>📖</span>
-          Por que o prêmio é fatiado?
-        </h2>
-        <div className="mt-2 space-y-2 text-sm leading-relaxed text-slate-400">
-          {EXPLAINER_SENTENCES.map((sentence) => (
-            <p key={sentence.slice(0, 24)}>{sentence}</p>
-          ))}
-        </div>
-      </section>
-
-      {/* Filtros — uma linha só, valendo pros dois gráficos e pra tabela */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <SegmentedControl
-          label="Janela"
-          options={WINDOW_PRESETS.map((preset) => ({
-            value: preset,
-            label: `${formatInteger(preset)} blocos`,
-          }))}
-          value={blockCount}
-          onChange={setBlockCount}
-        />
-        <SegmentedControl
-          label="Escala"
-          options={[
-            { value: 'zeph', label: 'ZEPH' },
-            { value: 'percent', label: '% do bloco' },
-          ]}
-          value={unit}
-          onChange={setUnit}
-        />
-        <span className="text-xs text-slate-600">
-          ≈ {formatNumber(windowHours, 1)} h de rede (um bloco a cada ~120 s)
-        </span>
-      </div>
-
-      {/* Gráfico principal: área empilhada das 4 fatias */}
-      <section
-        className={`rounded-xl border border-slate-800 bg-slate-900 p-5 transition-opacity ${
-          rewardsOutdated ? 'opacity-60' : ''
-        }`}
-      >
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-base font-medium text-slate-200">
-            Divisão da recompensa, bloco a bloco
-          </h2>
-          {rewardsOutdated && <span className="text-xs text-amber-300">atualizando janela…</span>}
-        </div>
-        <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs">
-          {REWARD_SERIES.map((def) => {
-            const inactive = governanceIsZero && def.key === 'governance'
-            return (
-              <span
-                key={def.key}
-                className={`inline-flex items-center gap-1.5 ${inactive ? 'text-slate-600' : 'text-slate-300'}`}
-              >
-                <span
-                  aria-hidden
-                  className="h-2.5 w-2.5 rounded-sm"
-                  style={{ backgroundColor: def.color, opacity: inactive ? 0.35 : 1 }}
-                />
-                {def.label}
-                {inactive && ' · 0 na janela'}
+          <section
+            className={`mt-3 transition-opacity ${ratiosOutdated ? 'opacity-60' : ''}`}
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-sm font-medium text-mist-100">Reserve ratio</h2>
+              <span className="font-mono text-[11px] text-mist-400">
+                agora: {orDash(liveStats.data?.reserve_ratio, (v) => formatNumber(v, 2, 2))} ·
+                alvo: 4,0–8,0
               </span>
-            )
-          })}
-        </div>
-        <div className="mt-4">
-          {rewardsPoll.isLoading ? (
-            <Skeleton className="h-72 w-full" />
-          ) : slices.length > 0 ? (
-            <RewardSplitChart slices={slices} unit={unit} />
-          ) : (
-            <p className="py-10 text-center text-sm text-slate-500">
-              {rewardsPoll.error
-                ? 'Sem dado de recompensa no momento — tentando de novo automaticamente.'
-                : 'A API não devolveu blocos pra esta janela.'}
-            </p>
-          )}
-        </div>
-        {rewardsData !== undefined && rewardsData.incompleteCount > 0 && (
-          <p className="mt-2 text-xs text-slate-500">
-            {formatInteger(rewardsData.incompleteCount)} bloco(s) vieram sem todas as fatias na
-            resposta da API e ficaram fora do gráfico.
-          </p>
-        )}
-      </section>
+            </div>
 
-      {/* Reserve ratio na mesma janela + a ponte honesta entre os dois */}
-      <section
-        className={`rounded-xl border border-slate-800 bg-slate-900 p-5 transition-opacity ${
-          ratiosOutdated ? 'opacity-60' : ''
-        }`}
-      >
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-base font-medium text-slate-200">Reserve ratio na mesma janela</h2>
-          <span className="text-xs text-slate-500">
-            agora: {orDash(liveStats.data?.reserve_ratio, (v) => formatNumber(v, 2, 2))} (livestats) ·
-            faixa alvo do protocolo: 4,0–8,0
-          </span>
-        </div>
-        <div className="mt-4">
-          {ratiosPoll.isLoading ? (
-            <Skeleton className="h-48 w-full" />
-          ) : (ratiosData?.points.length ?? 0) > 0 ? (
-            <ReserveRatioChart points={ratiosData!.points} />
-          ) : (
-            <p className="py-10 text-center text-sm text-slate-500">
-              {ratiosPoll.error
-                ? 'Sem série de reserve ratio no momento — tentando de novo automaticamente.'
-                : 'A API não devolveu a série de reserve ratio pra esta janela.'}
+            {ratioBelowFloor && (
+              <div
+                role="alert"
+                data-testid="ratio-floor-alert"
+                className="mt-3 border border-alert/60 bg-alert/10 px-3 py-2"
+              >
+                <p className="font-mono text-[11px] tracking-wide text-alert">
+                  [ ALERTA · RESERVA ABAIXO DO PISO ]
+                </p>
+                <p className="mt-1 text-sm text-mist-100">
+                  Reserve ratio em {formatNumber(currentRatio!, 2, 2)} — abaixo do piso de 4,0 da
+                  faixa alvo do protocolo.
+                </p>
+              </div>
+            )}
+
+            <div className="mt-3">
+              {ratiosPoll.isLoading ? (
+                <Skeleton className="h-48 w-full" />
+              ) : (ratiosData?.points.length ?? 0) > 0 ? (
+                <ReserveRatioChart points={ratiosData!.points} />
+              ) : (
+                <p className="py-10 text-center text-sm text-mist-400">
+                  {ratiosPoll.error
+                    ? 'Sem série de reserve ratio no momento — tentando de novo automaticamente.'
+                    : 'A API não devolveu a série de reserve ratio pra esta janela.'}
+                </p>
+              )}
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-mist-400">
+              Pelo desenho do protocolo, o tamanho da fatia do minerador está ligado à saúde dessa
+              reserva — mas a fórmula exata da divisão não vem nesses dados: o que os gráficos
+              mostram é o resultado bloco a bloco. Compare as duas curvas como uma observação, não
+              como garantia de que uma determina a outra.
             </p>
-          )}
-        </div>
-        <p className="mt-3 text-xs leading-relaxed text-slate-500">
-          Pelo desenho do protocolo, o tamanho da fatia do minerador está ligado à saúde dessa
-          reserva — mas a fórmula exata da divisão não vem nesses dados: o que os gráficos mostram
-          é o resultado bloco a bloco. Compare as duas curvas como uma observação, não como
-          garantia de que uma determina a outra.
-        </p>
-      </section>
+          </section>
+
+          {/* O "porquê" da mecânica — texto fixo, sem jargão de DeFi */}
+          <section className="mt-6 border-t border-hairline pt-4">
+            <h2 className="text-sm font-medium text-mist-300">Por que o prêmio é fatiado?</h2>
+            <div className="mt-2 space-y-2 text-sm leading-relaxed text-mist-400">
+              {EXPLAINER_SENTENCES.map((sentence) => (
+                <p key={sentence.slice(0, 24)}>{sentence}</p>
+              ))}
+            </div>
+          </section>
+        </aside>
+      </div>
 
       {/* Tabela: o par acessível dos dois gráficos, mesmos dados sem cor */}
       {slices.length > 0 && (
         <details
-          className="rounded-xl border border-slate-800 bg-slate-900"
+          className="border-y border-hairline"
           onToggle={(event) => setTableOpen(event.currentTarget.open)}
         >
-          <summary className="cursor-pointer px-5 py-3 text-sm text-slate-300 hover:text-slate-100">
+          <summary className="flex cursor-pointer items-baseline gap-3 px-1 py-3 font-mono text-xs text-mist-300 hover:text-mist-100">
+            <span aria-hidden className="text-zeph-300">
+              [ {tableOpen ? '−' : '+'} ]
+            </span>
             Ver os dados em tabela ({formatInteger(slices.length)} blocos)
           </summary>
           {tableOpen && (
-            <div className="max-h-96 overflow-auto border-t border-slate-800">
+            <div className="max-h-96 overflow-auto border-t border-hairline">
               <table className="w-full min-w-[760px] text-xs">
                 <caption className="sr-only">
                   Divisão da recompensa e reserve ratio por bloco, do mais recente pro mais antigo
                 </caption>
-                <thead className="sticky top-0 bg-slate-900">
-                  <tr className="border-b border-slate-800 text-slate-400">
+                <thead className="sticky top-0 bg-ink-950">
+                  <tr className="border-b border-hairline font-mono text-[11px] text-mist-400">
                     <th scope="col" className="px-3 py-2 text-left font-medium">Bloco</th>
                     <th scope="col" className="px-3 py-2 text-right font-medium">Total (ZEPH)</th>
                     {REWARD_SERIES.map((def) => (
@@ -428,25 +500,25 @@ export function RewardsPage() {
                     <th scope="col" className="px-3 py-2 text-right font-medium">Reserve ratio</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/70">
+                <tbody className="divide-y divide-hairline font-mono">
                   {slices
                     .slice()
                     .reverse()
                     .map((block) => (
                       <tr key={block.height}>
-                        <td className="px-3 py-1.5 tabular-nums">{formatInteger(block.height)}</td>
-                        <td className="px-3 py-1.5 text-right tabular-nums">
+                        <td className="px-3 py-1.5">{formatInteger(block.height)}</td>
+                        <td className="px-3 py-1.5 text-right">
                           {formatNumber(block.total, 3, 3)}
                         </td>
                         {REWARD_SERIES.map((def) => (
-                          <td key={def.key} className="px-3 py-1.5 text-right tabular-nums">
+                          <td key={def.key} className="px-3 py-1.5 text-right">
                             {formatNumber(block.values[def.key], 3, 3)}
                           </td>
                         ))}
-                        <td className="px-3 py-1.5 text-right tabular-nums">
+                        <td className="px-3 py-1.5 text-right">
                           {formatNumber(sharePercent(block, 'miner'), 1, 1)}%
                         </td>
-                        <td className="px-3 py-1.5 text-right tabular-nums">
+                        <td className="px-3 py-1.5 text-right">
                           {orDash(ratioByHeight.get(block.height), (v) => formatNumber(v, 2, 2))}
                         </td>
                       </tr>
@@ -458,7 +530,7 @@ export function RewardsPage() {
         </details>
       )}
 
-      <div className="space-y-1 text-xs text-slate-500">
+      <div className="space-y-1 text-xs text-mist-400">
         {governanceIsZero && (
           <p>
             A fatia de governança existe no protocolo, mas está zerada nos blocos da janela — por

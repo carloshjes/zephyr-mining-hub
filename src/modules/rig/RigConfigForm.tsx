@@ -23,7 +23,7 @@ interface FieldErrors {
 }
 
 const INPUT_CLASS =
-  'w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:border-sky-500 focus:outline-none'
+  'w-full rounded-none border border-hairline bg-ink-950 px-3 py-2 text-sm text-mist-100 placeholder:text-mist-600 focus:border-zeph-300 focus:outline-none'
 
 export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigFormProps) {
   const [poolId, setPoolId] = useState(initial?.poolId ?? MINER_POOLS[0].id)
@@ -55,23 +55,20 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-5 rounded-xl border border-slate-800 bg-slate-900 p-6"
-    >
+    <form onSubmit={handleSubmit} className="space-y-5 border border-hairline p-6">
       <div className="space-y-1">
         <h2 className="text-lg font-semibold tracking-tight">
           {initial ? 'Editar configuração' : 'Configure seu rig'}
         </h2>
-        <p className="text-sm text-slate-400">
-          Tudo fica salvo <strong className="font-medium text-slate-300">só neste navegador</strong>{' '}
+        <p className="text-sm text-mist-400">
+          Tudo fica salvo <strong className="font-medium text-mist-300">só neste navegador</strong>{' '}
           (localStorage) — sem conta e sem enviar nada pra servidor nosso.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-400">Pool</span>
+          <span className="mb-1 block font-mono text-[11px] tracking-wide text-mist-400">Pool</span>
           <select
             value={poolId}
             onChange={(event) => setPoolId(event.target.value)}
@@ -83,15 +80,15 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
               </option>
             ))}
           </select>
-          <span className="mt-1 block text-xs text-slate-500">
+          <span className="mt-1 block text-xs text-mist-400">
             Só as pools com API por minerador acessível do navegador — as demais entram quando a
             integração for confirmada.
           </span>
         </label>
 
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-400">
-            API local do XMRig <span className="text-slate-600">(opcional)</span>
+          <span className="mb-1 block font-mono text-[11px] tracking-wide text-mist-400">
+            API local do XMRig <span className="text-mist-600">(opcional)</span>
           </span>
           <input
             type="text"
@@ -101,16 +98,18 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
             spellCheck={false}
             className={INPUT_CLASS}
           />
-          <span className="mt-1 block text-xs text-slate-500">
-            host:porta do XMRig rodando com <code className="text-slate-400">--http-enabled</code>{' '}
+          <span className="mt-1 block text-xs text-mist-400">
+            host:porta do XMRig rodando com <code className="font-mono text-mist-300">--http-enabled</code>{' '}
             — mostra hashrate local em tempo real.
           </span>
-          {errors.xmrig && <span role="alert" className="mt-1 block text-xs text-rose-400">{errors.xmrig}</span>}
+          {errors.xmrig && <span role="alert" className="mt-1 block text-xs text-alert">{errors.xmrig}</span>}
         </label>
       </div>
 
       <label className="block text-sm">
-        <span className="mb-1 block text-slate-400">Endereço da carteira ZEPH</span>
+        <span className="mb-1 block font-mono text-[11px] tracking-wide text-mist-400">
+          Endereço da carteira ZEPH
+        </span>
         <input
           type="text"
           value={wallet}
@@ -120,17 +119,17 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
           autoComplete="off"
           className={`${INPUT_CLASS} font-mono text-xs`}
         />
-        <span className="mt-1 block text-xs text-slate-500">
-          Só o endereço <strong className="font-medium text-slate-400">público</strong> — é tudo
+        <span className="mt-1 block text-xs text-mist-400">
+          Só o endereço <strong className="font-medium text-mist-300">público</strong> — é tudo
           que a pool precisa. Nunca cole chave privada nem seed em site nenhum.
         </span>
-        {errors.wallet && <span role="alert" className="mt-1 block text-xs text-rose-400">{errors.wallet}</span>}
+        {errors.wallet && <span role="alert" className="mt-1 block text-xs text-alert">{errors.wallet}</span>}
       </label>
 
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="submit"
-          className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-sky-500"
+          className="bg-zeph-300 px-4 py-2 text-sm font-medium text-ink-950 transition-colors hover:bg-zeph-500 hover:text-white"
         >
           Salvar e acompanhar
         </button>
@@ -138,7 +137,7 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition-colors hover:border-slate-500"
+            className="border border-hairline px-4 py-2 text-sm text-mist-300 transition-colors hover:border-mist-400"
           >
             Cancelar
           </button>
@@ -147,7 +146,7 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
           <button
             type="button"
             onClick={onClear}
-            className="ml-auto text-xs text-slate-500 underline underline-offset-4 transition-colors hover:text-rose-400"
+            className="ml-auto text-xs text-mist-400 underline underline-offset-4 transition-colors hover:text-alert"
           >
             Apagar configuração deste navegador
           </button>

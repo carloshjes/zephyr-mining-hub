@@ -142,18 +142,24 @@ fetch real, não só do servidor):
 - 2Miners: GET https://zeph.2miners.com/api/stats → { hashrate, minersTotal, workersTotal,
   luck, nodes: [{ networkhashps, difficulty, height, avgBlockTime, blockReward }], ... }
   — `Access-Control-Allow-Origin: *`, confirmado.
-- Por convenção dessa família de software, deve existir também
-  GET https://zeph.2miners.com/api/accounts/<endereco> pra stats por minerador —
-  confirmar formato exato E CORS ao implementar o módulo Monitor do Rig, não assumir que
-  herda o mesmo header do /api/stats.
+- 2Miners por minerador (confirmado 2026-07-09, CORS `*`):
+  GET https://zeph.2miners.com/api/accounts/<endereco> — hashrate curto/longo, workers,
+  shares, saldo em átomos (1e12/ZEPH). Endereço desconhecido/malformado → HTTP 404 com
+  corpo VAZIO. GET /api/miners lista todos os endereços (útil pra endereço de teste).
 
-Também confirmado funcionando (CORS aberto, testado com fetch real do navegador no
-Prompt 2):
+Também confirmado funcionando (CORS aberto, testado com fetch real do navegador):
 - HeroMiners — GET https://zephyr.herominers.com/api/stats, CORS `*` confirmado.
   Fee/min. payout em `config`, hashrate/miners em `pool`, `coinUnits` vem como string.
   (de.zephyr.herominers.com é host de stratum, não de API.)
+- HeroMiners por minerador: GET /api/stats_address?address=<endereco> — CORS `*` e
+  formato de erro (HTTP 200 com {"error":"Not found"} no CORPO) confirmados ao vivo;
+  formato de sucesso confirmado só no código-fonte do upstream (v1.3.5) — sem endereço
+  real de teste lá, ver NOTES.md Prompt 4. Parsing defensivo (valores como string).
 
-Pools ZEPH conhecidas SEM integração ainda — motivo confirmado no Prompt 2, TODOs em
+Camada pronta por minerador: MINER_POOLS/getMinerPool em `src/lib/api/minerStats.ts`
+(snapshot normalizado, campo ausente vira "—").
+
+Pools ZEPH conhecidas SEM integração ainda — motivo confirmado, TODOs em
 `src/lib/api/pools.ts`:
 - K1Pool — GET https://k1pool.com/api/stats/zeph responde JSON válido mas SEM header
   CORS → bloqueado no navegador. Integrar só com proxy (TODO em pools.ts).
@@ -162,8 +168,8 @@ Pools ZEPH conhecidas SEM integração ainda — motivo confirmado no Prompt 2, 
   o DNS de zeph.ravenminer.com estava instável no teste). TODO.
 Lista completa e atualizada de pools: https://miningpoolstats.stream/zephyr
 
-O dropdown de pool do módulo Monitor do Rig (Prompt 4) usa só 2Miners e HeroMiners —
-as outras 3 não estão prontas.
+O dropdown de pool do módulo Monitor do Rig usa só 2Miners e HeroMiners — as outras 3
+não estão prontas.
 
 ## API local do XMRig
 Quando XMRig roda com `--http-enabled` (porta configurável, ex. 16000):
@@ -171,10 +177,13 @@ GET http://127.0.0.1:PORTA/1/summary → hashrate, shares, uptime, backend de CP
 Sem autenticação por padrão, a menos que `access-token` tenha sido configurado.
 
 CORS confirmado aberto no binário real do XMRig (`Access-Control-Allow-Origin: *`,
-conferido no código-fonte). Mixed content localhost→127.0.0.1 testado sem bloqueio via
-`scripts/xmrig-sim.mjs` (reaproveitável pra testar sem hardware real). **Pendente:** o
-mesmo teste com a página já publicada em HTTPS (produção) contra o XMRig local em HTTP —
-cenário diferente do testado, precisa validação própria no módulo Monitor do Rig.
+conferido no código-fonte). Mixed content testado DUAS vezes (ver NOTES.md):
+localhost→127.0.0.1 (Fase 0) e **https://localhost→http://127.0.0.1 (Prompt 4,
+`scripts/rig-https-mixed.mjs`)** — os dois funcionam, zero aviso de mixed content; a
+isenção de loopback do Chromium vale com página https. A trava real é CORS do servidor
+local, e o XMRig real manda `*`. **Pendência restante (menor):** página PÚBLICA
+(Vercel) é outro espaço de endereço — a política de Local Network Access do Chrome só
+dá pra validar com o deploy real; a UI já degrada graciosamente se bloquear.
 
 ## Riscos conhecidos
 Ver NOTES.md pro detalhe completo dos testes de CORS/mixed-content da Fase 0. Resumo:
@@ -414,6 +423,176 @@ Ver CLAUDE.md: seção "API por minerador" de cada pool, e seção "API local do
 Antes de finalizar, teste o fluxo completo do zero: navegador sem nada salvo → preenche o
 formulário → dado aparece → dá refresh na página → dado continua lá sem precisar
 preencher de novo. Confirme os 4 passos nessa ordem antes de dar como pronto.
+```
+
+---
+
+## Prompt R1 — Fable: Redesign visual ("Sinal Técnico")
+
+Roda depois do Prompt 4, antes do Prompt 5. Direção decidida em 2026-07-09 fora do Claude
+Code, via skill `creative-ui-director` (Claude Sonnet 5, chat de arquitetura), com evidência
+real: screenshot das 4 telas atuais + navegação ao vivo em 3 sites de referência
+(zephyrprotocol.com, rig.ai, labs.scale.com). Não pule esse prompt nem tente redecidir a
+direção — só execute.
+
+```
+Aja como um engenheiro front-end sênior com direção de design forte — você decide
+hierarquia, composição e tipografia antes de tocar em componente solto, na mesma régua de
+um design lead que revisa o próprio trabalho contra um baseline genérico antes de aceitar
+como pronto.
+
+<contexto>
+Os 4 módulos do Zephyr Mining Hub (Pulso da Rede, Bússola de Pools, Raio-X da Recompensa,
+Monitor do Rig) estão prontos e commitados — leia CLAUDE.md e o código em src/ antes de
+começar. Cada um foi construído numa sessão separada sem memória compartilhada, e por isso
+a tela hoje é visualmente genérica: seções empilhadas em caixas de peso idêntico, nenhuma
+hierarquia, nenhum "signature move", paleta de gráfico solta (azul/verde/amarelo/violeta
+sem critério). Isso foi diagnosticado e decidido ANTES desta sessão, num processo
+estruturado de direção visual (skill creative-ui-director) rodado fora do Claude Code, com
+evidência real. Você não precisa nem deve reabrir esse processo ou explorar direções
+alternativas — a direção já foi escolhida e validada com o Carlos. Seu trabalho é executar
+com qualidade de implementação, não redecidir o rumo.
+
+Esta sessão roda ANTES do Prompt 5 (integração final) — Prompt 5 continua existindo depois
+desta, mas vai herdar um produto já visualmente consistente, então o foco dele muda de
+"unificar estilos divergentes" pra "revisão fina + página inicial".
+</contexto>
+
+<direcao_escolhida>
+Nome: "Sinal Técnico" — fusão de dois references:
+- rig.ai: fundo unificado quase preto (não caixas navy soltas flutuando), anotação técnica
+  em monoespaçada com colchetes (`[ LABEL ]`), tipografia display grande e confiante, uma
+  cor de destaque reservada estritamente pra alerta/energia.
+- zephyrprotocol.com: família de roxo herdada da própria moeda (parentesco de marca com o
+  ecossistema Zephyr) substituindo a paleta hoje solta; manchete numérica em escala grande,
+  às vezes cortada na borda da tela como recurso de composição.
+
+Paleta de partida (valores aproximados extraídos visualmente das referências — ajuste fino
+de contraste/acessibilidade fica com você):
+- Fundo base: quase preto, ~#0A0A0E (não #0f172a slate atual — mais escuro e neutro, não
+  azulado).
+- Roxo primário (texto de destaque, manchete, fatia dominante): ~#A996F5.
+- Roxo médio (fatia secundária, elementos de suporte): ~#6F5FC4.
+- Roxo escuro (fatia terciária, decoração discreta): ~#352D54.
+- Vermelho/coral RESERVADO só pra alerta (reserve ratio abaixo do piso de 4,0, erro,
+  offline): ~#E8492F. Não usar decorativamente em mais nada.
+- Texto secundário/muted sobre o fundo escuro: tons de cinza-roxo (~#8B86A0, ~#57536A) —
+  não cinza puro.
+- Divisores: hairline discreto (~#221F29), não a borda pesada arredondada que as caixas
+  usam hoje.
+
+Tipografia: mantém a fonte de corpo atual pra texto de leitura longa (explicações, tabela).
+Introduz uma família monoespaçada (system monospace tá ok se não quiser puxar webfont
+nova) só pra metadado técnico: altura de bloco, timestamp, rótulos entre colchetes,
+legendas de eixo — nunca pro corpo de texto.
+
+Composição: o sintoma mais grave hoje é "tudo empilhado com peso igual". Em toda tela,
+define UMA região dominante (o dado/gráfico mais importante daquele módulo) ocupando a
+maior parte da dobra, e as demais informações da tela viram uma coluna/rail mais quieta ao
+lado ou abaixo — não mais uma sequência de caixas do mesmo tamanho.
+</direcao_escolhida>
+
+<tarefa>
+1. Tokens primeiro, num lugar central. Projeto usa Tailwind v4 (plugin
+   `@tailwindcss/vite`, ver vite.config.ts) — defina a paleta e a fonte monoespaçada no
+   bloco `@theme` do CSS de entrada (não crie tailwind.config.js do zero, não é o padrão
+   dessa versão). Nenhuma cor hardcoded solta em componente depois disso.
+
+2. Tela âncora: Raio-X da Recompensa. Aplique primeiro, é a mais rica e a prova de
+   conceito do sistema:
+   - Manchete numérica (hoje "65,0% vai pro minerador") vira o elemento dominante da
+     dobra — tipografia grande o bastante pra cortar na borda em telas largas (feito de
+     propósito, não bug), com o roxo primário.
+   - O gráfico de área empilhada e o gráfico de reserve ratio hoje vivem em duas caixas
+     soltas sem relação visual nenhuma, mesmo a legenda dizendo que é correlação — crie
+     um conector visual real entre os dois (linha pontilhada, trilho, ou region
+     compartilhada) que expresse "observação, não fórmula" tanto visualmente quanto no
+     texto que já existe.
+   - Explicação em texto e o gráfico de reserve ratio encolhem pra um rail secundário
+     mais quieto, não caixas do mesmo tamanho que o gráfico principal.
+   - Tabela (`<details>`) continua colapsada por padrão; troca só o tratamento visual
+     (hairline, rótulo monoespaçado) pela lógica do labs.scale.com — não pela borda
+     pesada atual.
+   - NOVO: estado de alerta visível quando reserve_ratio cruza o piso de 4,0 (hoje não
+     existe nenhum destaque nesse cruzamento) — usa o vermelho reservado.
+
+3. Propaga o sistema (tokens + composição dominante/rail) pros outros 3 módulos,
+   resolvendo o sintoma mais grave de cada:
+   - Monitor do Rig: os 4 cards de estatística hoje têm peso idêntico (card farm
+     clássico) — vira uma métrica dominante (ex. hashrate atual + status "minerando
+     normal/abaixo/offline", que já existe na lógica) ocupando mais espaço, as outras 3
+     métricas encolhem pra um rail ou linha secundária. Tabela de workers ganha o mesmo
+     tratamento hairline/monoespaçado da tabela do Raio-X.
+   - Bússola de Pools: já é tabela-primeiro, o que é uma escolha correta — só herda
+     tokens (cor, hairline) e o tratamento tipo labs.scale (algarismo monoespaçado,
+     rótulo entre colchetes). Não precisa de composição dominante/rail nova, a tabela já
+     é a região dominante.
+   - Pulso da Rede: aplique os tokens (cor, tipografia, hairline). Diagnostique você
+     mesmo se essa tela também sofre de "caixas empilhadas de peso igual" — se sim,
+     resolve com a mesma lógica dominante/rail (provavelmente o hashrate/dificuldade
+     atual vira a região dominante, halving e reserve ratio viram rail); se a tela já
+     tiver algum foco claro, documente por que não precisa da mudança estrutural, só dos
+     tokens.
+
+4. Casca de navegação: atualiza pro sistema novo — indicador de rota ativa pode usar a
+   convenção de colchete (`[ Nome do Módulo ]`) que aparece nas referências, cor de marca
+   (roxo) em vez do azul/ciano atual.
+
+5. Autonomia de implementação: dentro dessa direção, você tem liberdade pra decidir
+   microinterações, estados de hover/focus, timing de transição, espaçamento fino, e
+   pequenos ajustes de composição que só ficam óbvios com o código real na tela — não
+   precisa validar cada decisão pequena comigo. A direção estrutural (tokens, composição
+   dominante/rail, paleta) NÃO é negociável nesta sessão; o acabamento é.
+</tarefa>
+
+<restricoes>
+- Proibido: gradiente, glassmorphism, blur, glow, sombra decorativa, novo tema
+  claro/dark-mode-toggle. Isso é mudança de tema, não desta sessão (regra da própria
+  skill de direção visual: não introduzir tema/localização sem pedido explícito —
+  tradução pro inglês é uma sessão futura separada, não mexe em texto agora).
+- Proibida uma quarta cor de destaque. É a família de roxo + o vermelho reservado só pro
+  alerta — mais que isso é ruído, não hierarquia.
+- Preserva toda lógica/dado/cálculo/fetch existente — é só camada de composição,
+  tipografia e cor. Se achar um bug real de UI no caminho, documenta em NOTES.md antes de
+  corrigir, não corrige calado.
+- Contraste WCAG 2.2 AA obrigatório mesmo no fundo quase-preto — teste de verdade, não
+  suponha.
+- Qualquer microinteração nova respeita `prefers-reduced-motion`.
+- Card removido, espaçamento apertado, estado afiado: pra cada remoção decorativa,
+  justifique em uma linha no NOTES.md (o que saiu e por quê).
+- Um módulo de cada vez dentro da mesma sessão: termina e testa o Raio-X antes de tocar
+  no Rig; termina e testa o Rig antes de tocar em Pools; etc. Não editar os 4 em paralelo
+  torcendo pra dar certo no final.
+</restricoes>
+
+<criterios_de_aceite>
+- Tokens (cor, fonte monoespaçada) centralizados no `@theme` do Tailwind — zero cor
+  hardcoded nova espalhada em componente.
+- As 4 telas + a navegação usam a mesma paleta e a mesma lógica de composição
+  dominante/rail (ou documentam por que uma tela não precisava).
+- Raio-X da Recompensa: manchete dominante, conector visual entre os 2 gráficos, alerta
+  de reserve ratio abaixo de 4,0 implementado e visível de verdade (force o cenário pra
+  testar).
+- Monitor do Rig: card farm resolvido — não são mais 4 cards de peso idêntico.
+- `npm run build` limpo, sem warning novo.
+- Testado em pelo menos 3 breakpoints reais com screenshot (reaproveita os scripts de
+  e2e/screenshot que os módulos já têm — desktop e mobile, do jeito que o Prompt 3 e o
+  Prompt 4 já fizeram) — a manchete cortada do Raio-X, por exemplo, precisa de uma
+  recomposição real no mobile, não só encolher.
+- CLAUDE.md e NOTES.md atualizados com os valores finais de token (cor exata, fonte) e
+  qualquer decisão de composição por módulo.
+</criterios_de_aceite>
+
+Antes de finalizar, rode esse auto-check por tela (rubrica curta, 6 perguntas):
+1. Sobrevive em preto e branco (a hierarquia não depende só da cor)?
+2. Tem uma única região dominante clara, não um empate de peso?
+3. Poderia ser confundida com o dashboard genérico de qualquer outro produto?
+4. Some o roxo/vermelho da tela — a hierarquia ainda funciona?
+5. Sobrevive no menor breakpoint sem só encolher (recompôs de verdade)?
+6. A cor está herdada de marca/significado (roxo = Zephyr, vermelho = alerta), não
+   decorativa solta?
+Se alguma tela falhar em 2+ perguntas, ajuste antes de dar como pronto — não deixa pra
+próxima sessão.
 ```
 
 ---

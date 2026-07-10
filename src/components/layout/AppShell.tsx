@@ -1,6 +1,9 @@
 import { NavLink, Outlet } from 'react-router-dom'
 
 // Casca comum de navegação — os 4 módulos do produto moram aqui dentro.
+// Indicador de rota ativa na convenção da direção "Sinal Técnico": rótulo
+// mono entre colchetes, roxo de marca. Os colchetes existem (transparentes)
+// também no estado inativo pra troca de rota não deslocar o layout.
 const NAV_ITEMS = [
   { to: '/rede', label: 'Pulso da Rede' },
   { to: '/pools', label: 'Bússola de Pools' },
@@ -10,27 +13,39 @@ const NAV_ITEMS = [
 
 export function AppShell() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
+    // overflow-x-clip: a manchete full-bleed do Raio-X usa w-screen — o clip
+    // aqui impede que isso vire scroll horizontal da página
+    <div className="flex min-h-screen flex-col overflow-x-clip">
+      <header className="border-b border-hairline bg-ink-950">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-2">
             <span aria-hidden className="text-xl">⛏️</span>
             <span className="text-lg font-semibold tracking-tight">
-              Zephyr <span className="text-sky-400">Mining Hub</span>
+              Zephyr <span className="text-zeph-300">Mining Hub</span>
             </span>
           </div>
-          <nav className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+          <nav className="flex flex-wrap gap-x-5 gap-y-1 font-mono text-xs tracking-wide">
             {NAV_ITEMS.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
                   isActive
-                    ? 'border-b-2 border-sky-400 pb-1 font-medium text-sky-400'
-                    : 'border-b-2 border-transparent pb-1 text-slate-400 transition-colors hover:text-slate-200'
+                    ? 'py-1 text-zeph-300'
+                    : 'py-1 text-mist-400 transition-colors hover:text-mist-100'
                 }
               >
-                {item.label}
+                {({ isActive }) => (
+                  <>
+                    <span aria-hidden className={isActive ? '' : 'text-transparent'}>
+                      [{' '}
+                    </span>
+                    {item.label}
+                    <span aria-hidden className={isActive ? '' : 'text-transparent'}>
+                      {' '}]
+                    </span>
+                  </>
+                )}
               </NavLink>
             ))}
           </nav>
@@ -41,7 +56,7 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <footer className="border-t border-slate-800 py-4 text-center text-xs text-slate-500">
+      <footer className="border-t border-hairline py-4 text-center text-xs text-mist-400">
         Dados: Zephyr Scanner API (zephyrprotocol.com), explorer.zephyrprotocol.com e APIs
         públicas das pools · projeto comunitário, sem afiliação oficial
       </footer>

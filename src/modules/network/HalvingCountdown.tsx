@@ -33,11 +33,12 @@ function splitCountdown(totalSeconds: number): CountdownParts {
 function CountdownSegment({ value, unit }: { value: number; unit: string }) {
   return (
     <span className="flex flex-col items-center">
-      {/* Hero figure: algarismos proporcionais, mesma sans do resto do app */}
-      <span className="text-5xl font-semibold tracking-tight sm:text-6xl">
-        {value}
+      {/* Dígitos em mono (metadado técnico, na convenção da direção) —
+          a faixa é secundária: o hero da tela é o hashrate da rede */}
+      <span className="font-mono text-3xl font-medium sm:text-4xl">{value}</span>
+      <span className="mt-1 font-mono text-[10px] tracking-wide text-mist-400 uppercase">
+        {unit}
       </span>
-      <span className="mt-1 text-xs tracking-wide text-slate-400 uppercase">{unit}</span>
     </span>
   )
 }
@@ -58,17 +59,15 @@ export function HalvingCountdown({ baseRewardAtoms, isLoading }: HalvingCountdow
   }, [])
 
   const heading = (
-    <h2 className="text-sm font-medium tracking-wide text-sky-400 uppercase">
-      Próximo halving
-    </h2>
+    <h2 className="font-mono text-[11px] tracking-wide text-zeph-300">[ PRÓXIMO HALVING ]</h2>
   )
 
   if (isLoading || !projection) {
     return (
-      <section className="rounded-2xl border border-sky-900/60 bg-slate-900 p-6 sm:p-8">
+      <section className="border-t border-hairline pt-6">
         {heading}
         <div className="mt-4 flex gap-6">
-          <Skeleton className="h-16 w-64" />
+          <Skeleton className="h-12 w-64" />
         </div>
       </section>
     )
@@ -76,10 +75,10 @@ export function HalvingCountdown({ baseRewardAtoms, isLoading }: HalvingCountdow
 
   if (projection.isTailEmission) {
     return (
-      <section className="rounded-2xl border border-sky-900/60 bg-slate-900 p-6 sm:p-8">
+      <section className="border-t border-hairline pt-6">
         {heading}
-        <p className="mt-3 text-3xl font-semibold">Emissão de cauda ativa</p>
-        <p className="mt-2 text-sm text-slate-400">
+        <p className="mt-3 text-2xl font-semibold">Emissão de cauda ativa</p>
+        <p className="mt-2 text-sm text-mist-400">
           A recompensa base chegou ao piso de {formatZeph(projection.nextThresholdZeph, 1)}{' '}
           por bloco e não cai mais — não há próximos halvings.
         </p>
@@ -91,27 +90,33 @@ export function HalvingCountdown({ baseRewardAtoms, isLoading }: HalvingCountdow
   const { days, hours, minutes, seconds } = splitCountdown(secondsLeft)
 
   return (
-    <section className="rounded-2xl border border-sky-900/60 bg-slate-900 p-6 sm:p-8">
-      {heading}
-      <div className="mt-4 flex flex-wrap items-end gap-x-8 gap-y-4">
-        <CountdownSegment value={days} unit="dias" />
-        <CountdownSegment value={hours} unit="horas" />
-        <CountdownSegment value={minutes} unit="min" />
-        <CountdownSegment value={seconds} unit="seg" />
+    <section className="border-t border-hairline pt-6">
+      <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-4">
+        <div>
+          {heading}
+          <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-3">
+            <CountdownSegment value={days} unit="dias" />
+            <CountdownSegment value={hours} unit="horas" />
+            <CountdownSegment value={minutes} unit="min" />
+            <CountdownSegment value={seconds} unit="seg" />
+          </div>
+        </div>
+        <div className="max-w-xl">
+          <p className="text-sm text-mist-300">
+            Faltam <strong className="font-mono text-mist-100">{formatInteger(projection.blocksRemaining)}</strong>{' '}
+            blocos até a recompensa base cruzar{' '}
+            <strong className="font-mono text-mist-100">{formatZeph(projection.nextThresholdZeph)}</strong>{' '}
+            (hoje: {formatZeph(projection.baseRewardZeph)}) — por volta de{' '}
+            <strong className="text-mist-100">{formatDateTime(projection.estimatedAt)}</strong>.
+          </p>
+          <p className="mt-2 text-xs text-mist-400">
+            A emissão do Zephyr é suave (estilo Monero): a recompensa cai um pouco a cada
+            bloco, sem corte abrupto. O “halving” é o marco em que ela atinge metade do
+            patamar anterior. Estimativa assume blocos de 120 s (a recompensa cai
+            ~0,000095% por bloco).
+          </p>
+        </div>
       </div>
-      <p className="mt-5 text-sm text-slate-400">
-        Faltam <strong className="text-slate-200">{formatInteger(projection.blocksRemaining)}</strong>{' '}
-        blocos até a recompensa base cruzar{' '}
-        <strong className="text-slate-200">{formatZeph(projection.nextThresholdZeph)}</strong>{' '}
-        (hoje: {formatZeph(projection.baseRewardZeph)}) — por volta de{' '}
-        <strong className="text-slate-200">{formatDateTime(projection.estimatedAt)}</strong>.
-      </p>
-      <p className="mt-2 text-xs text-slate-500">
-        A emissão do Zephyr é suave (estilo Monero): a recompensa cai um pouco a cada
-        bloco, sem corte abrupto. O “halving” é o marco em que ela atinge metade do
-        patamar anterior. Estimativa assume blocos de 120 s (a recompensa cai
-        ~0,000095% por bloco).
-      </p>
     </section>
   )
 }

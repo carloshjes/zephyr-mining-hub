@@ -22,11 +22,18 @@ import {
 } from '../../lib/format'
 import { StatCard, type StatDelta } from '../../components/ui/StatCard'
 import { ErrorNotice } from '../../components/ui/ErrorNotice'
+import { Skeleton } from '../../components/ui/Skeleton'
 import { HalvingCountdown } from './HalvingCountdown'
 
 // Pulso da Rede — visão pública da saúde da rede Zephyr.
 // Polling de 30s casando com o cache de 30s da Scanner API; o explorer segue
 // o mesmo ritmo (um bloco novo a cada ~120s, 30s já é folgado).
+//
+// Composição (direção "Sinal Técnico"): o hashrate da rede é o pulso que dá
+// nome ao módulo — vira a região dominante da dobra, com dificuldade/altura
+// como anotação mono. Reserve ratio, preço e recompensa encolhem pra um rail
+// quieto; o halving vira uma faixa horizontal secundária abaixo (antes eram
+// DOIS heróis competindo: o card do halving e um grid de 6 cards iguais).
 const POLL_INTERVAL_MS = SCANNER_CACHE_SECONDS * 1_000
 // Série diária só serve de referência de fechamento — 15 min é mais que suficiente
 const DAILY_STATS_INTERVAL_MS = 15 * 60 * 1_000
@@ -56,20 +63,16 @@ function deltaVsYesterday(
 }
 
 // Faixa de saúde do reserve ratio do protocolo (Djed): alvo entre 4,0 e 8,0.
-// Sempre texto + ícone, nunca só cor.
+// Sempre texto + glifo, nunca só cor — e o vermelho SÓ no caso de alerta
+// (abaixo do piso), na convenção mono de colchetes da direção.
 function reserveRatioBadge(ratio: number | undefined) {
   if (ratio === undefined) return undefined
-  const chip = (text: string, icon: string, className: string) => (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${className}`}
-    >
-      <span aria-hidden>{icon}</span>
-      {text}
-    </span>
+  const chip = (text: string, className: string) => (
+    <span className={`font-mono text-[11px] whitespace-nowrap ${className}`}>[ {text} ]</span>
   )
-  if (ratio < 4) return chip('abaixo da faixa', '⚠', 'border-rose-800 bg-rose-950/60 text-rose-300')
-  if (ratio > 8) return chip('acima da faixa', '↑', 'border-amber-800 bg-amber-950/60 text-amber-300')
-  return chip('saudável', '✓', 'border-emerald-800 bg-emerald-950/60 text-emerald-300')
+  if (ratio < 4) return chip('⚠ abaixo da faixa', 'text-alert')
+  if (ratio > 8) return chip('↑ acima da faixa', 'text-mist-300')
+  return chip('✓ saudável', 'text-zeph-300')
 }
 
 export function NetworkPulsePage() {
@@ -117,15 +120,15 @@ export function NetworkPulsePage() {
       : undefined
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Pulso da Rede</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-mist-400">
             Saúde da rede Zephyr em tempo quase-real, direto das APIs públicas.
           </p>
         </div>
-        <p className="text-xs text-slate-500">
+        <p className="font-mono text-[11px] text-mist-400">
           Atualização automática a cada {SCANNER_CACHE_SECONDS} s (cache da API)
           {lastUpdatedAt > 0 && ` · última: ${formatTime(new Date(lastUpdatedAt))}`}
         </p>
@@ -143,62 +146,74 @@ export function NetworkPulsePage() {
         )
       )}
 
+      {/* Região dominante: o pulso (hashrate) + rail quieto com o resto */}
+      <section className="lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_21rem]">
+        <div className="min-w-0">
+          <p className="font-mono text-[11px] tracking-wide text-mist-400">
+            [ HASHRATE DA REDE ]
+          </p>
+          {networkInfo.isLoading ? (
+            <div className="mt-2 space-y-3">
+              <Skeleton className="h-20 w-72" />
+              <Skeleton className="h-4 w-96" />
+            </div>
+          ) : (
+            <>
+              <p className="mt-1 text-[clamp(3.5rem,10vw,8rem)] leading-none font-semibold tracking-tighter text-zeph-300">
+                {orDash(networkInfo.data?.hash_rate, formatHashrate)}
+              </p>
+              <p className="mt-3 font-mono text-[11px] text-mist-400">
+                dificuldade {orDash(difficulty, formatCompact)}
+                {difficulty !== undefined && ` (${formatInteger(difficulty)})`} · bloco{' '}
+                {orDash(networkInfo.data?.height, formatInteger)} · um novo a cada ~120 s
+              </p>
+              <p className="mt-1 text-xs text-mist-400">
+                estimado pelo daemon da rede (dificuldade ÷ 120 s), via explorer
+              </p>
+            </>
+          )}
+        </div>
+
+        <aside className="mt-8 space-y-4 lg:mt-0 lg:border-l lg:border-hairline lg:pl-8">
+          <StatCard
+            label="Reserve ratio"
+            value={orDash(liveStats.data?.reserve_ratio, (v) => formatNumber(v, 2, 2))}
+            sub={
+              liveStats.data?.reserve_ratio_ma !== undefined
+                ? `média móvel: ${formatNumber(liveStats.data.reserve_ratio_ma, 2, 2)} · faixa alvo: 4,0–8,0`
+                : 'faixa alvo do protocolo: 4,0–8,0'
+            }
+            delta={deltaVsYesterday(
+              liveStats.data?.reserve_ratio,
+              yesterday?.data.reserve_ratio_close,
+            )}
+            badge={reserveRatioBadge(liveStats.data?.reserve_ratio)}
+            isLoading={liveStats.isLoading}
+          />
+          <StatCard
+            label="Preço ZEPH"
+            value={orDash(liveStats.data?.zeph_price, formatUsd)}
+            delta={deltaVsYesterday(liveStats.data?.zeph_price, yesterday?.data.zeph_price_close)}
+            isLoading={liveStats.isLoading}
+          />
+          <StatCard
+            label="Recompensa do minerador"
+            value={orDash(blockReward.data?.miner_reward, (v) => formatZeph(v))}
+            sub={
+              blockReward.data?.base_reward_atoms
+                ? `recompensa base: ${formatZeph(Number(blockReward.data.base_reward_atoms) / 1e12)} · split 65/30/5`
+                : `split 65% minerador / 30% reserva / 5% yield ${DASH} aguardando dado`
+            }
+            isLoading={blockReward.isLoading}
+          />
+        </aside>
+      </section>
+
+      {/* Faixa secundária: contagem regressiva do próximo halving */}
       <HalvingCountdown
         baseRewardAtoms={blockReward.data?.base_reward_atoms}
         isLoading={blockReward.isLoading}
       />
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          label="Hashrate da rede"
-          value={orDash(networkInfo.data?.hash_rate, formatHashrate)}
-          sub="estimado pelo daemon (dificuldade ÷ 120 s)"
-          isLoading={networkInfo.isLoading}
-        />
-        <StatCard
-          label="Dificuldade"
-          value={orDash(difficulty, formatCompact)}
-          sub={difficulty !== undefined ? `exata: ${formatInteger(difficulty)}` : undefined}
-          isLoading={networkInfo.isLoading}
-        />
-        <StatCard
-          label="Altura do bloco"
-          value={orDash(networkInfo.data?.height, formatInteger)}
-          sub="um bloco novo a cada ~120 s"
-          isLoading={networkInfo.isLoading}
-        />
-        <StatCard
-          label="Reserve ratio"
-          value={orDash(liveStats.data?.reserve_ratio, (v) => formatNumber(v, 2, 2))}
-          sub={
-            liveStats.data?.reserve_ratio_ma !== undefined
-              ? `média móvel: ${formatNumber(liveStats.data.reserve_ratio_ma, 2, 2)} · faixa alvo: 4,0–8,0`
-              : 'faixa alvo do protocolo: 4,0–8,0'
-          }
-          delta={deltaVsYesterday(
-            liveStats.data?.reserve_ratio,
-            yesterday?.data.reserve_ratio_close,
-          )}
-          badge={reserveRatioBadge(liveStats.data?.reserve_ratio)}
-          isLoading={liveStats.isLoading}
-        />
-        <StatCard
-          label="Preço ZEPH"
-          value={orDash(liveStats.data?.zeph_price, formatUsd)}
-          delta={deltaVsYesterday(liveStats.data?.zeph_price, yesterday?.data.zeph_price_close)}
-          isLoading={liveStats.isLoading}
-        />
-        <StatCard
-          label="Recompensa do minerador"
-          value={orDash(blockReward.data?.miner_reward, (v) => formatZeph(v))}
-          sub={
-            blockReward.data?.base_reward_atoms
-              ? `recompensa base: ${formatZeph(Number(blockReward.data.base_reward_atoms) / 1e12)} · split 65/30/5`
-              : `split 65% minerador / 30% reserva / 5% yield ${DASH} aguardando dado`
-          }
-          isLoading={blockReward.isLoading}
-        />
-      </div>
     </div>
   )
 }

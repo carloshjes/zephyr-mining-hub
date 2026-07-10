@@ -17,6 +17,27 @@ rewrite/proxy do Vercel em produção (mesma ideia do proxy do Vite dev server).
 - Campo ausente na resposta da API vira "—" na tela. Nunca inventar/mockar valor.
 - Loading e erro usam um componente compartilhado (não reinventar por módulo).
 
+## Direção visual — "Sinal Técnico" (aplicada em 2026-07-09, ver NOTES.md)
+Tokens centralizados no `@theme` de `src/index.css` — NUNCA hex solto em componente
+(utilitário Tailwind ou `var(--color-*)`; em SVG data-driven, via `style`, não atributo).
+- Fundo unificado ink-950 `#0a0a0e` (sem caixas navy) + divisor hairline `#221f29`;
+  superfície elevada ink-900 só pra tooltip/thead sticky.
+- Família roxa da marca: zeph-300 `#a996f5` (destaque/manchete/fatia dominante, 7,9:1),
+  zeph-500 `#6f5fc4` (suporte/gráfico, 3,9:1), zeph-700 `#463c77` (gráfico com alívio),
+  zeph-800 `#352d54` (SÓ decoração).
+- Texto cinza-roxo: mist-100/300/400 (piso de texto corrido = mist-400, 5,7:1);
+  mist-600 `#57536a` é SÓ decorativo (2,7:1) — nunca texto de conteúdo.
+- Vermelho alert `#e8492f` RESERVADO: erro, offline, reserve ratio abaixo do piso 4,0.
+  Proibida qualquer 4ª cor de destaque (nada de verde/âmbar/azul).
+- Mono (`font-mono`, system stack) só pra metadado técnico: altura de bloco, timestamp,
+  eixos, rótulos `[ ENTRE COLCHETES ]` (rota ativa, status, tags). Nunca corpo de texto.
+- Composição: cada tela tem UMA região dominante + rail secundário (não caixas empilhadas
+  de peso igual). Proibido: gradiente, glassmorphism, blur, glow, sombra decorativa.
+- Rampa dos gráficos (rewardSeries.ts): monocromática roxa validada como ordinal contra
+  ink-950 (skill dataviz) — não reordenar/trocar cor sem revalidar; degraus escuros exigem
+  os canais de alívio (rótulo direto, legenda, tooltip, tabela).
+- `scripts/design-shots.mjs` fotografa as 4 telas em 3 breakpoints pra revisão visual.
+
 ## Módulos (rotas)
 - /rede — Pulso da Rede: hashrate/dificuldade de rede, halving, saúde do reserve ratio.
   Público, sem configuração do visitante.

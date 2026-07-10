@@ -75,7 +75,7 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
     return (
       <div ref={containerRef} className="h-72">
         {count < 2 && width > 0 && (
-          <p className="pt-8 text-center text-sm text-slate-500">
+          <p className="pt-8 text-center text-sm text-mist-400">
             Sem blocos suficientes pra desenhar a série.
           </p>
         )}
@@ -179,7 +179,7 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
   return (
     <div
       ref={containerRef}
-      className="relative rounded focus-visible:outline-2 focus-visible:outline-sky-400"
+      className="relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zeph-300"
       tabIndex={0}
       aria-label={`${summary} Use as setas do teclado pra inspecionar bloco a bloco.`}
       onKeyDown={onKeyDown}
@@ -195,34 +195,39 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
               y1={y(tick)}
               y2={y(tick)}
               strokeWidth={1}
-              className={tick === 0 ? 'stroke-slate-700' : 'stroke-slate-800'}
+              className={tick === 0 ? 'stroke-mist-600' : 'stroke-hairline'}
             />
             <text
               x={MARGINS.left - 8}
               y={y(tick) + 3}
               textAnchor="end"
-              className="fill-slate-400 text-[10px] tabular-nums"
+              className="fill-mist-400 font-mono text-[10px]"
             >
               {unit === 'percent' ? `${tick}%` : formatNumber(tick, 2)}
             </text>
           </g>
         ))}
-        <text x={4} y={MARGINS.top - 4} className="fill-slate-500 text-[10px]">
+        <text x={4} y={MARGINS.top - 4} className="fill-mist-400 font-mono text-[10px]">
           {unit === 'percent' ? '% do bloco' : 'ZEPH'}
         </text>
 
-        {/* Faixas: wash + borda superior sólida na cor da série */}
+        {/* Faixas: wash + borda superior sólida na cor da série (a cor vem de
+            var(--color-*) — em SVG isso só resolve via style, não atributo) */}
         {REWARD_SERIES.map((def, s) =>
           seriesIsActive[s] ? (
             <g key={def.key}>
-              <path d={bandPath(s)} fill={def.color} fillOpacity={0.25} />
+              <path
+                d={bandPath(s)}
+                style={{ fill: def.color, fillOpacity: def.washOpacity }}
+              />
               <polyline
                 points={edgePoints(s)}
                 fill="none"
-                stroke={def.color}
                 strokeWidth={2}
                 strokeLinejoin="round"
                 strokeLinecap="round"
+                strokeDasharray={def.dashedEdge ? '4 3' : undefined}
+                style={{ stroke: def.color }}
               />
             </g>
           ) : null,
@@ -235,7 +240,7 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
             x={xForHeight(tick)}
             y={CHART_HEIGHT - 8}
             textAnchor="middle"
-            className="fill-slate-400 text-[10px] tabular-nums"
+            className="fill-mist-400 font-mono text-[10px]"
           >
             {formatInteger(tick)}
           </text>
@@ -247,7 +252,7 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
             key={label.key}
             x={MARGINS.left + plotWidth + 6}
             y={label.y + 3}
-            className="fill-slate-200 text-[11px] font-medium tabular-nums"
+            className="fill-mist-100 font-mono text-[11px]"
           >
             {label.text}
           </text>
@@ -261,7 +266,7 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
             y1={MARGINS.top}
             y2={MARGINS.top + plotHeight}
             strokeWidth={1}
-            className="stroke-slate-400"
+            className="stroke-mist-400"
           />
         )}
 
@@ -280,27 +285,29 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
 
       {hovered && (
         <div
-          className="pointer-events-none absolute top-2 z-10 w-max -translate-x-1/2 rounded-lg border border-slate-700 bg-slate-950/95 px-3 py-2 text-xs shadow-xl"
+          className="pointer-events-none absolute top-2 z-10 w-max -translate-x-1/2 border border-hairline bg-ink-900 px-3 py-2 text-xs"
           style={{ left: tooltipLeft }}
         >
-          <p className="mb-1 text-slate-400">Bloco {formatInteger(hovered.height)}</p>
+          <p className="mb-1 font-mono text-[11px] text-mist-400">
+            [ BLOCO {formatInteger(hovered.height)} ]
+          </p>
           {REWARD_SERIES.map((def) => (
             <p key={def.key} className="flex items-center gap-2 leading-5">
               <span
                 aria-hidden
-                className="inline-block h-0.5 w-3 rounded"
+                className="inline-block h-0.5 w-3"
                 style={{ backgroundColor: def.color }}
               />
-              <span className="font-semibold text-slate-100 tabular-nums">
+              <span className="font-mono font-semibold text-mist-100">
                 {formatZeph(hovered.values[def.key], 3)}
               </span>
-              <span className="text-slate-400">
+              <span className="text-mist-400">
                 · {formatNumber(sharePercent(hovered, def.key), 1, 1)}% {def.label.toLowerCase()}
               </span>
             </p>
           ))}
-          <p className="mt-1 border-t border-slate-800 pt-1 text-slate-300">
-            Total <span className="font-semibold text-slate-100 tabular-nums">{formatZeph(hovered.total, 3)}</span>
+          <p className="mt-1 border-t border-hairline pt-1 text-mist-300">
+            Total <span className="font-mono font-semibold text-mist-100">{formatZeph(hovered.total, 3)}</span>
           </p>
         </div>
       )}

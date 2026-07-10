@@ -291,3 +291,124 @@ próprio xmrig-sim):
 - Armadilha de timing: o XMRig local responde ANTES da pool — esperar por
   "H/s" no texto da página não garante dado da pool; espere pelas linhas da
   tabela de workers.
+
+# NOTES — Direção visual "Sinal Técnico" (2026-07-09)
+
+Execução da direção decidida fora desta sessão (skill creative-ui-director):
+fundo unificado quase-preto, família de roxo da marca Zephyr, anotação técnica
+em mono com colchetes, vermelho reservado a alerta, composição dominante/rail.
+Só camada de composição/tipografia/cor — zero mudança de lógica/dado/fetch.
+
+## Tokens finais (fonte única: `@theme` em src/index.css)
+
+Contraste MEDIDO (script WCAG 2.2 real, não estimado) contra ink-950 #0a0a0e:
+
+| Token | Hex | Contraste | Uso permitido |
+|---|---|---|---|
+| ink-950 | #0a0a0e | — | fundo base único |
+| ink-900 | #141119 | — | superfície elevada (tooltip, thead sticky) |
+| hairline | #221f29 | 1,2:1 | divisor decorativo |
+| zeph-300 | #a996f5 | 7,9:1 | destaque/manchete/fatia dominante (texto ok) |
+| zeph-500 | #6f5fc4 | 3,9:1 | gráfico e texto GRANDE apenas |
+| zeph-700 | #463c77 | 2,0:1 | SÓ gráfico com canal de alívio |
+| zeph-800 | #352d54 | 1,6:1 | SÓ decoração (tint de linha, trilho) |
+| mist-100 | #edebf4 | 16,7:1 | texto principal |
+| mist-300 | #b7b2c9 | 9,6:1 | texto secundário |
+| mist-400 | #8b86a0 | 5,7:1 | piso de texto corrido (muted) |
+| mist-600 | #57536a | 2,7:1 | SÓ decoração (glifo inativo, sparkline, placeholder) |
+| alert | #e8492f | 5,1:1 | RESERVADO: erro, offline, reserva < 4,0 |
+
+Fonte mono: system stack (`--font-mono`), só metadado técnico (altura, hora,
+eixo, rótulo `[ ... ]`) — nunca corpo de texto. Ajustes sobre a paleta de
+partida do brief: o roxo escuro #352d54 ficou em 1,56:1 e REPROVOU no
+validador da skill de dataviz como degrau de rampa — o degrau dos GRÁFICOS
+subiu pra #463c77 (2,04:1, rampa ordinal PASS: luminosidade monótona, ΔL ≥
+0,06); #352d54 continua como token de decoração pura. O muted profundo
+#57536a (2,7:1) reprovaria como texto → rebaixado a decoração; o piso de
+texto é #8b86a0. Componentes só usam utilitário Tailwind ou `var(--color-*)`
+(SVG data-driven usa `style`, não atributo — var() não resolve em atributo de
+apresentação); as e2e passaram a checar cor COMPUTADA (rgb resolvido).
+
+## Rampa dos gráficos (substitui a paleta categórica solta)
+
+miner=zeph-300, reserve=zeph-500, yield=zeph-700 (wash mais denso, 55%),
+governança=mist-400 com borda TRACEJADA (encoding secundário; zerada em todos
+os blocos observados). Validada como rampa ORDINAL (monocromática por decisão
+de marca — o validador categórico reprova rampas de um matiz por desenho, ver
+color-formula.md da skill). CVD: separação por luminosidade sobrevive a todo
+tipo de daltonismo. Canais de alívio pro degrau 2:1 (obrigatórios): rótulos
+diretos, legenda, tooltip e tabela — todos já existiam. Linha do reserve
+ratio: zeph-500; trechos abaixo do piso 4,0 + linha do piso + ponto/rótulo
+atual viram alert (recorte via clipPath).
+
+## Composição por tela (dominante/rail)
+
+- /recompensa (âncora): manchete `65,0% pro minerador` em full-bleed que corta
+  na borda da tela em md+ (aria-hidden; a frase completa acessível segue
+  abaixo em tamanho de leitura). Grid dominante (área empilhada) + rail
+  (ratio, nota de observação, explicação). Conector: trilho tracejado
+  zeph-800 no rail + stub pontilhado + rótulo `[ MESMA JANELA DE BLOCOS ]` —
+  expressa correlação por observação, não fórmula. NOVO: alerta de piso —
+  banner `[ ALERTA · RESERVA ABAIXO DO PISO ]` quando o ratio corrente < 4,0.
+  Mobile recompõe: número sem corte (o rótulo gigante some), rail empilha.
+- /meu-rig: card farm resolvido — hero `[ SINAL DO RIG ]` com o hashrate que
+  alimenta o estado (fica vermelho quando offline) + badge `[ Minerando
+  normal ]`; as 4 métricas da pool viram rail hairline; workers e XMRig em
+  tratamento mono. Estados: normal=roxo, abaixo=alerta contorno,
+  offline=alerta sólido (âmbar saiu — 4ª cor proibida).
+- /pools: tabela já era a região dominante — só tokens + labs.scale
+  (cabeçalho mono, algarismo mono, chips `[ maior hashrate ]`/`[ menor fee ]`,
+  hairline). Sem mudança estrutural (documentado: escolha correta preservada).
+- /rede: diagnóstico — havia DOIS heróis competindo (card do halving + grid de
+  6 cards iguais) e o "pulso" (hashrate) enterrado num card. Agora: hashrate
+  dominante com dificuldade/altura em anotação mono; reserve ratio (badge de
+  saúde; vermelho só abaixo da faixa), preço e recompensa no rail; halving
+  vira faixa horizontal secundária com dígitos mono.
+- Casca: rota ativa `[ Nome do Módulo ]` mono em zeph-300 (colchetes
+  transparentes no inativo — sem layout shift); footer hairline.
+
+## Remoções decorativas (o que saiu e por quê, uma linha cada)
+
+- Caixas `rounded-xl bg-slate-900` (todas as telas): fundo unificado +
+  hairline — a caixa de peso igual ERA o sintoma diagnosticado.
+- `backdrop-blur` do header: blur é proibido pela direção.
+- `shadow-xl` dos tooltips: sombra decorativa proibida; borda hairline +
+  fundo sólido ink-900 fazem a elevação.
+- Pill chips arredondados (status do rig, destaques de pool, saúde do ratio):
+  substituídos pela convenção mono `[ rótulo ]` — assinatura da direção.
+- `rounded-full` da barra de divisão da manchete: cantos retos, linguagem
+  técnica (o gap de 2px entre fatias fica — é spacer da skill de dataviz).
+- Tint da linha "menor fee" na tabela de pools: dois tints coloridos
+  disputavam atenção; o chip textual já marca — só o top-hashrate tinta.
+- Emojis de estado ⚠️/🔌/📖: viram tags mono `[ ! ]`/`[ FALHA ]`/`[ SEM SINAL
+  LOCAL ]` — uma voz técnica só (o ⛏️ do logo fica, é marca).
+- Delta verde/vermelho dos stats: neutro nas duas direções (▲/▼ + sinal
+  carregam o sentido) — oscilação diária não é alerta, e verde seria 4ª cor.
+
+## Testes e mudanças de e2e
+
+- `rewards-e2e.mjs`: seletores por cor computada (séries usam var());
+  manchete gigante checada (cor + tamanho ≥ 64px); NOVO modo `lowratio` que
+  FORÇA o cenário reserva < 4,0 reescrevendo /stats?scale=block e /livestats
+  na camada de rede do CDP (banner + trechos vermelhos verificados de
+  verdade); screenshot de tablet (768) além de desktop/mobile. `normal`,
+  `brokenrewards` e `lowratio`: **TUDO PASSOU em 2026-07-09**.
+- Flakiness observada (não é regressão): o explorer às vezes pendura uma das
+  duas chamadas paralelas de networkinfo; com timeout de 10 s + 2 retries do
+  http.ts o dado chega ~30–60 s depois — os checks do ratio viraram waitFor
+  de 60 s, e a coluna de ratio da tabela tolera as pontas (séries ancoram
+  janelas independentes, podem diferir 1–2 blocos).
+- `rig-e2e.mjs` (normal + notfound) e `pools-e2e.mjs` (normal): passaram SEM
+  mudança nos scripts — os textos-contrato foram preservados de propósito
+  (ex.: status entre colchetes SEM uppercase por CSS, senão innerText muda).
+- NOVO `scripts/design-shots.mjs`: as 4 telas × 3 breakpoints (1360/768/390)
+  pra revisão visual; semeia a config do rig (carteira de teste da 2Miners +
+  xmrig-sim) pra fotografar o dashboard e não o formulário.
+
+## Auto-check (rubrica de 6 perguntas, por tela)
+
+As 4 telas passaram: hierarquia sobrevive em P&B (tamanho/peso/posição, não
+cor); uma região dominante por tela; colchetes+mono+manchete cortada afastam
+o genérico; sem roxo/vermelho a hierarquia se mantém; menor breakpoint
+recompõe (manchete perde o rótulo gigante, rails empilham com trilho, tabelas
+rolam dentro do container); cor herdada de marca/significado.

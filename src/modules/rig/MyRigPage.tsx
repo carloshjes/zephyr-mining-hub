@@ -27,7 +27,7 @@ export function MyRigPage() {
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Monitor do Rig</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-mist-400">
             Acompanhe seu rig na pool e, opcionalmente, o XMRig local em tempo real — a
             configuração fica salva só neste navegador.
           </p>
@@ -36,7 +36,7 @@ export function MyRigPage() {
           <button
             type="button"
             onClick={() => setIsEditing(true)}
-            className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 transition-colors hover:border-slate-500"
+            className="border border-hairline px-3 py-1.5 font-mono text-xs text-mist-300 transition-colors hover:border-mist-400 hover:text-mist-100"
           >
             Editar configuração
           </button>

@@ -1,8 +1,48 @@
 @import "tailwindcss";
 
+/* Tokens da direção visual "Sinal Técnico" (2026-07-09) — fonte única de cor
+   do produto. Nenhum componente usa hex próprio: ou utilitário Tailwind gerado
+   daqui, ou var(--color-*) quando a cor é data-driven (séries de gráfico).
+
+   Contraste conferido com script real (WCAG 2.2) contra ink-950 #0A0A0E:
+   - mist-100 16,7:1 · mist-300 9,6:1 · mist-400 5,7:1 (piso pra texto corrido)
+   - zeph-300 7,9:1 (texto ok) · zeph-500 3,9:1 (gráfico/texto grande APENAS)
+   - alert 5,1:1 (texto de alerta ok)
+   - zeph-700 2,0:1 e zeph-800/mist-600/hairline: SÓ gráfico-com-alívio ou
+     decoração — nunca texto. Rampa do gráfico (zeph-300→500→700) validada
+     como ordinal com validate_palette.js da skill de dataviz. */
+@theme {
+  /* Fundo unificado quase preto (não slate azulado) + superfície elevada */
+  --color-ink-950: #0a0a0e;
+  --color-ink-900: #141119;
+
+  /* Divisor hairline — substitui a borda pesada arredondada das caixas */
+  --color-hairline: #221f29;
+
+  /* Família de roxo herdada da marca Zephyr */
+  --color-zeph-300: #a996f5; /* destaque, manchete, fatia dominante */
+  --color-zeph-500: #6f5fc4; /* fatia secundária, elementos de suporte */
+  --color-zeph-700: #463c77; /* fatia terciária nos GRÁFICOS (piso 2:1) */
+  --color-zeph-800: #352d54; /* decoração discreta (tints, ornamento) */
+
+  /* Cinza-roxo pra texto sobre o fundo escuro (não cinza puro) */
+  --color-mist-100: #edebf4; /* texto principal */
+  --color-mist-300: #b7b2c9; /* texto secundário */
+  --color-mist-400: #8b86a0; /* texto muted — piso AA de texto corrido */
+  --color-mist-600: #57536a; /* SÓ decorativo (2,7:1) — nunca texto */
+
+  /* Vermelho RESERVADO pra alerta (reserva < 4,0, erro, offline). Nada mais. */
+  --color-alert: #e8492f;
+
+  /* Monoespaçada só pra metadado técnico (altura de bloco, timestamp,
+     rótulos [ ENTRE COLCHETES ], eixos) — nunca corpo de texto */
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo,
+    monospace;
+}
+
 /* Base escura do dashboard — os módulos só usam utilitários em cima disso */
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 antialiased;
+    @apply bg-ink-950 text-mist-100 antialiased;
   }
 }
