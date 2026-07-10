@@ -70,15 +70,22 @@ fetch real, não só do servidor):
 - 2Miners: GET https://zeph.2miners.com/api/stats → { hashrate, minersTotal, workersTotal,
   luck, nodes: [{ networkhashps, difficulty, height, avgBlockTime, blockReward }], ... }
   — `Access-Control-Allow-Origin: *`, confirmado.
-- Por convenção dessa família de software, deve existir também
-  GET https://zeph.2miners.com/api/accounts/<endereco> pra stats por minerador —
-  confirmar formato exato E CORS ao implementar o módulo Monitor do Rig, não assumir que
-  herda o mesmo header do /api/stats.
+- 2Miners por minerador (confirmado 2026-07-09, CORS `*`):
+  GET https://zeph.2miners.com/api/accounts/<endereco> — hashrate curto/longo, workers,
+  shares, saldo em átomos (1e12/ZEPH). Endereço desconhecido/malformado → HTTP 404 com
+  corpo VAZIO. GET /api/miners lista todos os endereços (útil pra endereço de teste).
 
 Também confirmado funcionando (CORS aberto, testado com fetch real do navegador):
 - HeroMiners — GET https://zephyr.herominers.com/api/stats, CORS `*` confirmado.
   Fee/min. payout em `config`, hashrate/miners em `pool`, `coinUnits` vem como string.
   (de.zephyr.herominers.com é host de stratum, não de API.)
+- HeroMiners por minerador: GET /api/stats_address?address=<endereco> — CORS `*` e
+  formato de erro (HTTP 200 com {"error":"Not found"} no CORPO) confirmados ao vivo;
+  formato de sucesso confirmado só no código-fonte do upstream (v1.3.5) — sem endereço
+  real de teste lá, ver NOTES.md Prompt 4. Parsing defensivo (valores como string).
+
+Camada pronta por minerador: MINER_POOLS/getMinerPool em `src/lib/api/minerStats.ts`
+(snapshot normalizado, campo ausente vira "—").
 
 Pools ZEPH conhecidas SEM integração ainda — motivo confirmado, TODOs em
 `src/lib/api/pools.ts`:
@@ -87,8 +94,8 @@ Pools ZEPH conhecidas SEM integração ainda — motivo confirmado, TODOs em
 - MiningOcean — sem REST JSON público (front usa protobuf sobre SSE).
 - RavenMiner — endpoint de stats não confirmado (method not found + DNS instável).
 
-O dropdown de pool do módulo Monitor do Rig (próximo módulo) usa só 2Miners e
-HeroMiners — as outras 3 não estão prontas.
+O dropdown de pool do módulo Monitor do Rig usa só 2Miners e HeroMiners — as
+outras 3 não estão prontas.
 
 Lista completa e atualizada de pools: https://miningpoolstats.stream/zephyr
 
@@ -98,10 +105,15 @@ GET http://127.0.0.1:PORTA/1/summary → hashrate, shares, uptime, backend de CP
 Sem autenticação por padrão, a menos que `access-token` tenha sido configurado.
 
 CORS confirmado aberto no binário real do XMRig (`Access-Control-Allow-Origin: *`,
-conferido no código-fonte). Mixed content localhost→127.0.0.1 testado sem bloqueio via
-`scripts/xmrig-sim.mjs` (reaproveitável pra testar sem hardware real). **Pendente:** o
-mesmo teste com a página já publicada em HTTPS (produção) contra o XMRig local em HTTP —
-cenário diferente do testado, precisa validação própria no módulo Monitor do Rig.
+conferido no código-fonte). Mixed content testado DUAS vezes (ver NOTES.md):
+localhost→127.0.0.1 (Fase 0) e **https://localhost→http://127.0.0.1 (Prompt 4,
+`scripts/rig-https-mixed.mjs`)** — os dois funcionam, zero aviso de mixed content;
+a isenção de loopback do Chromium vale com página https. A trava real é CORS do
+servidor local, e o XMRig real manda `*`. **Pendência restante (menor):** página
+PÚBLICA (Vercel) é outro espaço de endereço — a política de Local Network Access do
+Chrome só dá pra validar com o deploy real; a UI já degrada graciosamente se bloquear.
+O simulador `scripts/xmrig-sim.mjs` espelha o XMRig real (CORS na rota padrão;
+pior caso em /nocors/1/summary). Camada pronta: `src/lib/api/xmrig.ts`.
 
 ## Riscos conhecidos
 Ver NOTES.md pro detalhe completo dos testes de CORS/mixed-content da Fase 0. Resumo:

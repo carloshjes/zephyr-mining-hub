@@ -47,6 +47,25 @@ export function formatTime(date: Date): string {
   return date.toLocaleTimeString('pt-BR')
 }
 
+/** Duração compacta em duas unidades: "2 d 3 h", "3 h 12 min", "45 s". */
+export function formatDuration(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.floor(totalSeconds))
+  const days = Math.floor(seconds / 86_400)
+  const hours = Math.floor((seconds % 86_400) / 3_600)
+  const minutes = Math.floor((seconds % 3_600) / 60)
+  if (days > 0) return `${days} d ${hours} h`
+  if (hours > 0) return `${hours} h ${minutes} min`
+  if (minutes > 0) return `${minutes} min`
+  return `${seconds % 60} s`
+}
+
+/** Tempo relativo curto pra "último share": "agora", "há 3 min", "há 2 h". */
+export function formatAgo(unixSeconds: number, nowMs: number = Date.now()): string {
+  const elapsedSeconds = Math.max(0, Math.floor(nowMs / 1_000 - unixSeconds))
+  if (elapsedSeconds < 60) return 'agora'
+  return `há ${formatDuration(elapsedSeconds)}`
+}
+
 /** Aplica o formatador só se o valor existir; senão devolve "—". */
 export function orDash<T>(
   value: T | null | undefined,

@@ -213,3 +213,81 @@ Sondagem REAL da Scanner API por `curl`/Node antes de codar (nada assumido do do
 - Armadilha de teste: `pointermove` é evento CONTÍNUO no React — a atualização
   de estado do tooltip é adiada, então o teste precisa esperar um tick após o
   dispatch (keydown é discreto e atualiza síncrono).
+
+# NOTES — Prompt 4 (Monitor do Rig, 2026-07-09)
+
+## Sondagem REAL das APIs por minerador (curl com Origin + navegador)
+
+| Pool | Endpoint | Resultado |
+|------|----------|-----------|
+| 2Miners | `GET /api/accounts/<endereço>` | ✅ 200 + `Access-Control-Allow-Origin: *`, conferido campo a campo com endereço ATIVO real: `currentHashrate`/`hashrate` (H/s, janelas curta/longa), `workers` (mapa nome → `hr`, `hr2`, `offline`, `lastBeat`, `sharesValid/Invalid/Stale`), `workersOnline/Total`, shares da rodada no topo, `stats.{balance,immature,paid,lastShare,blocksFound}` em átomos (1e12/ZEPH). Endereço desconhecido OU malformado → **HTTP 404 com corpo VAZIO** (indistinguíveis). |
+| 2Miners | `GET /api/miners` | ✅ lista TODOS os mineradores com endereço completo — foi a fonte do endereço de teste real dos E2E. Formatos vistos: `ZEPHYR…` com 101 chars e subendereço `ZEPHs…` com 99 (base58) — base da validação frouxa do formulário. |
+| HeroMiners | `GET /api/stats_address?address=…` | ⚠️ CORS `*` e formato de ERRO confirmados ao vivo: **HTTP 200 com `{"error":"Not found"}`** (erro no corpo, não no status!). O formato de SUCESSO veio do código-fonte do upstream dvandal/cryptonote-nodejs-pool **v1.3.5** (versão que a pool reporta em `config.version`): `{stats, payments, charts, workers}`, com os valores do hash do redis como STRING. **Não foi confirmado ao vivo**: não há endereço completo público minerando lá (o `/api/get_top10miners` TRUNCA os endereços; cruzei com a lista completa da 2Miners e ninguém minera nas duas). Parsing defensivo: campo ausente vira "—". |
+
+## Mixed content HTTPS → XMRig local: TESTADO (o pendente da Fase 0)
+
+`node scripts/rig-https-mixed.mjs` (pré-requisito: `npm run build`): serve o
+dist/ em `https://localhost:8443` (cert self-signed gerado na hora; Edge
+headless com `--ignore-certificate-errors` — a política de mixed content
+independe da validade do cert) + `xmrig-sim` em `http://127.0.0.1:18088`.
+**TUDO PASSOU em 2026-07-09:**
+
+- Página **https** → fetch `http://127.0.0.1:18088/1/summary` (com CORS, como o
+  XMRig real): ✅ **funciona, sem NENHUM aviso de mixed content no console** —
+  a isenção de loopback do Chromium vale também com página https.
+- Rota sem CORS (`/nocors/1/summary`): ❌ bloqueada — confirma que a trava é
+  CORS, não mixed content (coerente com a Fase 0).
+- O módulo inteiro roda na página https: XMRig local E pool remota carregam.
+
+**Limite honesto do teste:** a origem da página era `https://localhost` —
+espaço de endereço LOCAL. Página pública de verdade (Vercel) é espaço PÚBLICO,
+e é essa a categoria que o Chrome vem restringindo com Local Network Access
+(prompt de permissão em rollout). Ou seja: mixed content por ESQUEMA está
+resolvido; a política por ESPAÇO DE ENDEREÇO só dá pra validar com o deploy
+real → retestar no Vercel. A UI já degrada graciosamente e a nota da seção
+XMRig avisa que alguns navegadores bloqueiam.
+
+**Mudança no simulador:** `scripts/xmrig-sim.mjs` agora manda CORS na rota
+padrão `/1/summary` (espelha o binário real) e o pior caso virou
+`/nocors/1/summary`. As rotas B1/B2 da tabela da Fase 0 referem-se ao layout
+antigo (`/1/summary` sem CORS, `/cors/1/summary` com).
+
+## Decisões do módulo
+
+- Config por visitante em localStorage `zephyr-hub.rig.config.v1`
+  ({poolId, wallet, xmrigAddress?}), validada campo a campo na leitura; nunca
+  pedimos chave/seed (só endereço público — é tudo que as APIs precisam).
+- Estado visual único (`rigStatus.ts`): fonte preferida = XMRig local quando
+  alcançável (tempo real), senão hashrate da pool. Históricos SEPARADOS por
+  fonte (`zephyr-hub.rig.hashrate-history.v1`, chave poolId:wallet:fonte, 30
+  leituras, gap 55 s) — pool mede TODOS os workers da carteira, XMRig mede um
+  rig só; misturar as escalas falsearia a média. Regras: sem hashrate e sem
+  share há <10 min → **offline**; hashrate < 70% da média das últimas leituras
+  (mínimo 3) → **abaixo do esperado**; senão **normal**.
+- `MinerNotFoundError` (endereço não visto na pool) NÃO para o polling: quando
+  o primeiro share chegar, a tela se recupera sozinha.
+- XMRig: timeout 4 s e SEM retentativa (é local; o polling de 5 s já retenta) —
+  fora do ar vira nota discreta e a pool continua de pé, tela nunca quebra.
+
+## Teste E2E do módulo (headless Edge via CDP, sem dependências)
+
+`scripts/rig-e2e.mjs` (pré-requisito: `npm run dev`; o script sobe e derruba o
+próprio xmrig-sim):
+- `node scripts/rig-e2e.mjs normal` — o critério de aceite NA ORDEM: navegador
+  limpo mostra formulário (localStorage vazio) → submit vazio mostra erro e não
+  salva → preenche (2Miners + carteira real ativa + XMRig sim) → config no
+  localStorage → dado real da pool (cards + 46 workers na tabela) + XMRig sim
+  (1,23 kH/s, 42/43 shares) + estado com fonte "XMRig local" → **refresh** →
+  dashboard direto sem formulário, dado volta, edição pré-preenchida. Depois:
+  histórico semeado com média alta → estado "abaixo do esperado"; sim
+  derrubado no meio → nota "não alcançável", pool de pé, fonte do estado vira
+  a pool. **TUDO PASSOU em 2026-07-09.**
+- `node scripts/rig-e2e.mjs notfound` — carteira plausível na HeroMiners (o
+  endereço da 2Miners, que a HeroMiners não conhece — exercita o
+  `{"error":"Not found"}` DE VERDADE): aviso claro "não visto nesta pool",
+  estado Offline, tela de pé. **TUDO PASSOU em 2026-07-09.**
+- Armadilha de CDP: `Runtime.evaluate` roda tudo no MESMO escopo global —
+  `const` repetido entre avaliações colide; os helpers rodam dentro de IIFE.
+- Armadilha de timing: o XMRig local responde ANTES da pool — esperar por
+  "H/s" no texto da página não garante dado da pool; espere pelas linhas da
+  tabela de workers.
