@@ -597,6 +597,105 @@ próxima sessão.
 
 ---
 
+## Prompt L1 — Fable: exploração da logo (Z dot-matrix)
+
+Sessão isolada, independente do Prompt R1/Prompt 5 — só gera opções de logo pra escolher,
+não mexe na navegação real ainda.
+
+```
+Aja como um desenvolvedor front-end com experiência em geração programática de assets
+visuais — grafismo em grade de pontos (dot-matrix/halftone), estilo terminal/ASCII antigo.
+Isto não é desenho de path vetorial solto, é um sistema paramétrico que produz várias
+variações pra escolher.
+
+<contexto>
+Zephyr Mining Hub precisa de uma nova logo, substituindo o ícone de picareta atual em
+`src/components/layout/AppShell.tsx` (navegação principal). Referência visual: o site
+rig.ai tem, na seção de terminal simulado da home, o texto "RIG" renderizado como letras
+grossas e bloqudas construídas inteiramente de pontos/quadradinhos pequenos com espaço
+visível entre eles — não uma fonte pixelada pronta, é um efeito de HALFTONE: pega uma letra
+bold normal e amostra uma grade por cima, criando um ponto só onde a amostra cai em área
+escura da letra. O resultado tem uma textura de "tela de terminal antigo/matriz de LED",
+tom cinza-esbranquiçado sobre fundo quase preto, levemente irregular (não perfeitamente
+uniforme).
+
+A logo é a letra "Z" nesse mesmo estilo de grade de pontos, com um traço/barra horizontal
+cruzando o meio dela — é a convenção tipográfica do "Z barrado" usada em símbolos de moeda
+e fontes técnicas (OCR-B, códigos de câmbio) pra nunca confundir com o número 2. Faz sentido
+duplo aqui: reforça a leitura de "Z" mesmo pequeno, E remete a símbolo de moeda (ZEPH é o
+ticker da criptomoeda).
+
+**A forma do Z NÃO é livre — a Zephyr Protocol (a moeda) já tem uma marca oficial com esse
+mesmo conceito de Z barrado.** O Carlos anexou 3 referências dela: um ícone roxo chapado
+simples, um medalhão 3D de moeda (relevo, gradiente, fundo de cubos — NÃO copiar esse
+tratamento 3D/gradiente, viola a regra de "nada de gradiente/glow/sombra" do projeto), e um
+selo circular achatado roxo-escuro com o Z claro no centro. O traço comum aos 3: um Z
+geométrico bold — hastes retas, sem serifa, peso grosso tipo Eurostile/Futura Bold — com UMA
+barra horizontal reta cruzando a largura toda do Z na altura do meio, sobre a diagonal
+(pense num "Ж" cirílico ou um "0" cortado, não um floreio decorativo). Use ESSA silhueta
+como base pra amostrar no halftone (desenhe esse Z+barra no canvas antes de amostrar, não
+uma fonte bold genérica qualquer) — a logo do Mining Hub deve ter parentesco visual real com
+a moeda oficial (é a "versão técnica/terminal" dela, pro projeto da comunidade), não ser um Z
+qualquer nem uma cópia 1:1 do medalhão 3D oficial.
+
+Já existe um sistema de tokens visuais no projeto (CLAUDE.md, seção "Direção visual — Sinal
+Técnico") — ink-950 (#0a0a0e) de fundo, família zeph (roxo) e mist (cinza-roxo) pra texto,
+vermelho `alert` RESERVADO só pra estado de erro. Use esses tokens, não invente cor nova.
+</contexto>
+
+<tarefa>
+1. Implemente a técnica de halftone de verdade: desenhe o Z barrado (a silhueta descrita
+   acima — Z geométrico bold + barra horizontal reta cruzando o meio, referência: marca
+   oficial da Zephyr Protocol, NÃO o medalhão 3D) num `<canvas>` invisível — pode ser uma
+   fonte bold condensada (tipo Arial Black/Eurostile) desenhada com `fillText` mais um
+   `fillRect` pra barra, ou um path SVG próprio se ficar mais fiel à referência — depois
+   amostre uma grade de pontos sobre esse canvas — cada célula da grade vira um ponto
+   (círculo ou quadrado) só onde a amostra cair em pixel escuro o bastante. Isso é código
+   real (Canvas API ou SVG + getImageData), não uma fonte de pontos pronta baixada de algum
+   lugar.
+2. Gere pelo menos 5 variações reais, cada uma mudando pelo menos UM parâmetro estrutural
+   (não só cor):
+   - resolução da grade (pontos grandes e esparsos vs. pontos pequenos e densos)
+   - forma do ponto (círculo vs. quadrado)
+   - peso da fonte-base por trás da amostragem (mais ou menos bold)
+   - tratamento da barra central (uma linha só vs. dupla; largura total vs. só cruzando a
+     diagonal)
+   - uma variação com leve ruído/glitch (alguns pontos em opacidade reduzida ou levemente
+     deslocados, pra imitar a imperfeição orgânica da referência do rig.ai — não deixar
+     100% uniforme feito grade de Excel)
+3. Monte uma página ou script de preview isolado (não é rota do app real) mostrando as 5+
+   variações lado a lado em DUAS escalas cada: grande (tipo hero, ~150px) e pequena/realista
+   (24–32px, tamanho de ícone de navegação e favicon). Dot-matrix costuma virar borrão em
+   tamanho pequeno — isso precisa aparecer no preview, não só a versão grande bonita.
+4. Tire screenshot desse preview (reaproveite o padrão de `scripts/design-shots.mjs` ou
+   crie um script novo no mesmo estilo) e salve os resultados.
+5. Escreva um resumo curto (NOTES.md ou um arquivo novo `docs/logo-exploracao.md`) dizendo
+   qual(is) variação(ões) continuam legíveis como "Z" no tamanho pequeno e qual(is) viram
+   mancha ilegível — não esconda o que não funcionou, é informação útil pra escolha.
+</tarefa>
+
+<restricoes>
+- Não mexe em `AppShell.tsx` nem em nenhuma rota real do app — isso é exploração isolada,
+  a integração da escolhida vem depois, em outro prompt.
+- Só os tokens de cor já existentes (ink-950, família zeph, família mist). Nada de cor nova.
+- Não baixe fonte de pontos pronta nem asset externo — a técnica é gerar via canvas/amostragem
+  no próprio código, como descrito acima.
+</restricoes>
+
+<criterios_de_aceite>
+- Pelo menos 5 variações reais (parâmetro estrutural diferente, não só cor) renderizadas.
+- Cada variação fotografada em tamanho grande E pequeno/realista.
+- Relatório dizendo quais sobrevivem no tamanho pequeno.
+- Zero mudança em código de produção (AppShell, rotas, favicon atual) nesta sessão.
+</criterios_de_aceite>
+
+Antes de finalizar, olhe as versões pequenas (24–32px) de cada variação como se fosse a
+aba do navegador — ainda dá pra reconhecer um "Z" sem saber de antemão o que procurar?
+Se não, marque essa variação como reprovada no relatório em vez de incluir só as bonitas.
+```
+
+---
+
 ## Prompt 5 — Fable: integração e revisão final
 
 ```

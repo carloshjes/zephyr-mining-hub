@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>[ EXPLORAÇÃO ISOLADA ] Logo Z — halftone</title>
+<style>
+  /* Espelho manual dos tokens de src/index.css (direção "Sinal Técnico").
+     Página isolada, sem build/Tailwind — os VALORES vêm de lá, nada de cor
+     nova. Se os tokens mudarem no app, atualizar este bloco. */
+  :root {
+    --color-ink-950: #0a0a0e;
+    --color-ink-900: #141119;
+    --color-hairline: #221f29;
+    --color-zeph-300: #a996f5;
+    --color-zeph-500: #6f5fc4;
+    --color-zeph-700: #463c77;
+    --color-zeph-800: #352d54;
+    --color-mist-100: #edebf4;
+    --color-mist-300: #b7b2c9;
+    --color-mist-400: #8b86a0;
+    --color-mist-600: #57536a;
+    --color-alert: #e8492f;
+    --font-mono: ui-monospace, "Cascadia Mono", Consolas, "SF Mono", Menlo,
+      monospace;
+    /* Cor dos pontos SEM mapa de tom — mist-100 por padrão, zeph-300 via ?dots=zeph */
+    --dot: var(--color-mist-100);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--color-ink-950);
+    color: var(--color-mist-100);
+    font-family: system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 36px 48px 56px;
+  }
+  .mono { font-family: var(--font-mono); }
+  header { border-bottom: 1px solid var(--color-hairline); padding-bottom: 18px; }
+  header .tag { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; color: var(--color-zeph-300); }
+  header h1 { font-size: 21px; font-weight: 600; letter-spacing: -.01em; margin-top: 6px; }
+  header p { color: var(--color-mist-400); font-size: 13px; margin-top: 6px; max-width: 78ch; }
+  .toggle { font-family: var(--font-mono); font-size: 12px; margin-top: 12px; }
+  .toggle span { color: var(--color-mist-400); margin-right: 12px; }
+  .toggle a { color: var(--color-mist-400); text-decoration: none; margin-right: 14px; }
+  .toggle a.active { color: var(--color-zeph-300); }
+
+  /* Erro sempre visível — convenção do projeto, nada de tela silenciosa */
+  #error {
+    display: none; font-family: var(--font-mono); font-size: 13px;
+    color: var(--color-alert); border-left: 2px solid var(--color-alert);
+    padding: 10px 14px; margin-top: 20px; white-space: pre-wrap;
+  }
+
+  .section-head {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em;
+    color: var(--color-zeph-300); padding: 26px 0 4px;
+  }
+  .section-head small { color: var(--color-mist-400); letter-spacing: 0; margin-left: 12px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(500px, 1fr)); column-gap: 56px; }
+  .card { border-bottom: 1px solid var(--color-hairline); padding: 22px 0 18px; }
+  .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+  .card-head .name { font-family: var(--font-mono); font-size: 12px; letter-spacing: .07em; color: var(--color-zeph-300); white-space: nowrap; }
+  .card-head .params { font-family: var(--font-mono); font-size: 11px; color: var(--color-mist-400); text-align: right; }
+  .hero { display: flex; justify-content: center; padding: 20px 0 16px; }
+  .strip { display: flex; align-items: flex-end; gap: 26px; padding: 12px 2px 2px; border-top: 1px solid var(--color-hairline); }
+  .strip .gap { flex: 1; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .cell .lab { font-family: var(--font-mono); font-size: 10px; color: var(--color-mist-400); letter-spacing: .05em; }
+  footer { font-family: var(--font-mono); font-size: 12px; color: var(--color-mist-400); padding-top: 22px; }
+  svg, canvas { display: block; }
+
+  /* Cintilação opcional (?anim=1) — só ao vivo, screenshots ficam no estático.
+     Três fases defasadas pra não piscar em bloco; opacidade nunca zera. */
+  @keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  body.anim .tw1 { animation: twinkle 2.6s ease-in-out infinite; }
+  body.anim .tw2 { animation: twinkle 2.6s ease-in-out .9s infinite; }
+  body.anim .tw3 { animation: twinkle 2.6s ease-in-out 1.7s infinite; }
+</style>
+</head>
+<body>
+<header>
+  <div class="tag">[ EXPLORAÇÃO ISOLADA — NÃO É ROTA DO APP ]</div>
+  <h1>Logo "Z barrado" em halftone — variações paramétricas</h1>
+  <p>
+    Silhueta base: Z geométrico bold + barra horizontal no meio (parentesco com a
+    marca oficial da Zephyr Protocol, sem o tratamento 3D). Técnica: a silhueta é
+    desenhada num canvas offscreen e uma grade é amostrada por cima via
+    getImageData — cada célula vira ponto só onde cai em área escura o bastante.
+    Faixa inferior de cada cartão: tamanhos realistas de navegação/favicon + lupa
+    nearest-neighbor 4× dos MESMOS pixels (honesta, não é re-render maior).
+    Finalistas (V4 refinada): barra na espessura das hastes e cor POR PONTO em
+    degraus dos tokens zeph/mist — os finalistas ignoram o toggle de cor abaixo.
+  </p>
+  <nav class="toggle" aria-label="opções de visualização">
+    <span>cor (exploração):</span>
+    <a href="#" data-mode="mist">[ mist-100 ]</a>
+    <a href="#" data-mode="zeph">[ zeph-300 ]</a>
+    <span style="margin-left:20px">animação (só ao vivo):</span>
+    <a href="#" data-anim="0">[ estático ]</a>
+    <a href="#" data-anim="1">[ cintilar ]</a>
+  </nav>
+</header>
+
+<div id="error" role="alert"></div>
+<div class="section-head" id="head-final">[ FINALISTAS ] V4 REFINADA — BARRA NA ESPESSURA DAS HASTES + TOM POR PONTO<small>quadrado 22×22 · três mapeamentos pra escolher</small></div>
+<main class="cards" id="cards-final"></main>
+<div class="section-head">[ EXPLORAÇÃO ORIGINAL ] 8 VARIAÇÕES + CONTROLE<small>histórico da rodada 1 — veredito em docs/logo-exploracao.md</small></div>
+<main class="cards" id="cards-explore"></main>
+<footer id="status">gerando…</footer>
+
+<script>
+'use strict'
+/* Exploração de logo — halftone paramétrico do "Z barrado". rev 3
+   (rev 3: seção de finalistas — V4 com barra full e tons por ponto)
+   Isolado de propósito: nada aqui é importado pelo app. */
+;(() => {
+  const errorBox = document.getElementById('error')
+  const showError = (msg) => {
+    errorBox.style.display = 'block'
+    errorBox.textContent = '[ ERRO ] ' + msg
+  }
+  window.onerror = (msg) => { showError(String(msg)); return false }
+
+  // ---------- parâmetros globais da técnica ----------
+  const CANVAS_PX = 460 // resolução do canvas de amostragem
+  const PAD = 0.05      // respiro em volta do glifo (fração do canvas)
+  const DOT_R = 0.36    // raio do círculo, em unidades de célula
+  const SQ = 0.66       // lado do quadrado, em unidades de célula
+  const HERO = 150
+  const SMALL = [32, 24, 16]
+  const ZOOMS = [[24, 4], [16, 4]] // lupa nearest-neighbor: [tamanho real, ampliação]
+
+  // Rampas de tom POR PONTO dos finalistas — degraus discretos de tokens já
+  // existentes. De propósito NÃO é <linearGradient>/cor interpolada: a direção
+  // visual proíbe gradiente decorativo e o CLAUDE.md proíbe cor fora dos tokens.
+  const RAMPS = {
+    // padrão (F1/F2): mist-100 como ponto "aceso"
+    padrao: ['--color-mist-100', '--color-zeph-300', '--color-zeph-500', '--color-zeph-700'],
+    // F3 sem branco (pedido do Carlos): só roxo/púrpura/cinza-roxo —
+    // mist-300 (9,6:1) vira o teto de brilho, um degrau abaixo do mist-100
+    semBranco: ['--color-mist-300', '--color-zeph-300', '--color-mist-400', '--color-zeph-500', '--color-zeph-700'],
+  }
+
+  // PRNG determinístico (mulberry32) — glitch/cintilância reproduzíveis
+  function mulberry32(seed) {
+    let a = seed >>> 0
+    return () => {
+      a = (a + 0x6d2b79f5) | 0
+      let t = Math.imul(a ^ (a >>> 15), 1 | a)
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    }
+  }
+
+  // ---------- geometria do Z barrado ----------
+  // Silhueta calcada na marca oficial da Zephyr Protocol: Z geométrico bold,
+  // hastes retas sem serifa, e UMA barra horizontal reta cruzando a largura
+  // toda na altura do meio (convenção do "Z barrado" de símbolo de moeda /
+  // OCR — nunca confundir com 2). Coordenadas 0..1, polígonos convexos.
+  // Corpo e barra ficam em funções separadas: os finalistas amostram as duas
+  // máscaras em separado pra saber de qual elemento cada ponto veio.
+  function corePolygons({ t = 0.18 }) {
+    const dw = 1.55 * t // largura horizontal do paralelogramo da diagonal
+    return [
+      [[0, 0], [1, 0], [1, t], [0, t]],                     // haste do topo
+      [[0, 1 - t], [1, 1 - t], [1, 1], [0, 1]],             // haste da base
+      [[1 - dw, t], [1, t], [dw, 1 - t], [0, 1 - t]],       // diagonal ↘ invertida
+    ]
+  }
+  function barPolygons({ t = 0.18, bar = 'single', bh: bhOverride }) {
+    // Exploração original: barra 0.52·t (na 1ª rodada, 0.68·t virava "três
+    // listras" em 24–32px). Finalistas: bh = t (pedido do Carlos — barra na
+    // espessura das hastes, como na marca oficial), com o tom por ponto
+    // assumindo o papel de separar barra de haste.
+    const bh = bhOverride ?? 0.52 * t
+    const polys = []
+    if (bar === 'single') {
+      polys.push([[0, .5 - bh / 2], [1, .5 - bh / 2], [1, .5 + bh / 2], [0, .5 + bh / 2]])
+    } else if (bar === 'short') {
+      // só cruza a diagonal (estilo Ƶ), sem tocar as bordas
+      polys.push([[.2, .5 - bh / 2], [.8, .5 - bh / 2], [.8, .5 + bh / 2], [.2, .5 + bh / 2]])
+    } else if (bar === 'double') {
+      const b2 = 0.34 * t, off = 0.52 * t
+      for (const c of [.5 - off, .5 + off]) {
+        polys.push([[0, c - b2 / 2], [1, c - b2 / 2], [1, c + b2 / 2], [0, c + b2 / 2]])
+      }
+    }
+    return polys
+  }
+  function zPolygons(params) {
+    return [...corePolygons(params), ...barPolygons(params)]
+  }
+
+  // Desenha polígonos num canvas offscreen (branco sobre preto) e devolve o
+  // ImageData — é DAQUI que o halftone amostra. Preto/branco é máscara de
+  // amostragem, não cor de UI.
+  function rasterizePolys(polys) {
+    const c = document.createElement('canvas')
+    c.width = c.height = CANVAS_PX
+    const ctx = c.getContext('2d', { willReadFrequently: true })
+    ctx.fillStyle = '#000'
+    ctx.fillRect(0, 0, CANVAS_PX, CANVAS_PX)
+    ctx.fillStyle = '#fff'
+    const scale = CANVAS_PX * (1 - 2 * PAD)
+    const o = CANVAS_PX * PAD
+    for (const poly of polys) {
+      ctx.beginPath()
+      poly.forEach(([x, y], i) => (i
+        ? ctx.lineTo(o + x * scale, o + y * scale)
+        : ctx.moveTo(o + x * scale, o + y * scale)))
+      ctx.closePath()
+      ctx.fill()
+    }
+    return ctx.getImageData(0, 0, CANVAS_PX, CANVAS_PX)
+  }
+  const rasterizeZ = (params) => rasterizePolys(zPolygons(params))
+
+  // Amostra a grade sobre o ImageData: média de 3×3 subamostras por célula;
+  // célula acesa se a cobertura passa do threshold. Pontos em unidades de célula.
+  function sampleGrid(img, cols, threshold = 0.5) {
+    const cell = CANVAS_PX / cols
+    const dots = []
+    for (let row = 0; row < cols; row++) {
+      for (let col = 0; col < cols; col++) {
+        let acc = 0
+        for (let sy = 0; sy < 3; sy++) {
+          for (let sx = 0; sx < 3; sx++) {
+            const px = Math.min(CANVAS_PX - 1, Math.floor((col + (sx + .5) / 3) * cell))
+            const py = Math.min(CANVAS_PX - 1, Math.floor((row + (sy + .5) / 3) * cell))
+            acc += img.data[(py * CANVAS_PX + px) * 4] // canal R basta (máscara P&B)
+          }
+        }
+        if (acc / 9 / 255 >= threshold) dots.push({ cx: col + .5, cy: row + .5, s: 1, o: 1 })
+      }
+    }
+    return dots
+  }
+
+  // Glitch leve e determinístico: dropout, opacidade reduzida, deslocamento
+  // sub-célula e jitter de tamanho — a imperfeição orgânica da referência
+  // (rig.ai), em vez de grade 100% uniforme.
+  function applyGlitch(dots, seed = 7) {
+    const rnd = mulberry32(seed)
+    const out = []
+    for (const d of dots) {
+      if (rnd() < 0.04) continue // dropout raro
+      const g = { ...d }
+      if (rnd() < 0.14) g.o = 0.3 + 0.4 * rnd()
+      if (rnd() < 0.12) {
+        g.cx += (rnd() - .5) * 0.4
+        g.cy += (rnd() - .5) * 0.4
+      }
+      if (rnd() < 0.18) g.s = 0.75 + 0.4 * rnd()
+      out.push(g)
+    }
+    return out
+  }
+
+  // ---------- tons por ponto (finalistas) ----------
+  // Cada ponto recebe um ÍNDICE de TONE_VARS. Três mapeamentos:
+  // - sweep: varredura ↘ (claro no topo-esquerda → escuro na base-direita),
+  //   em degraus largos — o "gradiente" pedido, discretizado em tokens.
+  // - elements: corpo claro (mist-100 com salpicos zeph-300) e BARRA inteira
+  //   em zeph-500 — o tom separa barra de haste agora que têm a mesma
+  //   espessura (aposta pro tamanho pequeno).
+  // - sparkle: cintilância seedada com pesos (LEDs em brilhos diferentes),
+  //   o mais próximo da textura orgânica do rig.ai.
+  function assignTones(dots, mode, cols, seed = 11, weights) {
+    const rnd = mulberry32(seed)
+    for (const d of dots) {
+      if (mode === 'sweep') {
+        const k = (d.cx + d.cy) / (2 * cols)
+        // zeph-700 (2:1) grampeado no canto extremo: com a banda em .84 a
+        // metade de baixo sumia no fundo em 24px (visto em screenshot)
+        d.tone = k < .34 ? 0 : k < .62 ? 1 : k < .92 ? 2 : 3
+      } else if (mode === 'elements') {
+        d.tone = d.src === 'bar' ? 2 : (rnd() < .72 ? 0 : 1)
+      } else { // sparkle — sorteio com pesos (CDF) sobre a rampa do finalista
+        const w = weights ?? [.40, .34, .18, .08]
+        const r = rnd()
+        let acc = 0
+        d.tone = w.length - 1
+        for (let i = 0; i < w.length; i++) {
+          acc += w[i]
+          if (r < acc) { d.tone = i; break }
+        }
+      }
+    }
+  }
+  // Fases de cintilação (?anim=1): ~30% dos pontos, defasados em 3 grupos
+  function assignTwinkle(dots, seed = 23) {
+    const rnd = mulberry32(seed)
+    for (const d of dots) {
+      const r = rnd()
+      if (r < 0.30) d.tw = 1 + Math.floor(r / 0.10)
+    }
+  }
+
+  // ---------- renderizadores ----------
+  // Cor via token no style (regra do projeto pra SVG data-driven), não atributo.
+  function dotsToSvg(dots, cols, shape, px, ramp = RAMPS.padrao) {
+    const body = dots.map((d) => {
+      const op = d.o < 1 ? ` opacity="${d.o.toFixed(2)}"` : ''
+      const tone = d.tone != null ? ` style="fill:var(${ramp[d.tone]})"` : ''
+      const tw = d.tw ? ` class="tw${d.tw}"` : ''
+      if (shape === 'square') {
+        const s = SQ * d.s
+        return `<rect x="${(d.cx - s / 2).toFixed(3)}" y="${(d.cy - s / 2).toFixed(3)}" width="${s.toFixed(3)}" height="${s.toFixed(3)}"${op}${tone}${tw}/>`
+      }
+      return `<circle cx="${d.cx.toFixed(3)}" cy="${d.cy.toFixed(3)}" r="${(DOT_R * d.s).toFixed(3)}"${op}${tone}${tw}/>`
+    }).join('')
+    return `<svg width="${px}" height="${px}" viewBox="0 0 ${cols} ${cols}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Z barrado em halftone"><g style="fill:var(--dot)">${body}</g></svg>`
+  }
+
+  // Versão sólida (controle, sem halftone) — mesma geometria, sem grade
+  function solidSvg(params, px) {
+    const body = zPolygons(params)
+      .map((p) => `<polygon points="${p.map(([x, y]) => `${(x * 100).toFixed(1)},${(y * 100).toFixed(1)}`).join(' ')}"/>`)
+      .join('')
+    return `<svg width="${px}" height="${px}" viewBox="-5 -5 110 110" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Z barrado sólido"><g style="fill:var(--dot)">${body}</g></svg>`
+  }
+
+  // Pinta os pontos num canvas de px×px reais e amplia com nearest-neighbor:
+  // lupa honesta do que o rasterizador faz nesse tamanho, não um render maior.
+  function paintSmall(px, draw) {
+    const small = document.createElement('canvas')
+    small.width = small.height = px
+    const ctx = small.getContext('2d')
+    draw(ctx, px)
+    return small
+  }
+  function magnify(small, zoom) {
+    const big = document.createElement('canvas')
+    big.width = big.height = small.width * zoom
+    const ctx = big.getContext('2d')
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(small, 0, 0, big.width, big.height)
+    return big
+  }
+  function drawDots(dots, cols, shape, rampHex) {
+    return (ctx, px) => {
+      const k = px / cols
+      for (const d of dots) {
+        ctx.globalAlpha = d.o
+        ctx.fillStyle = d.tone != null ? (rampHex ?? RAMP_HEX.padrao)[d.tone] : DOT_HEX
+        if (shape === 'square') {
+          const s = SQ * d.s * k
+          ctx.fillRect(d.cx * k - s / 2, d.cy * k - s / 2, s, s)
+        } else {
+          ctx.beginPath()
+          ctx.arc(d.cx * k, d.cy * k, DOT_R * d.s * k, 0, Math.PI * 2)
+          ctx.fill()
+        }
+      }
+      ctx.globalAlpha = 1
+    }
+  }
+  function drawSolid(params) {
+    return (ctx, px) => {
+      ctx.fillStyle = DOT_HEX
+      const scale = px * (1 - 2 * PAD)
+      const o = px * PAD
+      for (const poly of zPolygons(params)) {
+        ctx.beginPath()
+        poly.forEach(([x, y], i) => (i
+          ? ctx.lineTo(o + x * scale, o + y * scale)
+          : ctx.moveTo(o + x * scale, o + y * scale)))
+        ctx.closePath()
+        ctx.fill()
+      }
+    }
+  }
+
+  // ---------- finalistas (V4 refinada) ----------
+  // Barra na espessura das hastes (bh = t) — em 22 colunas, hastes e barra
+  // ficam com as mesmas 3–4 linhas de quadradinhos.
+  const FINAL_PARAMS = { cols: 22, shape: 'square', t: .18, bar: 'single', bh: .18 }
+  const FINALISTS = [
+    { id: 'f1', name: 'F1 · VARREDURA ↘',    tone: 'sweep',    ramp: 'padrao', desc: 'degraus mist-100→zeph-700 na diagonal' },
+    { id: 'f2', name: 'F2 · BARRA DESTACADA', tone: 'elements', ramp: 'padrao', desc: 'corpo claro · barra zeph-500' },
+    // sem branco a pedido do Carlos — rampa própria de 5 tons + pesos novos
+    { id: 'f3', name: 'F3 · CINTILÂNCIA',     tone: 'sparkle',  ramp: 'semBranco', weights: [.30, .28, .20, .15, .07], desc: 'sem branco · 5 tons zeph/mist · seed 11' },
+  ]
+
+  // ---------- exploração original (histórico da rodada 1) ----------
+  const VARIATIONS = [
+    { id: 'v1', name: 'V1 · BASE',           cols: 22, shape: 'circle', t: .18,  bar: 'single' },
+    // 11 colunas: além do look "LED grosso", em 24px cada célula ≈ 2px reais —
+    // é a candidata natural a remaster de ícone. bh forçada a ~1 célula e o
+    // centro da barra cai exatamente no centro da linha 5 (11 ímpar), senão a
+    // barra some ou dobra de altura na grade grossa. thr 0.33 + pontos 17%
+    // maiores: calibrado por screenshot — com thr 0.5 a escada da diagonal
+    // quebrava e as hastes ficavam de 1 linha (Z ilegível em 24px).
+    { id: 'v2', name: 'V2 · GRADE GROSSA',   cols: 11, shape: 'circle', t: .18,  bar: 'single', bh: 0.105, thr: 0.33, dotScale: 1.17 },
+    { id: 'v3', name: 'V3 · GRADE DENSA',    cols: 34, shape: 'circle', t: .18,  bar: 'single' },
+    { id: 'v4', name: 'V4 · PONTO QUADRADO', cols: 22, shape: 'square', t: .18,  bar: 'single' },
+    { id: 'v5', name: 'V5 · PESO PESADO',    cols: 22, shape: 'circle', t: .235, bar: 'single' },
+    { id: 'v6', name: 'V6 · BARRA DUPLA',    cols: 22, shape: 'circle', t: .18,  bar: 'double' },
+    { id: 'v7', name: 'V7 · BARRA CURTA',    cols: 22, shape: 'circle', t: .18,  bar: 'short' },
+    { id: 'v8', name: 'V8 · GLITCH',         cols: 22, shape: 'square', t: .18,  bar: 'single', glitch: true },
+  ]
+  const BAR_LABEL = { single: 'barra cheia', double: 'barra dupla', short: 'barra curta' }
+
+  function cell(labelText, node) {
+    const wrap = document.createElement('div')
+    wrap.className = 'cell'
+    wrap.appendChild(node)
+    const lab = document.createElement('div')
+    lab.className = 'lab'
+    lab.textContent = labelText
+    wrap.appendChild(lab)
+    return wrap
+  }
+
+  function buildCard({ name, id, params, heroNode, drawFn, svgFor }) {
+    const card = document.createElement('section')
+    card.className = 'card'
+    card.innerHTML = `<div class="card-head"><span class="name">${name}</span><span class="params">${params}</span></div>`
+    const hero = document.createElement('div')
+    hero.className = 'hero'
+    hero.appendChild(heroNode)
+    card.appendChild(hero)
+
+    const strip = document.createElement('div')
+    strip.className = 'strip'
+    strip.dataset.strip = id
+    for (const px of SMALL) {
+      const holder = document.createElement('div')
+      holder.innerHTML = svgFor(px)
+      strip.appendChild(cell(String(px), holder.firstChild))
+    }
+    const gap = document.createElement('div')
+    gap.className = 'gap'
+    strip.appendChild(gap)
+    for (const [px, zoom] of ZOOMS) {
+      const small = paintSmall(px, drawFn)
+      strip.appendChild(cell(`lupa ${px} ×${zoom}`, magnify(small, zoom)))
+    }
+    card.appendChild(strip)
+    return card
+  }
+
+  // ---------- montagem da página ----------
+  const query = new URLSearchParams(location.search)
+  const mode = query.get('dots') === 'zeph' ? 'zeph' : 'mist'
+  const anim = query.get('anim') === '1'
+  if (anim) document.body.classList.add('anim')
+  const DOT_VAR = mode === 'zeph' ? '--color-zeph-300' : '--color-mist-100'
+  document.documentElement.style.setProperty('--dot', `var(${DOT_VAR})`)
+  // canvas não resolve var() — os hex vêm DOS tokens, não são cores soltas
+  const styles = getComputedStyle(document.documentElement)
+  const DOT_HEX = styles.getPropertyValue(DOT_VAR).trim()
+  const rampHexOf = (vars) => vars.map((v) => styles.getPropertyValue(v).trim())
+  const RAMP_HEX = { padrao: rampHexOf(RAMPS.padrao), semBranco: rampHexOf(RAMPS.semBranco) }
+  // toggles preservam o outro parâmetro
+  for (const a of document.querySelectorAll('.toggle a[data-mode]')) {
+    a.href = `?dots=${a.dataset.mode}${anim ? '&anim=1' : ''}`
+    if (a.dataset.mode === mode) a.classList.add('active')
+  }
+  for (const a of document.querySelectorAll('.toggle a[data-anim]')) {
+    a.href = `?dots=${mode}${a.dataset.anim === '1' ? '&anim=1' : ''}`
+    if ((a.dataset.anim === '1') === anim) a.classList.add('active')
+  }
+
+  try {
+    let totalDots = 0
+
+    // --- finalistas: amostra corpo e barra em máscaras separadas ---
+    const finalCards = document.getElementById('cards-final')
+    const coreImg = rasterizePolys(corePolygons(FINAL_PARAMS))
+    const barImg = rasterizePolys(barPolygons(FINAL_PARAMS))
+    const coreDots = sampleGrid(coreImg, FINAL_PARAMS.cols)
+    const barDots = sampleGrid(barImg, FINAL_PARAMS.cols)
+    for (const d of barDots) d.src = 'bar'
+    for (const d of coreDots) d.src = 'core'
+    const barKeys = new Set(barDots.map((d) => `${d.cx},${d.cy}`))
+    // na interseção barra∩diagonal a barra dá o tom (é o "corte" da marca)
+    const mergedDots = [...barDots, ...coreDots.filter((d) => !barKeys.has(`${d.cx},${d.cy}`))]
+
+    for (const f of FINALISTS) {
+      const dots = mergedDots.map((d) => ({ ...d }))
+      assignTones(dots, f.tone, FINAL_PARAMS.cols, 11, f.weights)
+      assignTwinkle(dots)
+      totalDots += dots.length
+      const params = `22×22 · quadrado · haste 0.18 · barra = haste · ${f.desc} · ${dots.length} pts`
+      const holder = document.createElement('div')
+      holder.innerHTML = dotsToSvg(dots, FINAL_PARAMS.cols, 'square', HERO, RAMPS[f.ramp])
+      finalCards.appendChild(buildCard({
+        name: f.name,
+        id: f.id,
+        params,
+        heroNode: holder.firstChild,
+        drawFn: drawDots(dots, FINAL_PARAMS.cols, 'square', RAMP_HEX[f.ramp]),
+        svgFor: (px) => dotsToSvg(dots, FINAL_PARAMS.cols, 'square', px, RAMPS[f.ramp]),
+      }))
+    }
+
+    // --- exploração original ---
+    const cards = document.getElementById('cards-explore')
+    for (const v of VARIATIONS) {
+      const img = rasterizeZ(v)
+      let dots = sampleGrid(img, v.cols, v.thr ?? 0.5)
+      if (v.glitch) dots = applyGlitch(dots)
+      if (v.dotScale) for (const d of dots) d.s *= v.dotScale
+      totalDots += dots.length
+      const params = [
+        `${v.cols}×${v.cols}`,
+        v.shape === 'square' ? 'quadrado' : 'círculo',
+        `haste ${v.t}`,
+        BAR_LABEL[v.bar],
+        v.glitch ? 'ruído seed 7' : null,
+        `${dots.length} pts`,
+      ].filter(Boolean).join(' · ')
+      const holder = document.createElement('div')
+      holder.innerHTML = dotsToSvg(dots, v.cols, v.shape, HERO)
+      cards.appendChild(buildCard({
+        name: v.name,
+        id: v.id,
+        params,
+        heroNode: holder.firstChild,
+        drawFn: drawDots(dots, v.cols, v.shape),
+        svgFor: (px) => dotsToSvg(dots, v.cols, v.shape, px),
+      }))
+    }
+
+    // Controle sem halftone — referência de comparação, NÃO é variação
+    const ctrl = { t: .18, bar: 'single' }
+    const ctrlHolder = document.createElement('div')
+    ctrlHolder.innerHTML = solidSvg(ctrl, HERO)
+    cards.appendChild(buildCard({
+      name: '[ CONTROLE ] SÓLIDO, SEM HALFTONE',
+      id: 'controle',
+      params: 'mesma silhueta · referência de legibilidade',
+      heroNode: ctrlHolder.firstChild,
+      drawFn: drawSolid(ctrl),
+      svgFor: (px) => solidSvg(ctrl, px),
+    }))
+
+    document.getElementById('status').textContent =
+      `[ OK ] ${FINALISTS.length} finalistas + ${VARIATIONS.length} variações + controle · amostragem: canvas ${CANVAS_PX}px, 3×3 subamostras/célula, threshold 0.5 (0.33 na grade 11) · ${totalDots} pts no total · cor exploração: ${DOT_VAR.replace('--color-', '')} · animação: ${anim ? 'ligada' : 'desligada'}`
+    window.__logoPreviewReady = true
+  } catch (err) {
+    showError(err && err.stack ? err.stack : String(err))
+    document.getElementById('status').textContent = '[ FALHOU ] ver erro acima'
+  }
+})()
+</script>
+</body>
+</html>

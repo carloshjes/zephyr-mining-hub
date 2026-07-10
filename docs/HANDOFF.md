@@ -36,7 +36,7 @@ rewrite resolve isso sem backend próprio).
   Nenhum prompt depende de qual modelo executa; se o GLM voltar, os prompts 2-4
   funcionam do mesmo jeito.
 
-## Onde estamos (verificado por `git log`/`git status` reais em 2026-07-09, não por memória)
+## Onde estamos (verificado por `git log`/`git status` reais em 2026-07-10, não por memória)
 
 | # | Módulo | Status | Commit |
 |---|--------|--------|--------|
@@ -44,11 +44,20 @@ rewrite resolve isso sem backend próprio).
 | 2 (Fable) | Bússola de Pools | ✅ feito, commitado, enviado | `57044c9` |
 | 3 (Fable) | Raio-X da Recompensa | ✅ feito, commitado, enviado | `21de8e5` |
 | 4 (Fable) | Monitor do Rig | ✅ feito, commitado, enviado | `eb18d89` |
-| 5 (Fable) | Integração final | ⬜ não iniciado — entra depois do Prompt R1 | — |
-| R1 (Fable) | Redesign visual "Sinal Técnico" | ⬜ prompt escrito, pronto pra colar | — |
-| — | Tradução pro inglês | ⬜ sessão separada, depois do R1 (não escrita ainda) | — |
+| R1 (Fable) | Redesign visual "Sinal Técnico" | ✅ feito, commitado — **NÃO enviado** (local 1 commit à frente de origin/main) | `c2bc9e7` (wip) + `7f88da7` (final, pós re-verificação 2026-07-10) |
+| L1 (Fable) | Logo "Z" dot-matrix (exploração) | ✅ feito — **NÃO commitado** (arquivos novos + notas ainda no working tree) | — |
+| 5 (Fable) | Integração final | ⬜ não iniciado — entra depois da tradução pro inglês | — |
+| — | Tradução pro inglês | ⬜ sessão separada, depois do R1 (não escrita ainda) — **próximo passo** | — |
 | — | Prompt de deploy no Vercel | ⬜ ainda não escrito | — |
 | — | Skills (auditoria/limpeza/visual) | ⬜ não rodadas | — |
+
+**Pendência de git aberta nesta sessão (2026-07-10):** este arquivo, `NOTES.md` e
+`docs/zephyr-mining-hub-prompts.md` tinham mudanças não commitadas (documentação do
+R1 re-verificado e do L1 — R1/L1 apareciam como "não iniciado" nesta tabela até esta
+edição, desatualizado); `docs/logo-exploracao.md`, `scripts/logo-preview.html` e
+`scripts/logo-shots.mjs` estão untracked. Nada foi perdido, só falta um commit
+dedicado a isso e depois `git push` (ficaria 2 commits locais à frente do remoto: o
+`7f88da7` do R1 + o novo commit de L1/docs).
 
 ## Lições da sessão de 2026-07-09 (git + sessão do Fable concorrente)
 
@@ -142,19 +151,21 @@ porque tendem a se repetir:
 ## Próximos passos, em ordem
 
 1. ~~Prompt 4 (Monitor do Rig)~~ — feito, commitado, enviado (`eb18d89`).
-2. **Prompt R1 — Redesign visual "Sinal Técnico"** — já escrito em
-   `docs/zephyr-mining-hub-prompts.md`, pronto pra colar. Direção decidida via
-   `creative-ui-director` a partir de zephyrprotocol.com (paleta roxo), rig.ai (fundo
-   quase preto, anotação monoespaçada, referência principal do Carlos) e labs.scale.com
-   (tratamento pontual de tabela). Sessão única cobrindo os 4 módulos + nav, um módulo
-   de cada vez dentro da mesma sessão (tokens definidos uma vez, aplicados em sequência
-   — ver justificativa no prompt). Fable tem autonomia de acabamento (microinteração,
-   hover, espaçamento fino), mas NÃO de estrutura/paleta — isso já foi decidido.
-3. Tradução pro inglês — sessão separada, DEPOIS do R1 (prompt ainda não escrito).
+2. ~~Prompt R1 (Redesign visual "Sinal Técnico")~~ — feito, commitado (`c2bc9e7`
+   wip + `7f88da7` final, re-verificado em 2026-07-10), **ainda não enviado ao
+   GitHub**. Tokens finais e decisões de composição já espelhados em CLAUDE.md/NOTES.md.
+3. **Tradução pro inglês** — sessão separada, DEPOIS do R1 (prompt ainda não escrito).
+   **Este é o próximo prompt a escrever.**
 4. Prompt 5 (integração final) — já pronto em `docs/zephyr-mining-hub-prompts.md`, mas
-   só depois dos passos 2 e 3 (senão revisa uma UI que muda de novo logo em seguida).
+   só depois do passo 3 (senão revisa uma UI/texto que muda de novo logo em seguida).
 5. Escrever o prompt de deploy no Vercel — **ainda não existe**, mesmo estilo dos
    outros (ver `docs/guia_conversar_com_llm.md`); parte do rewrite já usado em
    `vite.config.ts`.
 6. Rodar as skills `backend-structure-auditor` e `code-audit-cleanup` — via Skill tool
    deste chat, não via Claude Code.
+
+Em paralelo, sem bloquear a sequência acima: **Prompt L1 (logo "Z" dot-matrix)** já
+foi explorado (`docs/logo-exploracao.md`, `scripts/logo-preview.html`,
+`scripts/logo-shots.mjs`) — Carlos escolheu a variação F3, revisada sem mist-100.
+Falta: commitar essa exploração e, quando quiser, escrever um prompt novo e separado
+pra integrar a escolhida no `AppShell.tsx` real (nav + favicon) — ainda não escrito.

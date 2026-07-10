@@ -420,3 +420,43 @@ do commit wip — rewards `normal`/`lowratio`/`brokenrewards`, rig
 revisadas contra a rubrica de 6 perguntas — nenhuma tela falhou em 2+
 perguntas. Único ajuste: warning de lint no design-shots.mjs (ternário como
 expressão vira if/else).
+
+## Exploração de logo — Z barrado em halftone (2026-07-10)
+
+Exploração ISOLADA — zero mudança em produção (AppShell, rotas e favicon
+intactos; integração fica pra outro prompt).
+
+- `scripts/logo-preview.html`: 8 variações paramétricas + controle sólido do
+  "Z barrado" (silhueta da marca oficial Zephyr, sem 3D/gradiente). Halftone
+  REAL: canvas offscreen + getImageData, grade com threshold — não é fonte de
+  pontos pronta. Abre direto no navegador; `?dots=zeph` troca a cor dos pontos
+  (mist-100 → zeph-300). Tokens espelhados de `src/index.css` no topo.
+- `scripts/logo-shots.mjs`: fotografa a página no padrão CDP-sem-dependências
+  do design-shots (mas via file://, sem `npm run dev`); aceita
+  `LOGO_SHOTS_BROWSER` e `LOGO_SHOTS_PAGE` pra rodar fora do Windows/Edge.
+  Saída: `.e2e-out/logo/` (página inteira em mist ×1/×2 e zeph, + crops das
+  faixas 32/24/16px com lupa nearest-neighbor por variação).
+- **Veredito por tamanho em `docs/logo-exploracao.md`** (não só as bonitas).
+  Resumo do observado: em 24px as grades 22+ ainda leem como Z mas viram "Z
+  sólido desbotado" (o anti-aliasing funde os pontos — a textura de halftone
+  desaparece); a ÚNICA variação com pontos visíveis em 24px é a V2 (grade
+  11×11, célula ≈ 2px, calibrada por screenshot: threshold 0,33 + ponto 1,17×,
+  barra travada em 1 célula com grade ímpar); V5 (peso pesado) e V6 (barra
+  dupla) reprovadas no tamanho pequeno; V3 (densa) e V8 (glitch) são as mais
+  fiéis à referência rig.ai porém só em tamanho grande; a barra curta (V7) é o
+  Z mais legível pequeno, mas a barra some (perde a citação de símbolo de
+  moeda). Controle sólido lê até 16px — o limite é o halftone, não a silhueta.
+- **Refinamento (mesmo dia):** Carlos escolheu a V4 (quadrado) pedindo barra na
+  espessura das hastes + tons de roxo. Seção `[ FINALISTAS ]` no preview: barra
+  `bh = t`, corpo/barra amostrados em máscaras separadas, tom POR PONTO em
+  degraus dos tokens (mist-100/zeph-300/500/700 — sem gradiente interpolado,
+  que a direção proíbe) e cintilação opcional `?anim=1` (verificada via CDP).
+  F2 (barra em zeph-500) é a melhor em 24px — o tom separa a barra onde a
+  espessura não separa; F1 precisou grampear o zeph-700 no canto (em 24px a
+  banda escura decapitava a base do Z); F3 é vocação de hero. Detalhe em
+  docs/logo-exploracao.md.
+- **F3 escolhida e revisada sem branco (mesmo dia):** mist-100 removido a
+  pedido do Carlos; rampa própria de 5 tons (mist-300/zeph-300/mist-400/
+  zeph-500/zeph-700, pesos 30/28/20/15/7). Medido em screenshot: em 24px perde
+  ~meio degrau de brilho (teto mist-300, 9,6:1) mas segue legível; 16px
+  continua caso do sólido. F1/F2 mantêm a rampa padrão.
