@@ -412,3 +412,11 @@ cor); uma região dominante por tela; colchetes+mono+manchete cortada afastam
 o genérico; sem roxo/vermelho a hierarquia se mantém; menor breakpoint
 recompõe (manchete perde o rótulo gigante, rails empilham com trilho, tabelas
 rolam dentro do container); cor herdada de marca/significado.
+
+**Re-verificação pós-wip (2026-07-10):** suite completa re-executada em cima
+do commit wip — rewards `normal`/`lowratio`/`brokenrewards`, rig
+`normal`/`notfound` e pools `normal`: **TUDO PASSOU**; `npm run build` limpo;
+`design-shots.mjs` re-fotografado e as 12 capturas (4 telas × 3 breakpoints)
+revisadas contra a rubrica de 6 perguntas — nenhuma tela falhou em 2+
+perguntas. Único ajuste: warning de lint no design-shots.mjs (ternário como
+expressão vira if/else).
