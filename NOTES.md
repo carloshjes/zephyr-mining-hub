@@ -701,3 +701,96 @@ scripts/zeph-hue-compare.html), rewards-{desktop,tablet,mobile,lowratio,
 brokenrewards}.png e rig-*.png/pools-normal.png dos e2e. Suíte final v2:
 rewards normal/lowratio/brokenrewards + rig normal/notfound + pools normal —
 **TUDO PASSOU em 2026-07-10**; `npm run build` limpo.
+
+# NOTES — Prompt N1: casca vira rail vertical (2026-07-10)
+
+A casca de navegação era a única peça do produto sem composição "Sinal
+Técnico" própria (barra-topo genérica). Virou rail vertical FIXO à esquerda
+em `xl:`+: LogoMark no topo, wordmark empilhado ("Zephyr" / "Mining Hub" em
+data-md), os 4 itens de nav na vertical (mesma convenção mono `[ Rótulo ]`,
+colchetes transparentes no inativo — zero layout shift na troca de rota),
+divisor hairline vertical, bg chapado ink-950 (mesmo tratamento da barra do
+R1/R2 — o conteúdo rola por baixo do rail, bg transparente vazaria texto).
+Largura 14rem (w-56): o rótulo mais longo, `[ Raio-X da Recompensa ]`
+(24 chars mono a 12px ≈ 173px), cabe em 1 linha nos 184px internos (px-5).
+Footer passou pra DENTRO da coluna: full-width real começaria escondido
+embaixo do rail fixo e opaco. `main` mantém `max-w-6xl` centrado na coluna —
+a medida de leitura dos módulos foi desenhada contra esse cap; o rail muda
+onde a coluna começa, não a largura que ela comporta. Nenhum token novo:
+tudo ink/hairline/zeph/mist + escala --text-* existentes.
+
+## Tamanho do logo no rail — 128px, decidido por captura, não de olho
+
+Método: `scripts/rail-logo-shots.mjs` (novo) redimensiona o SVG da marca AO
+VIVO no app real e captura crop ×1 + lupa nearest-neighbor ×4 dos MESMOS
+pixels (receita do logo-preview/logo-shots; deviceScaleFactor 1 de propósito
+— retina dobraria os pixels e mascararia o piso). Lado do ponto por tamanho:
+S×0,66/22 → 38px = 1,1px · 64px = 1,9px · 80px = 2,4px · 96px = 2,9px ·
+128px = 3,8px. Veredito nos crops ×1 (.e2e-out/logo/rail-{64,80,96,112,128}px
+.png + -lupa4x.png): a 64 a variação tonal mal existe; a 96 lê, mas pede
+atenção; a 128 os 5 tons da rampa semBranco se distinguem À PRIMEIRA VISTA e
+a lupa confirma que é tom por ponto, não artefato de anti-aliasing. Critério
+do prompt era "lê a olho nu sem zoom" → 128px. A barra estreita (<xl) segue
+com 38px — ali a marca é silhueta mesmo; o momento de textura vive no rail.
+
+## Breakpoint do rail — xl, não lg: o aperto fotografado
+
+Hipótese: módulos abrem 2 colunas em `lg:` (grid `[minmax(0,1fr)_19rem]`)
+assumindo a viewport INTEIRA, e os heros usam clamp com vw (viewport-
+relativo, não encolhe com a coluna). Com rail de 224px em lg, a 1024px a
+coluna dominante de /rede cai pra ~408px com fonte de hero a 10vw ≈ 102px.
+Testado DE VERDADE (simulação DOM do rail a 1024, CDP): o hero "52,91 MH/s"
+QUEBROU em duas linhas ("52,91" / "MH/s") — exatamente o aperto previsto.
+Invariante que fecha a conta: coluna com rail ≥ largura de design dos
+módulos em lg exige viewport ≥ 1024 + 224 = 1248 → primeiro degrau Tailwind
+é xl (1280). A 1280 real (capturado): hero em 1 linha, 2 colunas folgadas.
+Entre 1024–1279 a casca mostra a barra horizontal e os módulos ficam com a
+largura plena — como no R2.
+
+## Full-bleed do Raio-X — w-screen → calc(100vw − rail)
+
+O truque `left-1/2 w-screen -translate-x-1/2` assume main centrado na
+VIEWPORT. Com o rail, main centra na COLUNA (centro deslocado rail/2 pra
+direita): a seção w-screen começaria rail/2 DEBAIXO do rail e o wrapper
+interno (que replica `mx-auto max-w-6xl px-*` do main) desalinharia do resto
+do conteúdo sempre que o cap não satura. Fix: a casca publica
+`--shell-rail-w` (0px sem rail, 14rem em xl+) e a seção usa
+`w-[calc(100vw_-_var(--shell-rail-w,0px))]`. A conta: main centrado na
+coluna ⇒ centro da seção = centro da coluna ⇒ seção de largura
+(100vw − rail) cobre EXATAMENTE a coluna, e o wrapper interno enxerga a
+mesma largura disponível que o main ⇒ alinhamento idêntico em qualquer
+viewport (medido a 1360: conteúdo interno e main a 7px um do outro — esse
+desvio é a meia-calha da scrollbar, 100vw > clientWidth, e JÁ EXISTIA com o
+w-screen original em viewports abaixo do cap; paridade, não regressão). Sem
+rail o calc degenera pra 100vw = o w-screen de antes. A manchete gigante
+continua cortando na borda DIREITA real da tela (overflow-x-clip da própria
+seção + do root).
+
+## Recomposição < xl e acessibilidade
+
+Abaixo de xl NÃO existe rail espremido: a casca recompõe pra barra
+horizontal exata do R2 (logo 38px + wordmark + nav inline com wrap).
+Testada de verdade a 768 e 390 (design-shots + capturas próprias) — nav em
+2 linhas no 390, como antes. Os dois arranjos coexistem no DOM (`xl:hidden`
+vs `hidden xl:flex`) com os links gerados pela MESMA função (NavLinks);
+árvore de acessibilidade conferida via CDP `Accessibility.getFullAXTree`
+nos dois arranjos: "Mining Hub" presente exatamente 1× como StaticText
+(display:none tira o arranjo inativo da árvore), nenhuma imagem decorativa
+exposta (LogoMark segue aria-hidden; o wordmark visível carrega o nome).
+Contraste do rail: nenhum par novo — mist-400 5,67:1 / zeph-300 7,63:1 /
+mist-100 16,8:1 sobre ink-950, re-medidos com scripts/contrast-check.mjs.
+
+## Verificação N1
+
+`npm run build` limpo · `npm run lint` sem warning novo (o boilerplate CDP
+do rail-logo-shots herdava um ternário-expressão do logo-shots — corrigido;
+armadilha nova documentada: seletor com `||` interpolado em template de
+Runtime.evaluate precisa de parênteses, senão o member access liga só ao 2º
+operando e o returnByValue tenta serializar um nó DOM e explode com "Object
+reference chain is too long") · e2e SEM alteração de script: pools normal +
+rewards normal + rig normal — **TUDO PASSOU 2026-07-10** · design-shots 12
+capturas re-geradas e revisadas (artefato conhecido: rail é fixed e o
+screenshot é de página inteira — abaixo da 1ª dobra a coluna esquerda sai
+vazia NA FOTO; no navegador o rail acompanha o scroll). Evidências:
+.e2e-out/logo/rail-*.png (estudo de tamanho + contexto) e
+.e2e-out/shot-*.png (12 telas).

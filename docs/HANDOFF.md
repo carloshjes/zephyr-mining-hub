@@ -44,10 +44,10 @@ rewrite resolve isso sem backend próprio).
 | 2 (Fable) | Bússola de Pools | ✅ feito, commitado, enviado | `57044c9` |
 | 3 (Fable) | Raio-X da Recompensa | ✅ feito, commitado, enviado | `21de8e5` |
 | 4 (Fable) | Monitor do Rig | ✅ feito, commitado, enviado | `eb18d89` |
-| R1 (Fable) | Redesign visual "Sinal Técnico" | ✅ feito, commitado — **NÃO enviado** (local 1 commit à frente de origin/main) | `c2bc9e7` (wip) + `7f88da7` (final, pós re-verificação 2026-07-10) |
-| L1 (Fable) | Logo "Z" dot-matrix (exploração) | ✅ feito — F3 "sem branco" escolhida por Carlos (2026-07-10) — **NÃO commitado** (arquivos novos + notas ainda no working tree) | — |
-| L2 (Fable) | Logo — integração no produto (AppShell + favicon) | ✅ feito (favicon em zeph-300, logo — depois bumpado a 38px pelo R2) — **NÃO commitado** | — |
-| R2 (Fable) | Sinal Técnico v2: good/laranja (vermelho saiu), zeph recalibrado a ≈244°, fundo neutralizado + textura, escala tipográfica (9 tokens), movimento nos gráficos, causa raiz do painel vazio corrigida, logo 38px | ✅ feito — suíte e2e verde (rewards/rig/pools), `npm run build` limpo (relato do Fable), CLAUDE.md/NOTES.md atualizados — **NÃO commitado, verificado arquivo a arquivo por outro chat (2026-07-10)** | — |
+| R1 (Fable) | Redesign visual "Sinal Técnico" | ✅ feito, commitado, enviado | `c2bc9e7` (wip) + `7f88da7` (final) |
+| L1 (Fable) | Logo "Z" dot-matrix (exploração) | ✅ feito — F3 "sem branco" escolhida por Carlos (2026-07-10), commitado e enviado | `1168568` |
+| L2 (Fable) | Logo — integração no produto (AppShell + favicon) | ✅ feito (favicon em zeph-300, logo — depois bumpado a 38px pelo R2), commitado e enviado | `015d0b1` |
+| R2 (Fable) | Sinal Técnico v2: good/laranja (vermelho saiu), zeph recalibrado a ≈244°, fundo neutralizado + textura, escala tipográfica (9 tokens), movimento nos gráficos, causa raiz do painel vazio corrigida, logo 38px | ✅ feito — suíte e2e verde (rewards/rig/pools), `npm run build` limpo (relato do Fable), CLAUDE.md/NOTES.md atualizados, commitado e enviado | `015d0b1` |
 | 5 (Fable) | Integração final | ⬜ não iniciado — entra depois da tradução pro inglês | — |
 | — | Tradução pro inglês | ⬜ sessão separada, depois do R2 (não escrita ainda) | — |
 | — | Prompt de deploy no Vercel | ⬜ ainda não escrito | — |
@@ -59,17 +59,18 @@ duplicada) — provável efeito colateral de edits concorrentes entre este chat 
 Restaurado/limpo pela segunda vez; se aparecer de novo, o conteúdo correto está no
 CLAUDE.md commitado + nas seções refletidas aqui e em NOTES.md.
 
-**Pendência de git ATUAL (2026-07-10, pós-R2):** working tree tem L2 + R2 inteiros
-não commitados (ver tabela acima). Tentativa de commitar por este chat (bash/sandbox)
-bateu em `Unable to create '.git/index.lock': File exists` — **isso é o mesmo sintoma já
-documentado na seção "Lições da sessão de 2026-07-09" abaixo**: quase certo que a sessão
-do Fable no terminal do Carlos ainda estava aberta. Verificação de conteúdo (arquivo por
-arquivo, via ferramentas que leem o disco real, não git) confirmou que o trabalho do R2
-está todo lá — não é perda de dado, é só o índice do git precisando de uma escrita limpa.
-**Ordem pra resolver:** feche a janela/sessão do Fable → abra uma PowerShell nova → se
-`.git\index.lock` ainda existir, apague → `git add -A` → `git commit -m "..."` → depois
-`git push` (ficam 3 commits locais à frente do remoto: `7f88da7` do R1 + o de L1/docs +
-este novo de L2+R2).
+**Pendência de git RESOLVIDA (atualização 2026-07-10, chat novo):** o que a seção acima
+descrevia como pendente já foi feito por Carlos entre o fim daquele chat e o início
+deste — confirmado agora por `git status`/`git log`/`git fetch` reais (não por memória):
+working tree limpo, `HEAD` = `origin/main` = `015d0b1` ("prompt L2 + R2: logo integrada e
+Sinal Tecnico v2"), 0 commits de diferença. Um commit só cobriu L2+R2 juntos (29
+arquivos). Conteúdo conferido por amostragem: tokens `--color-good: #22c55e` /
+`--color-bad: #f97316` e zeph recalibrado (`#9c96f5`/`#665fc4`) presentes em
+`src/index.css`; zero uso residual de cor "alert" (só sobrou `role="alert"` semântico e
+nomes de teste como `ratio-alert-segment`, sem relação com cor). `npm run build` não pôde
+ser reconferido nesta sessão (sandbox Linux; os binários nativos instalados no projeto são
+Windows-only — `rolldown`/`lightningcss`/`oxlint` `-win32-x64-msvc`) — não é regressão, é
+limite deste ambiente; o Fable já tinha relatado build limpo no Windows.
 
 ## Lições da sessão de 2026-07-09 (git + sessão do Fable concorrente)
 
@@ -169,13 +170,11 @@ porque tendem a se repetir:
 3. ~~Prompt L2 (integração da logo)~~ — rodou (favicon zeph-300, logo no header).
 4. ~~Prompt R2 (Sinal Técnico v2)~~ — rodou (verde/laranja substituindo vermelho, zeph
    recalibrado, fundo+textura, escala tipográfica, movimento, causa raiz do painel vazio
-   corrigida, logo 38px). Verificado arquivo a arquivo nesta sessão (2026-07-10) — real e
-   completo. **AMBOS (L2+R2) ainda não commitados** — é o passo imediato agora, ver
-   "Pendência de git ATUAL" acima antes de rodar qualquer outro prompt.
-5. **Próxima sessão do Carlos:** mais mudanças de layout/front-end, escopo ainda não
-   definido quando este arquivo foi escrito — se você é o chat que está lendo isso agora,
-   pergunte o que ele quer antes de propor direção nova (não assuma que é continuação
-   direta do R2; pode ser outra parte do produto).
+   corrigida, logo 38px). **L2+R2 commitados e enviados** (`015d0b1`, reconfirmado por git
+   real nesta sessão — ver nota acima). Nenhuma ação de git pendente.
+5. **Sessão atual do Carlos (chat novo, 2026-07-10):** mais mudanças de layout/front-end,
+   escopo ainda não definido — perguntei o que ele quer antes de propor direção nova (não
+   assumir que é continuação direta do R2; pode ser outra parte do produto).
 6. Tradução pro inglês — sessão separada, prompt ainda não escrito; melhor depois do
    item 5 (senão traduz uma UI que muda de novo em seguida).
 7. Prompt 5 (integração final) — já pronto em `docs/zephyr-mining-hub-prompts.md`, mas só

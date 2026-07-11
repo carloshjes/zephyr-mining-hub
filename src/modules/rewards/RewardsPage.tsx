@@ -259,8 +259,12 @@ export function RewardsPage() {
 
       {/* Manchete dominante da dobra — full-bleed: em telas largas o rótulo
           gigante corta na borda da tela (recurso de composição, de propósito).
-          A frase completa e acessível vem logo abaixo em tamanho de leitura. */}
-      <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-x-clip">
+          A frase completa e acessível vem logo abaixo em tamanho de leitura.
+          Largura = 100vw − rail da casca (var da AppShell; 0px sem rail, e o
+          calc degenera pro antigo w-screen): o main centraliza na COLUNA à
+          direita do rail, então w-screen cru desalinharia o wrapper interno e
+          enfiaria o começo da faixa embaixo do rail fixo — conta em NOTES.md. */}
+      <section className="relative left-1/2 w-[calc(100vw_-_var(--shell-rail-w,0px))] -translate-x-1/2 overflow-x-clip">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
           {rewardsPoll.isLoading ? (
             <Skeleton className="h-32 w-full max-w-2xl" />

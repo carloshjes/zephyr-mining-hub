@@ -67,8 +67,23 @@ da textura (#0f0f0f, pior caso) e o ink-900 — números em NOTES.md.
 - `scripts/design-shots.mjs` fotografa as 4 telas em 3 breakpoints; rubrica de revisão
   agora tem 7 perguntas (as 6 do R1 + "positivo e negativo na mesma tela distinguíveis
   por daltonismo?") — resultado em NOTES.md.
-- Marca integrada (2026-07-10): header usa `LogoMark` em 38px (v2 — 26px ficava no piso;
-  a variação tonal por ponto só lê a partir de ~32px, ver docs/logo-exploracao.md).
+- Casca de navegação (2026-07-10, Prompt N1): rail vertical FIXO à esquerda em `xl:`+ —
+  LogoMark 128px no topo (o momento de textura da marca: ponto ~3,8px real, variação
+  tonal lê a olho nu — medição e capturas em NOTES.md), wordmark empilhado abaixo, os
+  4 itens de nav na vertical com a MESMA convenção mono `[ Rótulo ]`, divisor hairline
+  vertical à direita, bg chapado ink-950 (conteúdo rola por baixo do rail fixo).
+  Breakpoint é xl e NÃO lg de propósito: os módulos abrem 2 colunas em lg assumindo a
+  viewport inteira — com o rail de 14rem a coluna só devolve a largura de design deles
+  a partir de ~1248px (o aperto foi fotografado, NOTES.md). Abaixo de xl a casca
+  RECOMPÕE deliberadamente pra barra horizontal do R2 (logo 38px + nav inline, testada
+  a 768/390). A casca publica `--shell-rail-w` (0px sem rail) e o full-bleed da
+  manchete do Raio-X consome via `w-[calc(100vw_-_var(--shell-rail-w,0px))]` no lugar
+  do antigo w-screen — main agora centra na COLUNA à direita do rail, não na viewport,
+  e w-screen cru desalinharia (conta em NOTES.md). Footer vive dentro da coluna
+  (full-width real começaria escondido embaixo do rail fixo). main mantém max-w-6xl.
+- Marca integrada (2026-07-10): o rail usa `LogoMark` em 128px (N1, bullet acima); a
+  barra horizontal estreita (<xl) segue em 38px (v2 — 26px ficava no piso; a variação
+  tonal por ponto só lê a partir de ~32px, ver docs/logo-exploracao.md).
   NÃO editar os pontos à mão, regenerar com `scripts/logo-export.mjs`; a rampa de pontos
   referencia tokens via var(), então a recalibração de matiz fluiu sozinha. Favicon é o
   Z̶ sólido em zeph-300 resolvido pra hex `#9c96f5` (favicon vive fora da cascata do app,

@@ -1004,6 +1004,279 @@ falhar em 2+ perguntas, ajuste antes de dar como pronto.
 
 ---
 
+## Prompt N1 — Fable: rail de navegação vertical (cabeçalho)
+
+Roda depois do R2 (usa os tokens e a convenção mono já em produção, não muda nenhum).
+Direção pedida pelo Carlos em 2026-07-10 e verificada por este chat (Claude in Chrome,
+`localhost:5173/rede` ao vivo, zoom real no cabeçalho + leitura de AppShell.tsx/
+LogoMark.tsx) antes de virar prompt — não é pra redecidir, só executar.
+
+```
+Aja como um engenheiro front-end sênior com direção de composição forte, fechando uma
+decisão de layout já validada com evidência real (screenshot + medição) — seu trabalho é
+executar a mudança estrutural do shell de navegação com o mesmo rigor de composição/
+contraste/responsividade das sessões R1/R2, não redecidir a direção.
+
+<contexto>
+O cabeçalho hoje (src/components/layout/AppShell.tsx) é uma barra horizontal única:
+LogoMark (38px) + wordmark "Zephyr Mining Hub" à esquerda, os 4 links de navegação
+inline à direita, tudo na mesma linha, dentro de um `flex flex-col` (header em cima,
+main, footer embaixo). É o padrão mais comum de dashboard que existe — e hoje é a única
+peça do produto sem identidade "Sinal Técnico" própria (cada módulo já tem composição
+dominante/rail; a casca continua sendo barra-topo genérica).
+
+A marca (src/components/ui/LogoMark.tsx) é uma grade 22×22 com tom por ponto (5 níveis
+da rampa "semBranco" — ver comentário no arquivo). O efeito real do halftone é essa
+variação de tom ponto a ponto, não só a silhueta do Z. Em 38px (tamanho atual, decidido
+no R2), cada ponto renderiza a ~1,1px real (38÷22×0,66 = lado do ponto em px) — no piso
+do que um monitor comum resolve. Confirmado ao vivo por este chat com zoom real no
+cabeçalho em localhost:5173/rede: o Z lê bem, mas a variação de tom só fica clara
+ampliada — em tamanho normal de leitura ela se perde.
+
+Puxar o cabeçalho pra um rail vertical fixo à esquerda libera ALTURA pro logo crescer
+sem competir por espaço com o nav inline (hoje os dois dividem a mesma linha estreita) —
+e dá à casca de navegação o mesmo tratamento de composição autoral que cada módulo já
+tem, em vez de deixá-la como o único elemento genérico do produto.
+</contexto>
+
+<diagnostico>
+1. Cabeçalho atual: barra horizontal única, logo+wordmark e nav dividindo a mesma linha
+   (`header` > `div` com `flex flex-wrap items-center gap-x-8`).
+2. Tom por ponto do LogoMark existe de verdade (288 pontos, 5 tons) mas é imperceptível
+   em uso normal no tamanho atual — só a silhueta do Z sobrevive; a "cintilância"
+   (o ponto forte da marca) está sendo desperdiçada.
+3. Rail vertical resolve os dois problemas ao mesmo tempo: dá altura pro logo crescer, e
+   transforma a casca (hoje genérica) num elemento de composição real.
+</diagnostico>
+
+<decisoes_ja_tomadas>
+1. Cabeçalho vira rail vertical fixo à esquerda (desktop/tablet): logo no topo, bem
+   maior que os 38px atuais; os 4 NAV_ITEMS empilhados abaixo, mesma convenção mono
+   `[ Rótulo ]` de hoje (colchetes transparentes no inativo, sem layout shift), só que
+   na vertical.
+2. `<main>` passa a ocupar o espaço à direita do rail, não mais uma coluna centralizada
+   na viewport inteira.
+3. Só tokens já existentes — ink-950, hairline, zeph-300, mist. Divisor hairline
+   VERTICAL à direita do rail, no lugar do `border-b` horizontal de hoje. Nenhum token
+   novo.
+4. Mobile/telas estreitas NÃO herdam o rail vertical como está — é critério de aceite,
+   não opcional: teste de verdade (ex. 390px, mesmo padrão de scripts/design-shots.mjs)
+   e implemente uma recomposição deliberada (pode voltar à barra horizontal de hoje
+   abaixo de algum breakpoint, virar rail compacto só-ícone, ou outra solução) — nunca
+   só espremer o rail até quebrar ou sobrepor conteúdo.
+
+O que você decide (com evidência, mesmo padrão do projeto):
+- Tamanho final do logo no rail: comece testando entre ~64–96px e escolha o valor em
+  que a variação de tom por ponto lê como textura de propósito (não ruído) — verifique
+  com uma captura AMPLIADA (mesma técnica "lupa" de scripts/logo-shots.mjs/
+  docs/logo-exploracao.md), não só de olho no tamanho normal.
+- Largura do rail: precisa caber "Raio-X da Recompensa" (rótulo mais longo) em mono —
+  pode quebrar em 2 linhas se precisar, não force uma linha só estreitando a fonte.
+- Se o wordmark "Zephyr Mining Hub" continua ao lado do logo, abaixo dele, ou encolhe —
+  mas o nome acessível do produto não pode simplesmente desaparecer (hoje é esse texto
+  que carrega o nome acessível, já que LogoMark é aria-hidden; se o texto sumir
+  visualmente, substitua por um nome acessível equivalente, nunca remova sem repor).
+- Se o rail é `sticky`/fixo durante o scroll ou rola junto com o conteúdo.
+- Onde o footer (hoje `border-t` full-width no rodapé) vive na nova estrutura —
+  sugestão: manter full-width abaixo de rail+conteúdo (menor risco), mas decida e
+  documente se achar melhor incorporar ao rail.
+</decisoes_ja_tomadas>
+
+<tarefa>
+1. Reestruture o layout raiz de AppShell.tsx: de `flex flex-col` (header/main/footer
+   empilhados) pra um container com o rail fixo à esquerda + uma coluna à direita com
+   main (e footer, a menos que decida diferente no passo 6).
+2. Rail: LogoMark no topo no tamanho final escolhido, os 4 NAV_ITEMS empilhados abaixo
+   mantendo a convenção `[ Rótulo ]` — só aplicando na vertical. Divisor hairline à
+   direita do rail.
+3. Ajuste `<main>`: hoje `mx-auto w-full max-w-6xl` centralizado na viewport inteira —
+   decida se o cap de largura permanece dentro do espaço que sobra à direita do rail, ou
+   muda; documente a escolha.
+4. Recomposição mobile: teste de verdade em pelo menos um breakpoint estreito real e
+   implemente a recomposição decidida no passo 4 de `decisoes_ja_tomadas`.
+5. Verifique a legibilidade do tom por ponto no tamanho final escolhido com uma captura
+   ampliada (mesma técnica de scripts/logo-shots.mjs) — referencie o arquivo gerado em
+   NOTES.md.
+6. Rode a suíte e2e existente (`rewards-e2e.mjs normal`, `rig-e2e.mjs normal`,
+   `pools-e2e.mjs normal`) e `scripts/design-shots.mjs` nos 3 breakpoints — confirme que
+   nada quebrou (os seletores desses scripts não miram o header, mas confirme mesmo
+   assim).
+7. Atualize CLAUDE.md (seção "Direção visual") e NOTES.md com a decisão: rail vertical,
+   tamanho final do logo e por quê, recomposição mobile escolhida.
+</tarefa>
+
+<restricoes>
+- Só os tokens já existentes (`@theme` em src/index.css) — nenhuma cor, tamanho de
+  fonte ou espaçamento novo hardcoded.
+- Nome acessível do produto não pode desaparecer (ver decisoes_ja_tomadas).
+- Convenção mono `[ Rótulo ]` do nav continua — só muda de eixo horizontal pra vertical.
+- Nada de gradiente/blur/glow/glassmorphism novo (a única exceção documentada continua
+  sendo a textura scanline do body).
+- Contraste WCAG 2.2 AA de qualquer texto/estado no rail, medido de verdade (mesmo
+  rigor de sempre).
+- npm run build limpo, sem warning novo.
+- Não mexa na lógica/dado dos 4 módulos — isso é só a casca de navegação.
+</restricoes>
+
+<criterios_de_aceite>
+- Rail vertical à esquerda no desktop: logo nitidamente maior que os 38px atuais, com a
+  variação de tom por ponto perceptível a OLHO NU (sem precisar de zoom) num monitor
+  comum — confirmado por captura ampliada real, não só afirmado.
+- Nav com os 4 itens na vertical, convenção `[ Rótulo ]` preservada, indicador de rota
+  ativa funcionando exatamente como hoje.
+- Recomposição mobile testada de verdade num breakpoint estreito real (screenshot), não
+  é só o rail encolhido/cortado.
+- Nome acessível do produto preservado (confirme na árvore de acessibilidade, não só
+  visualmente).
+- npm run build limpo; suíte e2e existente (rewards/rig/pools, modo normal) passa sem
+  alteração de script.
+- CLAUDE.md e NOTES.md atualizados com a decisão e os números finais.
+</criterios_de_aceite>
+
+Antes de finalizar, olhe o rail em tamanho normal (sem zoom, distância de leitura normal
+de monitor) — a variação de tom por ponto do Z realmente aparece agora, ou ainda precisa
+de zoom pra ver? Se ainda precisar de zoom, aumente mais o logo antes de dar como pronto.
+```
+
+---
+
+## Prompt N2 — Fable: cintilância da logo + recomposição mobile do rail
+
+Roda depois do N1 (rail vertical) — **commite o N1 antes de começar esta sessão**, os
+dois mexem em AppShell.tsx/LogoMark.tsx. Pedido do Carlos em 2026-07-10 depois de ver o
+N1 rodando de verdade (screenshot real do rail no desktop e do fallback no mobile) —
+verificado por este chat (leitura de AppShell.tsx/LogoMark.tsx/logo-preview.html pós-N1 +
+screenshots reais do Carlos) antes de virar prompt.
+
+```
+Aja como um engenheiro front-end sênior de direção visual, adicionando uma camada de
+movimento já projetada e validada anteriormente e resolvendo uma recomposição mobile que
+ficou abaixo do padrão do resto do sistema — seu trabalho é extrair e portar (não
+redesenhar) a animação já validada na página de exploração, e aplicar no mobile o mesmo
+rigor de composição que o rail (N1) já tem no desktop, não redecidir a direção visual.
+
+<contexto>
+O Prompt N1 rodou e funcionou: rail vertical fixo à esquerda em telas xl+, LogoMark a
+128px, tom por ponto legível a olho nu (leia AppShell.tsx e a seção "Casca de navegação"
+do CLAUDE.md antes de começar). Duas lacunas apareceram depois de ver o produto rodando
+de verdade (screenshots reais do Carlos):
+
+1. **Mobile ficou pra trás.** Abaixo de xl, o cabeçalho é literalmente o header antigo
+   do R2, sem nenhuma adaptação (o próprio comentário em AppShell.tsx diz "exatamente a
+   casca do R2, logo em 38px + nav inline") — na prática: logo pequeno (38px, no piso de
+   legibilidade do tom, mesmo problema que o N1 resolveu no desktop) e os 4 itens de nav
+   quebrando via `flex-wrap` em duas linhas desalinhadas ("[ Pulso da Rede ] Bússola de
+   Pools" / "Raio-X da Recompensa Monitor do Rig"). Funcionava como fallback aceitável
+   antes do N1 existir; ao lado do rail novo, parece um resto de layout antigo.
+2. **A cintilância nunca foi portada.** scripts/logo-preview.html tem o efeito "F3 ·
+   CINTILÂNCIA" funcionando de verdade (`?anim=1`) desde a exploração original (Prompt
+   L1) — ~30% dos 288 pontos oscilam de opacidade em 3 grupos defasados. LogoMark.tsx
+   hoje é 100% estática por decisão explícita da época (comentário no arquivo: "a marca
+   em produção é 100% estática"), com a ressalva já registrada em NOTES.md: "se um dia
+   isso for pro app, usar com parcimônia e respeitar prefers-reduced-motion". Esse dia é
+   agora, a pedido do Carlos.
+</contexto>
+
+<diagnostico>
+1. Mobile: cabeçalho <xl não herdou NADA da composição do rail — é uma cópia intacta do
+   header pré-N1. É o único lugar do produto hoje em que a casca de navegação tem menos
+   cuidado de composição que o resto do sistema.
+2. Cintilância: existe, está validada (parâmetros tunados: ~30% dos pontos, 3 fases,
+   2,6s, opacidade nunca zera) e nunca chegou em produção — puramente uma lacuna de
+   portar, não uma decisão nova de design.
+</diagnostico>
+
+<decisoes_ja_tomadas>
+1. Ordem dentro da sessão: primeiro conserta a composição mobile, DEPOIS adiciona a
+   cintilância (ela se aplica ao tamanho final que a composição mobile decidir) — teste
+   e confirme cada parte antes de seguir pra próxima, mesma disciplina do R1/R2.
+2. Mobile herda a MESMA linguagem do rail — não é layout novo do zero. Reaproveite a
+   composição interna do `<aside>` de hoje (logo → wordmark → nav, nessa ordem) — só
+   troca o contêiner de "coluna fixa à esquerda, altura cheia" pra "bloco no topo,
+   largura cheia".
+3. Cintilância: extraia os parâmetros EXATOS de scripts/logo-preview.html —
+   `assignTwinkle(dots, seed=23)` (~30% dos pontos, 3 grupos de fase via
+   `Math.floor(r/0.10)`), `@keyframes twinkle { 0%,100% opacity:1; 50% opacity:.35 }`,
+   2,6s ease-in-out, atrasos 0s/0,9s/1,7s por grupo. Não reinvente valores novos.
+4. `prefers-reduced-motion` sem exceção — mesma regra já aplicada a chart-draw/
+   data-pulse, vale igual aqui.
+
+O que você decide (com evidência, mesmo padrão do projeto):
+- Tamanho do logo mobile: teste candidatos e confirme com captura ampliada (mesma
+  técnica do N1/L1) que o tom por ponto lê a olho nu. MAS meça também o custo: o rail
+  desktop empilha logo(128px) + wordmark + nav sem custo porque tem a viewport inteira
+  de altura disponível; no mobile isso compete com o conteúdo da página logo abaixo.
+  Meça a altura total do bloco de navegação num viewport de ~700px de altura real. Se o
+  cabeçalho sozinho passar de ~25–30% da altura da tela, isso é sinal de que empilhar
+  logo+wordmark+nav na vertical (cópia 1:1 do rail) não é a resposta certa — considere
+  manter logo+wordmark grandes mas os 4 itens de nav numa linha horizontal ou grade 2×2
+  (agrupamento deliberado, não flex-wrap acidental) em vez de empilhados. Decida com a
+  medição real, não "parece bom", e documente o raciocínio.
+- Se o logo mobile escolhido for pequeno demais pro tom por ponto ler (mesmo limite do
+  38px original), pode não valer animar ali — decida com a mesma evidência de
+  tom-visível usada no N1, documente se a cintilância fica só no rail.
+</decisoes_ja_tomadas>
+
+<tarefa>
+1. Recomposição mobile (<xl): substitua o `<header>` atual (cópia do R2 antigo) por um
+   bloco de topo, largura cheia, reaproveitando a composição do rail na mesma ordem
+   visual (logo → wordmark → nav), mas em orientação topo em vez de lateral — ver
+   decisoes_ja_tomadas pra o que decidir com evidência. Teste em pelo menos 390 e 768px
+   (mesmo padrão de scripts/design-shots.mjs) com screenshot real antes do próximo passo.
+2. Cintilância:
+   a. Estenda o processo de export (scripts/logo-export.mjs ou equivalente) pra também
+      capturar a fase de cada ponto via `assignTwinkle(dots, seed=23)` do
+      logo-preview.html — vira um 4º valor na tupla de LogoMark.tsx (hoje `[x, y, tone]`,
+      passa a `[x, y, tone, tw]`; tw 0 = sem animação, 1–3 = grupo de fase).
+   b. Adicione as keyframes de twinkle ao `@theme` de src/index.css, mesmo padrão de
+      `--animate-chart-draw`/`--animate-data-pulse` já existentes, reaproveitando os
+      valores exatos do preview (ver decisoes_ja_tomadas item 3).
+   c. Em LogoMark.tsx, aplique a classe de animação correspondente por ponto (baseada no
+      `tw` exportado), sempre pareada com `motion-reduce:animate-none`.
+   d. Teste ao vivo (não suponha) que a animação roda no rail E no bloco mobile novo (se
+      aplicável), e que desliga de verdade com `prefers-reduced-motion` emulado.
+3. Rode a suíte e2e existente (`rewards-e2e.mjs normal`, `rig-e2e.mjs normal`,
+   `pools-e2e.mjs normal`) e `scripts/design-shots.mjs` nos 3 breakpoints — confirme que
+   nada quebrou.
+4. Atualize CLAUDE.md e NOTES.md: composição mobile nova (tamanho do logo, altura medida
+   do bloco, decisão vertical-vs-horizontal do nav e por quê) e a cintilância (parâmetros
+   portados, onde se aplica, confirmação de prefers-reduced-motion).
+</tarefa>
+
+<restricoes>
+- Só tokens já existentes; qualquer keyframe novo entra centralizado no `@theme`, nunca
+  solto em componente.
+- Nome acessível do produto continua preservado (mesma regra do N1).
+- Convenção mono `[ Rótulo ]` do nav continua, em qualquer orientação.
+- `prefers-reduced-motion` sem exceção — teste de verdade (emulado via devtools/CDP), não
+  suponha que funciona.
+- Não toque na lógica/dado dos 4 módulos — isso é só a casca de navegação.
+- npm run build limpo, sem warning novo.
+</restricoes>
+
+<criterios_de_aceite>
+- Mobile (390 e 768px): logo claramente maior que os 38px de antes, tom por ponto
+  perceptível a olho nu (captura ampliada real), nav sem quebra desalinhada — agrupamento
+  deliberado, não acidente de flex-wrap.
+- Bloco de navegação mobile não domina a tela: altura medida documentada em NOTES.md.
+- Cintilância rodando ao vivo no rail (e no mobile, se o tamanho permitir tom visível),
+  com os parâmetros extraídos do preview, não reinventados.
+- `prefers-reduced-motion` confirmado desligando a animação de verdade, não só código
+  presente.
+- npm run build limpo; e2e existente passa sem alteração de script; design-shots.mjs
+  revisitado nos 3 breakpoints.
+- CLAUDE.md e NOTES.md atualizados.
+</criterios_de_aceite>
+
+Antes de finalizar, dois checks: (1) olhe o bloco mobile como se fosse a primeira vez
+abrindo o site num celular — o Z chama atenção e o menu parece intencional, não um resto
+de layout antigo? (2) ligue prefers-reduced-motion no navegador e confirme que a
+cintilância realmente para. Se qualquer um dos dois falhar, ajuste antes de dar como
+pronto.
+```
+
+---
+
 ## Prompt 5 — Fable: integração e revisão final
 
 ```
