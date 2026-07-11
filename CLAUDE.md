@@ -17,42 +17,60 @@ rewrite/proxy do Vercel em produção (mesma ideia do proxy do Vite dev server).
 - Campo ausente na resposta da API vira "—" na tela. Nunca inventar/mockar valor.
 - Loading e erro usam um componente compartilhado (não reinventar por módulo).
 
-## Direção visual — "Sinal Técnico" (R1 2026-07-09 · v2 2026-07-10, ver NOTES.md)
+## Direção visual — "Sinal Técnico" (R1 2026-07-09 · v2 2026-07-10 · v3 2026-07-11, ver NOTES.md)
 Tokens centralizados no `@theme` de `src/index.css` — NUNCA hex solto em componente
 (utilitário Tailwind ou `var(--color-*)`; em SVG data-driven, via `style`, não atributo).
-Contraste MEDIDO com `scripts/contrast-check.mjs` (WCAG 2.2) contra o fundo, a listra
-da textura (#0f0f0f, pior caso) e o ink-900 — números em NOTES.md.
-- Fundo unificado ink-950 `#0a0a0a` NEUTRO (v2 — o #0a0a0e do R1 tinha tinta azul) +
-  textura scanline monocromática no body (listra branca a 2%, 1px a cada 3px): EXCEÇÃO
-  única e documentada à regra anti-gradiente — não abre precedente pra gradiente em
-  nenhum outro uso. Divisor hairline `#221f29`; superfície elevada ink-900 `#141119`
-  só pra tooltip/thead sticky (tinta roxa de marca, mantida de propósito).
-- Família roxa recalibrada pro matiz ≈244° (paleta oficial medida no zephyrprotocol.com;
-  a do R1 em ≈250–252° puxava pra lavanda-quente): zeph-300 `#9c96f5`
-  (destaque/manchete/fatia dominante, 7,6:1), zeph-500 `#665fc4` (suporte/gráfico,
-  3,8:1), zeph-700 `#403c77` (SÓ gráfico com alívio, 2,0:1), zeph-800 `#302d54`
-  (SÓ decoração). Lado a lado antigo vs novo: `scripts/zeph-hue-compare.html`.
-- Texto cinza-roxo: mist-100/300/400 (piso de texto corrido = mist-400, 5,7:1 — 5,5:1
-  na listra, segue AA); mist-600 `#57536a` é SÓ decorativo — nunca texto de conteúdo.
-- COR DE ESTADO É BINÁRIA (v2): good `#22c55e` (8,7:1) = positivo/saudável/normal ·
-  bad `#f97316` (7,1:1) = negativo/erro/offline/abaixo do piso. O vermelho alert do R1
+Contraste MEDIDO com `scripts/contrast-check.mjs` (WCAG 2.2) contra o fundo, a célula
+clara da textura (#191919, pior caso) e o ink-900 — números em NOTES.md.
+- Fundo unificado ink-950 `#141414` NEUTRO (v3 — clareou do #0a0a0a do v2 por uso
+  real; ainda "quase preto", croma zero) + textura de GRADE DE BLOCOS monocromática
+  (blocos 3px/vão 3px, branco a 2%, deriva diagonal de 1 período/8s via transform em
+  `body::before` — compositor, não repaint; para com reduced-motion): EXCEÇÃO única e
+  documentada à regra anti-gradiente — não abre precedente pra gradiente em nenhum
+  outro uso. Divisor hairline `#282530` e superfície elevada ink-900 `#1d1824`
+  (tooltip/thead sticky/readouts) subiram JUNTO com o fundo preservando matiz e as
+  razões do v2 (ink-900 v2 teria 1,01:1 sobre o fundo novo — elevação sumiria).
+- Família roxa no matiz ≈244° (paleta oficial medida no zephyrprotocol.com; a do R1
+  em ≈250–252° puxava pra lavanda-quente): zeph-300 `#9c96f5`
+  (destaque/manchete/fatia dominante, 7,1:1), zeph-500 `#665fc4` (suporte/gráfico,
+  3,5:1 — 3,35:1 na célula clara, segue ≥3:1), zeph-700 `#403c77` (SÓ gráfico com
+  alívio, 1,9:1), zeph-800 `#302d54` (SÓ decoração). Lado a lado antigo vs novo:
+  `scripts/zeph-hue-compare.html`.
+- Texto cinza-roxo: mist-100/300/400 (piso de texto corrido = mist-400, 5,3:1 — 5,0:1
+  na célula clara, segue AA); mist-600 `#57536a` é SÓ decorativo (inclui o thumb da
+  scrollbar) — nunca texto de conteúdo. Scrollbar de container rolável usa a utility
+  `scrollbar-themed` (track ink-900 + thumb mist-600) — nunca a barra padrão branca.
+- COR DE ESTADO É BINÁRIA (v2): good `#22c55e` (8,1:1) = positivo/saudável/normal ·
+  bad `#f97316` (6,6:1) = negativo/erro/offline/abaixo do piso. O vermelho alert do R1
   SAIU do sistema por completo. Proibida qualquer outra cor de destaque. Nenhum estado
   é só-cor: sempre texto/glifo junto, e dois negativos na mesma tela (rig: abaixo vs
-  offline) se distinguem por peso (contorno vs sólido), nunca por matiz. Destaque
-  COMPARATIVO (chips [ maior hashrate ]/[ menor fee ]) não é estado → segue zeph-300.
+  offline) se distinguem por PESO — v3: escada de fundo good/10 (normal) < bad/20
+  (abaixo) < bad sólido (offline), contraste dos tints medido (6,96:1 / 4,89:1) —
+  nunca por matiz. Destaque COMPARATIVO (chips [ maior hashrate ]/[ menor fee ]) não
+  é estado → v3: fundo sólido zeph-300 com texto ink-950 (vivacidade por peso, não
+  matiz novo).
 - Escala tipográfica em tokens `--text-*` (proibido `text-[Npx]` novo em componente):
   caption 11 (mono/eixos/tags) · label 12 (legenda/tabela) · body 14 (corrido) ·
   lede 16 (destaque/título de seção) · data-md 22 (h1/valor de stat) · data-lg 34
-  (readout/countdown) · headline clamp(3.5rem,10vw,8rem) (hero rede/rig) · display
-  clamp(4.5rem,15vw,13rem) (manchete Raio-X) · display-sub clamp(2.5rem,8vw,7rem).
+  (readout/countdown) · headline clamp(3.5rem,10vw,6rem) (hero rede/rig — teto
+  recalibrado no v3, capturas em NOTES.md) · display clamp(4.5rem,15vw,11rem)
+  (manchete Raio-X — teto v3) · display-sub clamp(2.5rem,8vw,7rem) (teto MANTIDO de
+  propósito: é o sub quem sangra na borda; encolher os dois apagaria o corte).
 - Mono (`font-mono`, system stack) só pra metadado técnico: altura de bloco, timestamp,
   eixos, rótulos `[ ENTRE COLCHETES ]` (rota ativa, status, tags). Nunca corpo de texto.
 - Composição: cada tela tem UMA região dominante + rail secundário. O painel de reserve
   ratio do Raio-X é um READOUT com moldura hairline sempre presente + selo de saúde —
   nunca rende como retângulo vazio (causa raiz do bug e fix em NOTES.md; a âncora de
-  janela das duas séries é COMPARTILHADA em zephyrScanner.ts, não duplique).
-  Proibido continua: gradiente (fora a exceção acima), glassmorphism, blur, glow,
-  sombra decorativa.
+  janela das duas séries é COMPARTILHADA em zephyrScanner.ts, não duplique). v3:
+  readouts ganham bg-ink-900 (elevação por superfície) e o halving do /rede virou o
+  mesmo tratamento; o rótulo do piso no gráfico do ratio FLIPA de lado (nunca sai do
+  plot — causa raiz medida e fix em NOTES.md, não volte ao offset fixo). Tendências
+  sem série pública (hashrate da rede em /rede; hashrate 24h da carteira em /meu-rig)
+  são COLETADAS localmente (networkHashrateHistory.ts / histórico diário em
+  rigStatus.ts, store separado do histórico de status — não misture as cadências) e
+  desenhadas pelo `TrendSparkline` compartilhado (ui/) — a UI sempre declara a
+  procedência do dado. Proibido continua: gradiente (fora a exceção acima),
+  glassmorphism, blur, glow, sombra decorativa.
 - Séries do Raio-X (rewardSeries.ts): rampa monocromática ordinal validada + TEXTURA
   por série (v2): minerador liso, reserva hachura diagonal, yield pontilhado —
   diferenciação que não depende de matiz; legenda/tooltip usam a mesma receita via
@@ -62,7 +80,12 @@ da textura (#0f0f0f, pior caso) e o ink-900 — números em NOTES.md.
 - Movimento (v2): draw-in dos gráficos na montagem (`animate-chart-draw` via
   `useChartEntrance`, que tem trava de assentamento de 1 s — compositor lento salta
   pro estado final, medido em NOTES.md) + pulso sutil de dado novo
-  (`animate-data-pulse` via `useDataPulse`) + cintilância da marca (N2 2026-07-10):
+  (`animate-data-pulse` via `useDataPulse`) + v3: deriva da textura de fundo (acima),
+  respiração das faixas do Raio-X (`animate-wash-breathe`, 6s, 1→0,82, fase única —
+  SÓ opacity do elemento: o rewards-e2e conta <path> por cor computada) e halo do
+  StatusBadge (`animate-status-ping`, 2,4s, SÓ estado normal; reduced-motion usa
+  `motion-reduce:hidden` — parado seria um disco estático) + cintilância da marca
+  (N2 2026-07-10):
   ~30% dos 288 pontos do LogoMark em 3 grupos defasados via `--animate-twinkle-1/2/3`
   (2,6s ease-in-out, atrasos 0/0,9s/1,7s, opacidade 1→0,35 — nunca zera), parâmetros
   EXATOS do preview F3 (assignTwinkle seed 23), fase exportada como 4º valor da tupla
@@ -70,8 +93,8 @@ da textura (#0f0f0f, pior caso) e o ink-900 — números em NOTES.md.
   em par com `motion-reduce:animate-none`, sem exceção (cintilância provada desligando
   com reduced-motion emulado, NOTES.md).
 - `scripts/design-shots.mjs` fotografa as 4 telas em 3 breakpoints; rubrica de revisão
-  agora tem 7 perguntas (as 6 do R1 + "positivo e negativo na mesma tela distinguíveis
-  por daltonismo?") — resultado em NOTES.md.
+  agora tem 8 perguntas (as 7 do R2 + "a textura de fundo em movimento compete com o
+  dado real, ou o dado segue a coisa mais viva da tela?") — resultado em NOTES.md.
 - Casca de navegação (2026-07-10, Prompt N1): rail vertical FIXO à esquerda em `xl:`+ —
   LogoMark 128px no topo (o momento de textura da marca: ponto ~3,8px real, variação
   tonal lê a olho nu — medição e capturas em NOTES.md), wordmark empilhado abaixo, os
@@ -158,6 +181,12 @@ fetch real, não só do servidor):
   GET https://zeph.2miners.com/api/accounts/<endereco> — hashrate curto/longo, workers,
   shares, saldo em átomos (1e12/ZEPH). Endereço desconhecido/malformado → HTTP 404 com
   corpo VAZIO. GET /api/miners lista todos os endereços (útil pra endereço de teste).
+  Sondagem R3 (2026-07-11, ao vivo): a MESMA resposta traz `payments`
+  [{ amount, timestamp, tx }] (30/página + paymentsTotal) e `sumrewards` (janelas
+  1h→30d) — dado de pagamento confirmado SÓ nesta pool; a HeroMiners segue sem
+  confirmação do formato de sucesso (sem endereço de teste; o /api/stats pool-wide
+  serializa payments SEM endereço), por isso o gráfico do rig é hashrate diário
+  coletado localmente, não pagamentos (regra: as duas pools ou nenhuma — NOTES.md).
 
 Também confirmado funcionando (CORS aberto, testado com fetch real do navegador):
 - HeroMiners — GET https://zephyr.herominers.com/api/stats, CORS `*` confirmado.

@@ -36,7 +36,7 @@ rewrite resolve isso sem backend próprio).
   Nenhum prompt depende de qual modelo executa; se o GLM voltar, os prompts 2-4
   funcionam do mesmo jeito.
 
-## Onde estamos (verificado por `git log`/`git status` reais em 2026-07-10, não por memória)
+## Onde estamos (verificado por `git log`/`git status` reais em 2026-07-11, não por memória)
 
 | # | Módulo | Status | Commit |
 |---|--------|--------|--------|
@@ -48,29 +48,49 @@ rewrite resolve isso sem backend próprio).
 | L1 (Fable) | Logo "Z" dot-matrix (exploração) | ✅ feito — F3 "sem branco" escolhida por Carlos (2026-07-10), commitado e enviado | `1168568` |
 | L2 (Fable) | Logo — integração no produto (AppShell + favicon) | ✅ feito (favicon em zeph-300, logo — depois bumpado a 38px pelo R2), commitado e enviado | `015d0b1` |
 | R2 (Fable) | Sinal Técnico v2: good/laranja (vermelho saiu), zeph recalibrado a ≈244°, fundo neutralizado + textura, escala tipográfica (9 tokens), movimento nos gráficos, causa raiz do painel vazio corrigida, logo 38px | ✅ feito — suíte e2e verde (rewards/rig/pools), `npm run build` limpo (relato do Fable), CLAUDE.md/NOTES.md atualizados, commitado e enviado | `015d0b1` |
+| N1 (Fable) | Casca de navegação vira rail vertical (logo 128px) | ✅ feito, commitado e enviado | `3eb7d97` |
+| N2 (Fable) | Cintilância da logo (95/288 pontos, 3 fases) + recomposição mobile do rail (logo 96px, nav em grade 2×2) | ✅ feito, commitado e enviado | `e785e82` |
+| R3 (Fable) | Sinal Técnico v3: fundo mais claro + textura de blocos com movimento, --text-headline/--text-display recalibrados, halving vira readout, sparkline de hashrate de rede (novo, `networkHashrateHistory.ts` + `TrendSparkline.tsx` generalizado de `LuckSparkline`), chips da Bússola com fundo sólido, faixas do Raio-X com respiração de opacidade, RESERVE RATIO com bg-ink-900, fix do rótulo do piso (medido: 0,07 px da borda antes do fix, flip dinâmico depois), scrollbar/botões estilizados, StatusBadge do Rig com fundo tintado + halo no estado normal, gráfico de hashrate 24h no Rig (payments sondado ao vivo — 2Miners confirmou CORS+formato, HeroMiners não; regra "as duas ou nenhuma" descartou payments) | ✅ feito e **verificado** (retomado após rate limit — sessão nova, `--continue`): build limpo, contraste remedido (mist-400 5,04:1 pior caso, segue AA), e2e 6/6 sem alteração de script, design-shots 8/8 na rubrica nas 4 telas, reduced-motion provado. **Pendente só o commit** — comandos abaixo. | — |
 | 5 (Fable) | Integração final | ⬜ não iniciado — entra depois da tradução pro inglês | — |
 | — | Tradução pro inglês | ⬜ sessão separada, depois do R2 (não escrita ainda) | — |
 | — | Prompt de deploy no Vercel | ⬜ ainda não escrito | — |
 | — | Skills (auditoria/limpeza/visual) | ⬜ não rodadas | — |
 
-**Achado e corrigido nesta sessão (2026-07-10):** `CLAUDE.md` teve DOIS incidentes de
+**Pendência de git do N2 (RESOLVIDA, 2026-07-11):** o N2 ficou um tempo só no working
+tree (relatado numa sessão anterior deste chat) — Carlos commitou antes de abrir a
+sessão do R3, como o próprio prompt exigia. Confirmado por `git log` real: `e785e82`,
+`HEAD` = `origin/main`.
+
+**⚠️ PENDÊNCIA DE GIT ATIVA (R3, 2026-07-11):** o R3 rodou em duas sessões — bateu o
+rate limit no meio, Carlos desligou o desktop, retomou depois com `claude --continue`
+(sessão persistida em disco, contexto intacto) e terminou os itens que faltavam
+(gráfico do Rig, sondagem de payments, verificação final, CLAUDE.md/NOTES.md). Tudo
+verificado de verdade (ver tabela acima), mas **nada commitado ainda** — o working tree
+mistura a leva de código/notas técnicas do Fable com HANDOFF.md/zephyr-mining-hub-prompts.md
+(deste chat). Comandos exatos, na ordem (regras 5/6 abaixo — feche a sessão do Fable
+antes de rodar isso numa PowerShell separada):
+```
+git add CLAUDE.md NOTES.md scripts/contrast-check.mjs scripts/logo-preview.html src/
+git commit -m "prompt R3: sinal tecnico v3 (fundo vivo, densidade de dado, acabamento por tela)"
+git add docs/HANDOFF.md docs/zephyr-mining-hub-prompts.md
+git commit -m "docs: registra prompt R3 e sincroniza handoff"
+git push
+```
+
+**Achado de sessão anterior (2026-07-10):** `CLAUDE.md` teve DOIS incidentes de
 truncamento/duplicação no working tree (seção "Riscos conhecidos" sumindo, depois
 duplicada) — provável efeito colateral de edits concorrentes entre este chat e o Fable.
-Restaurado/limpo pela segunda vez; se aparecer de novo, o conteúdo correto está no
-CLAUDE.md commitado + nas seções refletidas aqui e em NOTES.md.
+Restaurado/limpo; se aparecer de novo, o conteúdo correto está no CLAUDE.md commitado +
+nas seções refletidas aqui e em NOTES.md.
 
-**Pendência de git RESOLVIDA (atualização 2026-07-10, chat novo):** o que a seção acima
-descrevia como pendente já foi feito por Carlos entre o fim daquele chat e o início
-deste — confirmado agora por `git status`/`git log`/`git fetch` reais (não por memória):
-working tree limpo, `HEAD` = `origin/main` = `015d0b1` ("prompt L2 + R2: logo integrada e
-Sinal Tecnico v2"), 0 commits de diferença. Um commit só cobriu L2+R2 juntos (29
-arquivos). Conteúdo conferido por amostragem: tokens `--color-good: #22c55e` /
+**Pendência de git de L2+R2 (RESOLVIDA em sessão anterior, 2026-07-10):** working tree
+limpo na época, `HEAD` = `origin/main` = `015d0b1` ("prompt L2 + R2: logo integrada e
+Sinal Tecnico v2"). Conteúdo conferido por amostragem: tokens `--color-good: #22c55e` /
 `--color-bad: #f97316` e zeph recalibrado (`#9c96f5`/`#665fc4`) presentes em
-`src/index.css`; zero uso residual de cor "alert" (só sobrou `role="alert"` semântico e
-nomes de teste como `ratio-alert-segment`, sem relação com cor). `npm run build` não pôde
-ser reconferido nesta sessão (sandbox Linux; os binários nativos instalados no projeto são
-Windows-only — `rolldown`/`lightningcss`/`oxlint` `-win32-x64-msvc`) — não é regressão, é
-limite deste ambiente; o Fable já tinha relatado build limpo no Windows.
+`src/index.css`; zero uso residual de cor "alert". `npm run build` não pôde ser
+reconferido nesta sessão nem nas seguintes (sandbox Linux; os binários nativos instalados
+no projeto são Windows-only — `rolldown`/`lightningcss`/`oxlint` `-win32-x64-msvc`) — não
+é regressão, é limite deste ambiente; o Fable já tinha relatado build limpo no Windows.
 
 ## Lições da sessão de 2026-07-09 (git + sessão do Fable concorrente)
 
@@ -165,22 +185,24 @@ porque tendem a se repetir:
 
 1. ~~Prompt 4 (Monitor do Rig)~~ — feito, commitado, enviado (`eb18d89`).
 2. ~~Prompt R1 (Redesign visual "Sinal Técnico")~~ — feito, commitado (`c2bc9e7`
-   wip + `7f88da7` final, re-verificado em 2026-07-10), **ainda não enviado ao
-   GitHub**. Tokens finais e decisões de composição já espelhados em CLAUDE.md/NOTES.md.
+   wip + `7f88da7` final).
 3. ~~Prompt L2 (integração da logo)~~ — rodou (favicon zeph-300, logo no header).
-4. ~~Prompt R2 (Sinal Técnico v2)~~ — rodou (verde/laranja substituindo vermelho, zeph
-   recalibrado, fundo+textura, escala tipográfica, movimento, causa raiz do painel vazio
-   corrigida, logo 38px). **L2+R2 commitados e enviados** (`015d0b1`, reconfirmado por git
-   real nesta sessão — ver nota acima). Nenhuma ação de git pendente.
-5. **Sessão atual do Carlos (chat novo, 2026-07-10):** mais mudanças de layout/front-end,
-   escopo ainda não definido — perguntei o que ele quer antes de propor direção nova (não
-   assumir que é continuação direta do R2; pode ser outra parte do produto).
-6. Tradução pro inglês — sessão separada, prompt ainda não escrito; melhor depois do
-   item 5 (senão traduz uma UI que muda de novo em seguida).
-7. Prompt 5 (integração final) — já pronto em `docs/zephyr-mining-hub-prompts.md`, mas só
-   depois dos itens 5 e 6 (senão revisa uma UI/texto que muda de novo logo em seguida).
-8. Escrever o prompt de deploy no Vercel — **ainda não existe**, mesmo estilo dos
-   outros (ver `docs/guia_conversar_com_llm.md`); parte do rewrite já usado em
-   `vite.config.ts`.
-9. Rodar as skills `backend-structure-auditor` e `code-audit-cleanup` — via Skill tool
-   deste chat, não via Claude Code.
+4. ~~Prompt R2 (Sinal Técnico v2)~~ — rodou. **L2+R2 commitados e enviados**
+   (`015d0b1`).
+5. ~~Prompt N1 (rail vertical)~~ — rodou, **commitado e enviado** (`3eb7d97`).
+6. ~~Prompt N2 (cintilância + recomposição mobile)~~ — rodou, **commitado e
+   enviado** (`e785e82`).
+7. ~~Prompt R3 (skill `creative-ui-director`)~~ — rodou em duas sessões (rate
+   limit no meio, retomada com `claude --continue`), **verificado de verdade**
+   (build/contraste/e2e/design-shots/reduced-motion — ver tabela acima).
+   **AÇÃO IMEDIATA: falta commitar** — comandos exatos no aviso de pendência de
+   git acima. Faça isso antes de qualquer prompt novo.
+8. Tradução pro inglês — sessão separada, prompt ainda não escrito; melhor depois
+   do R3 (senão traduz uma UI que muda de novo em seguida).
+9. Prompt 5 (integração final) — já pronto em `docs/zephyr-mining-hub-prompts.md`, mas só
+   depois dos itens 7 e 8 (senão revisa uma UI/texto que muda de novo logo em seguida).
+10. Escrever o prompt de deploy no Vercel — **ainda não existe**, mesmo estilo dos
+    outros (ver `docs/guia_conversar_com_llm.md`); parte do rewrite já usado em
+    `vite.config.ts`.
+11. Rodar as skills `backend-structure-auditor` e `code-audit-cleanup` — via Skill tool
+    deste chat, não via Claude Code.

@@ -881,3 +881,261 @@ consistente nas 4 telas em tablet/mobile, rail intacto em desktop (pontos da
 marca aparecem em opacidades variadas nas fotos — é a cintilância congelada
 pelo screenshot, esperado, não defeito). Evidências: .e2e-out/logo/
 mobile-*.png (estudo de tamanho + contextos) e .e2e-out/shot-*.png.
+
+# NOTES — Prompt R3: Sinal Técnico v3 (2026-07-10/11)
+
+Oito pontos trazidos pelo Carlos usando o produto real, um por área (fundo
+global + as 4 telas). Evolução localizada sobre o v2, não redesign: tokens
+ink/zeph/mist/good/bad, convenção mono, composição dominante/rail e a regra
+anti-gradiente seguem os mesmos. A sessão que executou os itens 0–4b caiu no
+limite antes da verificação; o item 4c (gráfico novo do rig), a sondagem de
+payments, TODA a verificação final e estas notas foram concluídos na retomada
+de 2026-07-11 — nada abaixo é relato herdado sem re-execução: contraste,
+build, e2e, capturas e reduced-motion foram medidos de novo nesta retomada.
+
+## Fundo v3 — candidatos medidos, escolhido #141414
+
+Pedido de uso real: o preto #0a0a0a pesava. Regra da decisão: o mais claro
+que ainda é "quase preto" neutro (croma zero) E preserva AA no piso de texto.
+Três candidatos medidos com scripts/contrast-check.mjs (seção "candidatos"
+do output) contra o próprio fundo E a célula clara da textura nova:
+
+- #101010: passa tudo, mas clareia tão pouco sobre #0a0a0a que não responde
+  ao pedido (diferença imperceptível em tela real).
+- **#141414 (escolhido)**: clareamento visível, identidade terminal intacta,
+  mist-400 5,28:1 no fundo / 5,04:1 na célula clara — folga real sobre o
+  piso AA de 4,5.
+- #181818: também passa (4,83:1 na célula), mas a margem sobre 4,5 fica fina
+  demais pra um token que é PISO do sistema, e o fundo já não lê "quase
+  preto" ao lado do rail/elevações.
+
+Elevação e divisor NÃO podiam ficar parados: ink-900 v2 (#141119) teria
+1,01:1 sobre o fundo novo (elevação invisível) e a hairline 1,14:1. Subiram
+JUNTO preservando matiz e a razão do v2 (medido no contrast-check):
+ink-900 #141119 → **#1d1824** (h 262,5°→265°, 1,06:1 sobre o fundo — igual
+v2) · hairline #221f29 → **#282530** (1,23:1, mesma presença).
+
+## Textura de blocos com deriva — técnica, custo e pior caso
+
+Scanline (listras 1px) → grade de blocos 3px com vão 3px (conic-gradient de
+2 cores num tile de 6px — sem degradê visual; segue a MESMA exceção única e
+documentada à regra anti-gradiente, não abre precedente). Branco a 2%, como
+antes; pior caso de contraste agora é a célula clara **#191919** (antes a
+listra #0f0f0f) — todos os números da tabela abaixo já são contra ela.
+
+Movimento: deriva diagonal de 1 período (6px) por ciclo de 8s ≈ 0,75px/s —
+loop sem emenda (transform volta ao início exatamente 1 tile depois). POR QUE
+pseudo-elemento fixo + transform, e não animar background-position no body:
+background-position repinta a viewport inteira a cada frame; transform num
+layer `position:fixed` fica no compositor. O layer nasce 6px maior pra
+cima/esquerda (inset -6px) pra deriva nunca expor borda sem textura;
+z-index -1 deixa atrás de todo conteúdo (bgs opacos — rail, thead — cobrem a
+textura, como já cobriam a scanline). Com prefers-reduced-motion a GRADE fica
+e a DERIVA para (media query explícita — prova na seção de reduced-motion).
+
+## Contraste v3 re-medido (WCAG 2.2, scripts/contrast-check.mjs, 2026-07-11)
+
+token | ink-950 #141414 | célula clara #191919 | ink-900 #1d1824
+------|-----------------|----------------------|----------------
+zeph-300 | 7,10:1 | 6,78:1 | 6,70:1
+zeph-500 | 3,51:1 | 3,35:1 | 3,31:1
+zeph-700 | 1,87:1 | 1,78:1 | 1,76:1 (SÓ gráfico c/ alívio)
+mist-100 | 15,61:1 | 14,89:1 | 14,72:1
+mist-300 | 8,97:1 | 8,56:1 | 8,46:1
+mist-400 | 5,28:1 | 5,04:1 | 4,98:1 (piso de texto corrido — segue AA)
+mist-600 | 2,50:1 | 2,39:1 | 2,36:1 (SÓ decoração)
+good | 8,08:1 | 7,72:1 | 7,63:1
+bad | 6,57:1 | 6,27:1 | 6,20:1
+
+Texto ink-950 sobre chapado: bad 6,57:1 · good 8,08:1 · zeph-300 7,10:1.
+Nenhum token precisou de ajuste de claridade: todos os papéis continuam nos
+mesmos pisos do v2 (texto ≥4,5, gráfico ≥3, decorativo documentado).
+
+## Tipografia — headline 8rem→6rem, display 13rem→11rem, sub INTACTO
+
+- --text-headline: teto 8rem (128px) estourava o hero de /rede e /meu-rig em
+  desktop; 6rem (96px) segue dono da dobra nas DUAS telas (capturas
+  shot-{rede,meu-rig}-desktop.png). Piso 3,5rem e inclinação 10vw intactos:
+  abaixo de ~960px de viewport nada muda (o clamp nem chegava no teto).
+- --text-display: 13rem→11rem, mais conservador de propósito (encolher
+  demais mata o signature move). O display-sub MANTÉM o teto de 7rem: é o
+  sub ("pro minerador") quem sangra na borda — encolher os dois juntos
+  apagaria o corte; encolher só o número o preserva. Conferido full-bleed
+  nos 3 breakpoints (shot-recompensa-*.png).
+
+## Halving virou readout (/rede)
+
+Era o único elemento secundário do produto sem tratamento de instrumento
+(um `border-t` sobre dígitos soltos). Agora: a MESMA receita do painel
+RESERVE RATIO — moldura hairline sempre presente + bg-ink-900 + cabeçalho
+`[ PRÓXIMO HALVING ]` separado por hairline — compartilhada pelos 3 estados
+(carregando/cauda/contando) via ReadoutFrame local: o instrumento nunca rende
+como retângulo vazio (mesma regra pós-bug do painel do Raio-X).
+
+## Tendência de hashrate da rede — coletada NESTE navegador (/rede)
+
+Não existe série histórica de hashrate/dificuldade em NENHUMA API confirmada
+do projeto (Explorer é snapshot; Scanner não tem os campos — conferido campo
+a campo no Prompt 1). Inventar/mockar viola a convenção → a tendência é
+coletada localmente: networkHashrateHistory.ts (mesmo padrão do luckHistory):
+- gap 115s: hash_rate deriva da dificuldade, que só muda a cada bloco
+  (~120s) — amostrar mais rápido duplicaria valores; 115 (e não 120) evita
+  perder a leitura de um bloco por jitter do polling de 30s.
+- cap 360 leituras ≈ 12h acumuláveis (~9KB de localStorage).
+A UI diz a procedência ("coletada neste navegador... não há série histórica
+pública") — nunca fingir histórico. Desenho: LuckSparkline foi GENERALIZADO
+em src/components/ui/TrendSparkline.tsx (values + summary + referenceValue
+opcional + width/height) — o luck das pools e as duas tendências novas usam
+o MESMO desenho; pools-e2e passou sem alteração de seletor.
+
+## Sondagem de payments (2026-07-11) — 2Miners confirma, HeroMiners NÃO
+
+Método de sempre: curl com Origin real, formato conferido no corpo.
+- **2Miners CONFIRMADO ao vivo**: GET /api/accounts/<endereço> devolve
+  `payments: [{ amount, timestamp, tx }]` (30 por página, `paymentsTotal`)
+  E `sumrewards` (janelas 1h/12h/24h/7d/30d) — CORS `*`. Dado suficiente
+  pra "pagamentos do dia" NESSA pool.
+- **HeroMiners segue INCONFIRMÁVEL no sucesso**: stats_address com endereço
+  alheio re-confirmou o formato de erro (HTTP 200, `{"error":"Not found"}`,
+  CORS `*`), mas continua sem endereço ZEPH real de teste — e o /api/stats
+  pool-wide expõe payments SERIALIZADOS SEM endereço
+  (`"hash:amount:fee:mixin"` + timestamp), então não há como descobrir um
+  endereço ativo pela própria API. O array `payments` por minerador segue
+  conhecido só do código-fonte do upstream.
+A regra do prompt exigia confirmar AS DUAS pools (formato E CORS) → gráfico
+de pagamentos NÃO foi implementado; o gráfico novo do rig é **hashrate
+diário** (abaixo). Registro pro futuro: se um endereço HeroMiners real
+aparecer, a sondagem é 1 curl.
+
+## Gráfico novo do rig — hashrate diário, store separado DE PROPÓSITO
+
+Parâmetros (rigStatus.ts): gap **290s** (~5min — sobrevive ao jitter do
+polling de 60s da pool) · cap **288 leituras = 24h exatas** em passos de
+5min (~7KB por chave). Fonte: SÓ o hashrate da pool (carteira inteira) — o
+XMRig mede um rig e misturar escalas falsearia a curva. Store SEPARADO
+(`zephyr-hub.rig.hashrate-daily.v1`) do histórico de status: a régua do
+"abaixo do esperado" é a média de ~30min (30×55s) e mudar a cadência dela
+mudaria a SEMÂNTICA do estado (além do rig-e2e semear aquele storage
+direto). A implementação virou motor genérico único (loadAllFrom/appendTo)
+parametrizado por storageKey/gap/cap — os dois históricos usam o mesmo
+código. Na tela: mesma receita de instrumento do Pulso da Rede (rótulo mono
+`[ TENDÊNCIA 24 H · COLETADA NESTE NAVEGADOR ]` + TrendSparkline 340×64 +
+legenda de procedência), na coluna dominante abaixo do StatusBadge — o rail
+já carrega 4 StatCards e mais um item lá viraria card farm.
+
+## Causa raiz + fix — rótulo do piso cortando no ReserveRatioChart
+
+Reproduzido ANTES do fix (arquivo de HEAD restaurado temporariamente +
+cenário forçado via interceptação CDP, mesma técnica do lowratio;
+sondagem em scratchpad/ratio-label-probe.mjs desta sessão):
+- Cenário do bug: série remapeada pra [3,5–3,935] → yMax = 4,00025 → piso
+  4,0 colado no TETO do domínio. Medido pré-fix: linha do piso em y=14,07
+  (MARGINS.top=14), baseline do rótulo em 10,07, **ink a 0,07px da borda do
+  SVG** — com `overflow: hidden` no svg, qualquer variação de métrica de
+  fonte corta (na captura, os ascendentes ENCOSTAM na moldura do painel).
+  Segundo sintoma, visível no dado real da semana (ratio pairando no piso):
+  a série atravessava a banda do texto.
+- CAUSA RAIZ: offset fixo `y(TARGET_FLOOR) − 4` — cego pra borda do plot e
+  pra série. MARGINS.top (14px) < vão (4) + ascent da caption (~10px):
+  geometricamente NÃO EXISTE espaço acima da linha quando o piso está a
+  menos de ~16px do teto do plot.
+- FIX (v3): flip de posição com regra dura (nunca sair do plot) +
+  desempate por colisão (podendo os dois lados, fica no lado com menos
+  pontos da série dentro da banda do texto, só no trecho x do rótulo) +
+  halo `paintOrder: stroke` na cor do painel (ink-900) no próprio <text> —
+  nenhum elemento novo, contrato do e2e intacto.
+- Medido pós-fix nos DOIS extremos: cenário do bug → rótulo flipa pra
+  BAIXO, ink 17,07–30,07 (folga total); cenário OPOSTO (série [4,02–4,8],
+  piso a 14,5px do CHÃO do plot) → rótulo fica ACIMA, ink 137,46–150,46 —
+  o fix não foi "empurrar pra baixo": foi testado dos dois lados.
+- O comentário no código da sessão anterior estimava "0,32px"; a
+  reprodução mediu 0,07px e o comentário foi corrigido pro valor medido.
+
+## Respiração das faixas do Raio-X — só opacity, e2e intacto
+
+`--animate-wash-breathe`: opacity do ELEMENTO oscila 1→0,82, ciclo 6s,
+ease-in-out, FASE ÚNICA nas 3 faixas (dessincronizar leria como tremulação
+entre vizinhas). Multiplicativa sobre o washOpacity próprio de cada série
+(via opacity do elemento, não fillOpacity) — a cor computada, o fillOpacity
+base e a contagem de <path> que o rewards-e2e verifica ficam intactos; borda
+e textura da série NÃO respiram (o encoding de identificação não pode
+variar). Só a faixa ATIVA respira (governança zerada nem renderiza).
+rewards-e2e normal/lowratio/brokenrewards: **TUDO PASSOU sem alteração de
+script** (2026-07-11).
+
+## StatusBadge do rig — tints MEDIDOS + halo "ao vivo"
+
+Fundo tintado em normal/below preservando a escada de peso do R2
+(good/10 < bad/20 < bad sólido — não igualou os três; a distinção entre os
+DOIS negativos segue por peso, nunca matiz). Contraste medido com
+composição real do wash sobre o fundo v3 (contrast-check, seção "tints"):
+texto good sobre bg-good/10 = fundo #15261b, **6,96:1** · texto bad sobre
+bg-bad/20 = fundo #422714, **4,89:1** (bad/15 daria 5,37:1 mas achataria o
+degrau vs good/10 — o /20 compra distância de peso mantendo AA).
+Halo: `--animate-status-ping` (anel que expande 1→2,4 e esvai, 2,4s — tempo
+na família do twinkle, não o 1s frenético do ping padrão) SÓ no estado
+normal: animar "vivo" num indicador offline não faz sentido. Reduced-motion
+usa `motion-reduce:hidden` em vez de animate-none DE PROPÓSITO: parado, o
+fantasma seria um disco estático em cima do ponto — com movimento reduzido
+ele SOME (mesma política: nada se move).
+
+## Scrollbar e SegmentedControl nos tokens
+
+- `@utility scrollbar-themed` (uma classe pros 3 containers roláveis:
+  tabela do Raio-X, Bússola, workers do rig): scrollbar-color pra
+  Firefox/Chromium novo + ::-webkit-* pro Chromium antigo (Chromium com
+  scrollbar-color IGNORA ::-webkit-* — comportamento especificado). Track
+  ink-900, thumb mist-600 (2,39:1 — decorativo, mesma classe de uso do
+  token; o affordance de rolagem não depende só dele: a tabela corta no
+  meio de coluna).
+- SegmentedControl (Janela/Escala): a faixa inteira senta em bg-ink-900
+  (antes o inativo era transparente e parecia "não clicável" até o hover);
+  o ativo segue com tint zeph-800/40 POR CIMA da elevação.
+
+## Prova do reduced-motion (emulado via CDP, 2026-07-11)
+
+scratchpad/reduced-motion-probe.mjs — Emulation.setEmulatedMedia com
+prefers-reduced-motion: reduce, medindo computed style ANTES/DEPOIS/DE NOVO:
+- textura de fundo: animationName `texture-drift` → **none** → volta.
+- respiração das faixas: `wash-breathe` nas 3 faixas → **nenhuma** → volta.
+- halo do badge normal: display block + `status-ping` → **display none** →
+  volta. (O elemento continua no DOM — quem o esconde é a media query, como
+  desenhado.)
+**TUDO PASSOU.** Draw-in/data-pulse/twinkle já tinham prova no R2/N2 e não
+mudaram.
+
+## Auto-check v3 — rubrica de 8 perguntas (7 do R2 + textura)
+
+Oitava pergunta desta rodada: "o fundo mais claro e a textura em movimento
+ainda deixam o dado real como a coisa mais viva da tela, ou a textura
+compete com o gráfico/número?". As 12 capturas (shot-*-{desktop,tablet,
+mobile}.png de 2026-07-11, pós-R3):
+
+- /rede: hashrate dominante no headline recalibrado; halving agora é
+  instrumento mas segue secundário (escala data-lg, abaixo da dobra);
+  tendência local diz a procedência em texto; textura a 2% com deriva de
+  0,75px/s não disputa com nada — o dado segue a única coisa "acesa".
+  **8/8.**
+- /pools: chips sólidos são o único elemento cheio da tabela e continuam
+  RANKING (matiz zeph, não good/bad); linha indisponível segue [ ! ]+frase;
+  scrollbar agora no tema. **8/8.**
+- /recompensa: manchete 11rem segue dona da dobra com o corte do sub
+  preservado; readout elevado em ink-900 destaca por SUPERFÍCIE, não por
+  glow; respiração de 0,18 de amplitude em 6s lê como "vivo", não como
+  animação — de longe a tela parece estática até você reparar. **8/8.**
+- /meu-rig: positivo e negativo coexistem distinguíveis sem cor (texto +
+  escada de peso tint/sólido); halo só no normal; tendência 24h na coluna
+  dominante não vira segunda dominante (340×64, mono caption). **8/8.**
+
+Nenhuma tela falhou em pergunta alguma.
+
+## Verificação R3 (retomada 2026-07-11 — tudo re-executado)
+
+`npm run build` limpo (228ms, zero warning) · contrast-check re-rodado
+(tabela acima) · e2e completa SEM alteração de script: rewards
+normal/lowratio/brokenrewards + rig normal/notfound + pools normal —
+**TUDO PASSOU 2026-07-11** · design-shots 12/12 revisadas (rubrica acima) ·
+reduced-motion provado emulado (seção acima) · sondagem de payments
+documentada (seção acima). Evidências regeneráveis em .e2e-out/; as
+sondagens pontuais (ratio-label-probe, reduced-motion-probe) viveram no
+scratchpad da sessão — os números e o método estão nas seções acima.

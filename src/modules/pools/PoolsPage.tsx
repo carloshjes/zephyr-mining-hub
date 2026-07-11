@@ -76,14 +76,18 @@ function compareRows(a: PoolRow, b: PoolRow, sort: SortState): number {
 }
 
 // Destaque na convenção da direção: rótulo mono entre colchetes, sem pill.
-// Decisão v2 (documentada em NOTES.md): os chips seguem em zeph-300, NÃO em
-// verde — verde é voz de ESTADO (saudável/normal); "maior hashrate"/"menor
-// fee" é ranking comparativo, e pintar ranking de verde diluiria a semântica
-// binária good/bad (além de brigar com o laranja de "indisponível" na mesma
-// tabela).
+// Decisão v2 (documentada em NOTES.md): os chips seguem na família zeph, NÃO
+// em verde — verde é voz de ESTADO (saudável/normal); "maior hashrate"/
+// "menor fee" é ranking comparativo, e pintar ranking de verde diluiria a
+// semântica binária good/bad (além de brigar com o laranja de "indisponível"
+// na mesma tabela).
+// v3: o "mais vivo" pedido em uso real veio por PESO, não por matiz novo —
+// fundo sólido zeph-300 com texto ink-950 (7,1:1 medido), cantos retos.
 function highlightChip(text: string) {
   return (
-    <span className="font-mono text-caption whitespace-nowrap text-zeph-300">[ {text} ]</span>
+    <span className="bg-zeph-300 px-1.5 py-0.5 font-mono text-caption whitespace-nowrap text-ink-950">
+      [ {text} ]
+    </span>
   )
 }
 
@@ -196,7 +200,7 @@ export function PoolsPage() {
         />
       )}
 
-      <div className="overflow-x-auto border-y border-hairline">
+      <div className="scrollbar-themed overflow-x-auto border-y border-hairline">
         <table className="w-full min-w-[920px] text-body">
           <caption className="sr-only">
             Comparação das pools de mineração de Zephyr: fee, hashrate, mineradores, pagamento

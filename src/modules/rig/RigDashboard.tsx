@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePolling } from '../../hooks/usePolling'
 import { getMinerPool, MinerNotFoundError, type MinerSnapshot } from '../../lib/api/minerStats'
 import { fetchXmrigSummary, type XmrigSummary } from '../../lib/api/xmrig'
 import { ErrorNotice } from '../../components/ui/ErrorNotice'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { StatCard } from '../../components/ui/StatCard'
+import { TrendSparkline } from '../../components/ui/TrendSparkline'
 import {
   formatAgo,
   formatDuration,
@@ -16,9 +17,12 @@ import {
 } from '../../lib/format'
 import type { RigConfig } from './rigConfig'
 import {
+  appendDailyHashrateReading,
   appendHashrateReading,
   computeRigStatus,
+  DAILY_HASHRATE_LIMIT,
   historyKey,
+  loadDailyHashrateHistory,
   loadHashrateHistory,
   referenceAverage,
   type HashrateReading,
@@ -44,20 +48,23 @@ interface RigDashboardProps {
 
 // Estado binário da direção v2: positivo=verde (good), negativo=laranja
 // (bad) — o vermelho saiu do sistema. "Abaixo" e "offline" são AMBOS
-// negativos: quem os distingue é o TEXTO e o peso (contorno vs sólido),
-// nunca só a cor (daltonismo).
+// negativos: quem os distingue é o TEXTO e o peso, nunca só a cor
+// (daltonismo). v3: normal/below ganharam fundo TINTADO (pedido de uso
+// real), preservando a escada de peso — good/10 < bad/20 < bad sólido
+// (contraste medido: good 6,96:1 e bad 4,89:1 sobre os próprios tints,
+// NOTES.md); igualar os três a sólido apagaria a distinção de peso do R2.
 const STATUS_PRESENTATION: Record<
   RigStatusKind,
   { label: string; className: string; dot: string }
 > = {
   normal: {
     label: 'Minerando normal',
-    className: 'border-good/60 text-good',
+    className: 'border-good/60 bg-good/10 text-good',
     dot: 'bg-good',
   },
   below: {
     label: 'Hashrate abaixo do esperado',
-    className: 'border-bad/60 text-bad',
+    className: 'border-bad/60 bg-bad/20 text-bad',
     dot: 'bg-bad',
   },
   offline: {
@@ -76,7 +83,15 @@ function StatusBadge({ status, detail }: { status: RigStatusKind; detail: string
         data-status={status}
         className={`inline-flex items-center gap-2 border px-3 py-1 font-mono text-body ${className}`}
       >
-        <span aria-hidden className={`h-2 w-2 rounded-full ${dot}`} />
+        {/* Halo "ao vivo" SÓ no estado saudável (v3): anel que expande e
+            esvai atrás do ponto. Com reduced-motion o fantasma SOME
+            (motion-reduce:hidden) — parado ele seria um disco estático. */}
+        <span aria-hidden className="relative flex h-2 w-2">
+          {status === 'normal' && (
+            <span className="absolute inset-0 animate-status-ping rounded-full bg-good motion-reduce:hidden" />
+          )}
+          <span className={`relative h-2 w-2 rounded-full ${dot}`} />
+        </span>
         [ {label} ]
       </span>
       <span className="font-mono text-caption text-mist-400">{detail}</span>
@@ -87,7 +102,7 @@ function StatusBadge({ status, detail }: { status: RigStatusKind; detail: string
 function WorkersTable({ snapshot }: { snapshot: MinerSnapshot }) {
   if (snapshot.workers.length === 0) return null
   return (
-    <div className="overflow-x-auto border-y border-hairline">
+    <div className="scrollbar-themed overflow-x-auto border-y border-hairline">
       <table className="w-full min-w-[560px] text-body">
         <caption className="sr-only">Workers desta carteira na pool</caption>
         <thead>
@@ -169,6 +184,30 @@ export function RigDashboard({ config }: RigDashboardProps) {
     setHistories((prev) => ({ ...prev, pool: appendHashrateReading(poolKey, hashrate) }))
   }, [poolPoll.data, poolKey])
 
+  // Tendência de 24 h (v3): store separado do histórico de status (gap ~5 min,
+  // cap 288 = 24 h — parâmetros em rigStatus.ts). SÓ hashrate da pool: o XMRig
+  // mede um rig e a carteira pode ter vários — misturar escalas falsearia a curva
+  const [dailyHistory, setDailyHistory] = useState<HashrateReading[]>(() =>
+    loadDailyHashrateHistory(poolKey),
+  )
+  useEffect(() => {
+    const hashrate = poolPoll.data?.currentHashrate
+    if (hashrate === undefined) return
+    setDailyHistory(appendDailyHashrateReading(poolKey, hashrate))
+  }, [poolPoll.data, poolKey])
+
+  // Resumo acessível da tendência (mesma receita do Pulso da Rede; o
+  // TrendSparkline mostra "coletando…" com menos de 2 leituras e ignora isto)
+  const dailySummary = useMemo(() => {
+    const values = dailyHistory.map((reading) => reading.h)
+    if (values.length < 2) return ''
+    return (
+      `Tendência de 24 h do hashrate desta carteira na pool: ${values.length} leituras, ` +
+      `atual ${formatHashrate(values[values.length - 1])}, mínima ${formatHashrate(Math.min(...values))}, ` +
+      `máxima ${formatHashrate(Math.max(...values))}`
+    )
+  }, [dailyHistory])
+
   useEffect(() => {
     const hashrate = xmrig?.hashrate60s ?? xmrig?.hashrate10s
     if (hashrate === undefined) return
@@ -233,6 +272,30 @@ export function RigDashboard({ config }: RigDashboardProps) {
               </p>
               <div className="mt-4">
                 <StatusBadge status={status} detail={statusDetail} />
+              </div>
+
+              {/* Tendência coletada localmente (v3) — mesma receita de
+                  instrumento do Pulso da Rede: nenhuma pool integrada expõe
+                  série de pagamentos confirmada ao vivo (sondagem em
+                  NOTES.md), então o gráfico do dia é o hashrate da carteira
+                  na pool, coletado por este navegador — dado real, nunca
+                  inventado, e a legenda diz a procedência */}
+              <div className="mt-10">
+                <p className="font-mono text-caption tracking-wide text-mist-400">
+                  [ TENDÊNCIA 24 H · COLETADA NESTE NAVEGADOR ]
+                </p>
+                <div className="mt-3">
+                  <TrendSparkline
+                    values={dailyHistory.map((reading) => reading.h)}
+                    summary={dailySummary}
+                    width={340}
+                    height={64}
+                  />
+                </div>
+                <p className="mt-2 max-w-md text-label text-mist-400">
+                  Hashrate da carteira na pool, até {DAILY_HASHRATE_LIMIT} leituras (1 a cada
+                  ~5 min ≈ 24 h) guardadas neste navegador com a página aberta.
+                </p>
               </div>
             </>
           ) : (

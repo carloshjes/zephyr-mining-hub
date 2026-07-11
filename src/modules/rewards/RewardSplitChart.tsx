@@ -244,8 +244,13 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
           {REWARD_SERIES.map((def, s) =>
             seriesIsActive[s] ? (
               <g key={def.key}>
+                {/* Respiração contínua do wash (v3): só opacity — a cor
+                    computada, o fillOpacity base e a contagem de <path> do
+                    rewards-e2e ficam intactos; borda e textura não respiram
+                    (o encoding de identificação da série não pode variar) */}
                 <path
                   d={bandPath(s)}
+                  className="animate-wash-breathe motion-reduce:animate-none"
                   style={{ fill: def.color, fillOpacity: def.washOpacity }}
                 />
                 {def.texture && (

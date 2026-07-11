@@ -88,6 +88,41 @@ export function ReserveRatioChart({ points }: ReserveRatioChartProps) {
   const currentBelowFloor = current.ratio < TARGET_FLOOR
   const anyBelowFloor = values.some((value) => value < TARGET_FLOOR)
   const floorInDomain = TARGET_FLOOR > yMin && TARGET_FLOOR < yMax
+
+  // Rótulo do piso com flip de posição (v3). Causa raiz do bug (medições em
+  // NOTES.md): o offset fixo de −4px era cego pra borda do plot E pra série —
+  // com o piso colado no teto do domínio (yMax → 4,0) o ink do caption
+  // chegava a 0,07px da borda do SVG (overflow hidden — qualquer variação de
+  // métrica de fonte corta), e com a série pairando no piso (o dado real
+  // desta semana) a linha atravessava o texto. Regra: nunca sair do plot
+  // (dura); podendo os dois lados, fica no lado com MENOS pontos da série
+  // dentro da banda do texto (só no trecho x que o rótulo ocupa).
+  const FLOOR_LABEL_CLEARANCE = 16 // 4 de vão + ~10 de ascent da mono + respiro
+  const FLOOR_LABEL_W = 160 // extensão x aproximada de "piso da faixa alvo (4,0)"
+  const FLOOR_LABEL_INK = 12 // altura de ink do caption
+  let floorLabelY = 0
+  if (floorInDomain) {
+    const floorY = y(TARGET_FLOOR)
+    const fitsAbove = floorY - MARGINS.top >= FLOOR_LABEL_CLEARANCE
+    const fitsBelow = MARGINS.top + plotHeight - floorY >= FLOOR_LABEL_CLEARANCE
+    const aboveBaseline = floorY - 4
+    const belowBaseline = floorY + 13
+    // pontos da série dentro da banda vertical do rótulo, no trecho x do texto
+    const collisions = (baseline: number) => {
+      let hits = 0
+      for (let i = 0; i < count; i++) {
+        if (x(i) > MARGINS.left + 4 + FLOOR_LABEL_W) break
+        const pointY = y(values[i])
+        if (pointY >= baseline - FLOOR_LABEL_INK - 2 && pointY <= baseline + 3) hits++
+      }
+      return hits
+    }
+    if (!fitsAbove) floorLabelY = belowBaseline
+    else if (!fitsBelow) floorLabelY = aboveBaseline
+    else
+      floorLabelY =
+        collisions(belowBaseline) < collisions(aboveBaseline) ? belowBaseline : aboveBaseline
+  }
   // Região do alerta: tudo abaixo do piso (se o domínio inteiro está abaixo,
   // a região cobre o plot todo)
   const badClipTop = TARGET_FLOOR >= yMax ? MARGINS.top : y(TARGET_FLOOR)
@@ -186,10 +221,20 @@ export function ReserveRatioChart({ points }: ReserveRatioChartProps) {
               strokeDasharray="4 3"
               className={anyBelowFloor ? 'stroke-bad' : 'stroke-mist-600'}
             />
+            {/* Halo na cor do painel (o readout é ink-900 desde o v3) atrás
+                dos glifos: o rótulo fica legível mesmo quando algum trecho
+                da série cruza a banda do texto — atributo no próprio <text>,
+                nenhum elemento novo (contrato do e2e preservado) */}
             <text
               x={MARGINS.left + 4}
-              y={y(TARGET_FLOOR) - 4}
+              y={floorLabelY}
               className={`font-mono text-caption ${anyBelowFloor ? 'fill-bad' : 'fill-mist-400'}`}
+              style={{
+                paintOrder: 'stroke',
+                stroke: 'var(--color-ink-900)',
+                strokeWidth: 3,
+                strokeLinejoin: 'round',
+              }}
             >
               piso da faixa alvo (4,0)
             </text>
@@ -234,13 +279,14 @@ export function ReserveRatioChart({ points }: ReserveRatioChartProps) {
             />
           )}
 
-          {/* Ponto atual com anel na cor do fundo + rótulo direto */}
+          {/* Ponto atual com anel na cor do fundo (o painel é ink-900 desde
+              o v3) + rótulo direto */}
           <circle
             cx={x(count - 1)}
             cy={y(current.ratio)}
             r={4}
             strokeWidth={2}
-            className={`stroke-ink-950 ${currentBelowFloor ? 'fill-bad' : 'fill-zeph-300'}`}
+            className={`stroke-ink-900 ${currentBelowFloor ? 'fill-bad' : 'fill-zeph-300'}`}
           />
           <text
             x={MARGINS.left + plotWidth + 6}
@@ -266,7 +312,7 @@ export function ReserveRatioChart({ points }: ReserveRatioChartProps) {
               cy={y(points[hover.index].ratio)}
               r={4}
               strokeWidth={2}
-              className={`stroke-ink-950 ${
+              className={`stroke-ink-900 ${
                 points[hover.index].ratio < TARGET_FLOOR ? 'fill-bad' : 'fill-zeph-300'
               }`}
             />

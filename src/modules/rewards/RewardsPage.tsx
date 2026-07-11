@@ -67,7 +67,10 @@ interface SegmentedOption<T extends string | number> {
 }
 
 // Controle segmentado dos filtros (janela/escala) — botões com aria-pressed,
-// seleção sempre por texto+cor, nunca só cor
+// seleção sempre por texto+cor, nunca só cor. v3: a faixa inteira senta na
+// superfície elevada ink-900 (antes o estado inativo era transparente e
+// mostrava o fundo da página — parecia "não clicável" até o hover); o ativo
+// segue com o tint zeph-800/40 POR CIMA da elevação, claramente distinto.
 function SegmentedControl<T extends string | number>({
   label,
   options,
@@ -82,7 +85,7 @@ function SegmentedControl<T extends string | number>({
   return (
     <div className="flex items-center gap-2">
       <span className="font-mono text-caption text-mist-400">{label}</span>
-      <div className="inline-flex border border-hairline">
+      <div className="inline-flex border border-hairline bg-ink-900">
         {options.map((option, index) => {
           const isActive = option.value === value
           return (
@@ -96,7 +99,7 @@ function SegmentedControl<T extends string | number>({
               } ${
                 isActive
                   ? 'bg-zeph-800/40 text-zeph-300'
-                  : 'text-mist-400 hover:bg-ink-900 hover:text-mist-100'
+                  : 'text-mist-400 hover:text-mist-100'
               }`}
             >
               {option.label}
@@ -452,9 +455,11 @@ export function RewardsPage() {
 
           {/* Readout do ratio: moldura hairline SEMPRE presente, com selo de
               estado — carregando, com dado ou em falha, o painel nunca rende
-              como retângulo vazio (causa raiz do bug em NOTES.md) */}
+              como retângulo vazio (causa raiz do bug em NOTES.md). v3: ganhou
+              a superfície elevada ink-900 (o token que tooltip/thead já usam)
+              — instrumento se destaca do fundo, não só pela moldura */}
           <section
-            className={`mt-3 border border-hairline transition-opacity ${
+            className={`mt-3 border border-hairline bg-ink-900 transition-opacity ${
               ratiosOutdated ? 'opacity-60' : ''
             }`}
           >
@@ -540,7 +545,7 @@ export function RewardsPage() {
             Ver os dados em tabela ({formatInteger(slices.length)} blocos)
           </summary>
           {tableOpen && (
-            <div className="max-h-96 overflow-auto border-t border-hairline">
+            <div className="scrollbar-themed max-h-96 overflow-auto border-t border-hairline">
               <table className="w-full min-w-[760px] text-label">
                 <caption className="sr-only">
                   Divisão da recompensa e reserve ratio por bloco, do mais recente pro mais antigo

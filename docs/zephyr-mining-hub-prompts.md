@@ -1324,6 +1324,314 @@ ter inconsistência de estilo entre eles.
 
 ---
 
+## Prompt R3 — Fable: Sinal Técnico v3 (fundo vivo, densidade de dado, acabamento por tela)
+
+Roda depois do N2 — **commite o N2 antes de começar esta sessão** (regras 5/6 do
+HANDOFF: feche a sessão que rodou N2, abra uma PowerShell limpa fora de qualquer
+`claude` ativo, `git add -A && git commit && git push`, só então abra a sessão nova
+pra este prompt). R3 não mexe em AppShell.tsx/LogoMark.tsx, mas herda os tokens que
+o N2 deixou no working tree. Direção decidida em 2026-07-10 fora do Claude Code
+(Claude Sonnet 5, skill `creative-ui-director`) a partir de 8 pontos concretos que o
+Carlos trouxe usando o produto real, tela por tela — não é redescoberta: os pontos
+abaixo já têm diagnóstico e direção escolhida, incluindo onde essa direção diverge
+do que o Carlos pediu literalmente (ver `diagnostico`). Invoque a mesma skill nesta
+sessão (está disponível no seu ambiente) pra guiar acabamento e autoverificação de
+cada mudança, mas dentro do que já foi decidido — não redecida a direção estrutural.
+
+```
+Aja como um engenheiro front-end sênior de direção visual, dando continuidade a um
+sistema já validado (v3 do redesign "Sinal Técnico") — invoque a skill
+creative-ui-director no início desta sessão e use-a pra guiar o acabamento e a
+autoverificação (anti-genérico, contraste, responsivo) de cada mudança abaixo. As
+direções estruturais já foram decididas fora desta sessão, com o mesmo rigor de
+evidência real do R1/R2/N1/N2 (screenshot, contraste medido, e2e) — seu trabalho é
+executar e refinar acabamento, não redecidir a direção.
+
+<contexto>
+Os módulos do Zephyr Mining Hub estão em produção com o sistema "Sinal Técnico" v2
+(tokens em src/index.css, composição dominante/rail por tela) — leia CLAUDE.md,
+NOTES.md e o código de src/ antes de começar. O Carlos usou o produto de verdade
+(não screenshot velho) e trouxe 8 pontos concretos, um por área, cobrindo o fundo
+global e as 4 telas. Isto é uma evolução (v3), não um redesign do zero: preserva
+tudo que R1/R2 estabeleceram (tokens ink/zeph/mist/good/bad, convenção mono
+[ LABEL ], composição dominante/rail, hairline, zero gradiente exceto a textura de
+fundo já documentada) — cada ponto abaixo é um ajuste localizado, não uma
+reformulação de tela.
+</contexto>
+
+<diagnostico>
+0. Fundo: ink-950 #0a0a0a (croma zero, medido contra rig.ai) + textura scanline
+   (listras 1px, 2% branco). Decisão consciente e já validada — mas o Carlos, usando
+   o produto de verdade, acha o preto atual pesado demais e a textura estática
+   pouco viva. Dois pedidos distintos: (a) clarear pro cinza — mudança estrutural
+   real, mexe na luminosidade-base de que TODO o contraste do sistema depende; (b)
+   textura de blocos quadrados com movimento sutil — evolução direta da scanline já
+   existente (que já é a ÚNICA exceção documentada à regra anti-gradiente), não é
+   pedido novo de princípio.
+1. Pulso da Rede: hashrate em --text-headline (clamp 3.5rem–8rem) — o Carlos acha
+   grande demais (MESMO token do hashrate do Monitor do Rig, ponto 4 — resolvem
+   junto). Halving é hoje só um `border-t` acima de dígitos soltos — nenhuma
+   moldura, único elemento secundário do produto sem tratamento de "readout"
+   (RESERVE RATIO já ganhou isso no R2). Espaço vazio abaixo do hashrate na coluna
+   dominante: sintoma real, mas ATENÇÃO — não existe série histórica de
+   hashrate/dificuldade em nenhuma API confirmada no projeto (Explorer API é só
+   snapshot, ver CLAUDE.md). Resolver com dado inventado violaria a convenção do
+   projeto ("nunca mockar valor").
+2. Bússola de Pools: chips [ maior hashrate ]/[ menor fee ] em zeph-300 — mesmo tom
+   de quase tudo mais na tela (links, nav ativo). O Carlos quer mais vivo. TENSÃO
+   COM DECISÃO ANTERIOR: o R2 decidiu EXPLICITAMENTE manter esses chips fora do
+   verde (documentado em NOTES.md e em comentário no próprio PoolsPage.tsx: "verde é
+   voz de ESTADO... chips são ranking comparativo, pintar de verde diluiria a
+   semântica binária"). O Carlos não pediu pra reabrir essa semântica — só quer mais
+   vivacidade visual. Ver decisoes_ja_tomadas.
+3. Raio-X da Recompensa (a tela com mais pontos):
+   a. Manchete "X% pro minerador" em --text-display (clamp 4.5rem–13rem) — TENSÃO
+      COM DECISÃO ANTERIOR: essa manchete cortada é o signature move documentado da
+      tela desde o R1 ("a prova de conceito do sistema"). Reduzir demais apaga o que
+      torna essa tela não-genérica.
+   b. Faixas do gráfico de divisão (RewardSplitChart) ficam 100% estáticas depois do
+      draw-in inicial — só reagem quando chega bloco novo (useDataPulse, ~1x/120s).
+      O Carlos quer um efeito ativo/oscilatório contínuo.
+   c. Painel [ RESERVE RATIO ] hoje é `border border-hairline` SEM fundo próprio —
+      mesmo tom do body atrás. O token de superfície elevada (ink-900) já existe no
+      sistema (usado em tooltip/thead) e nunca foi aplicado aqui.
+   d. Bug real: o rótulo "piso da faixa alvo (4,0)" no ReserveRatioChart.tsx é
+      desenhado 4px ACIMA da linha do piso por coordenada fixa — quando o piso fica
+      perto do teto do domínio visível (ratio atual bem acima de 4,0), o texto
+      estoura a margem superior do SVG e corta. Precisa de causa raiz + fix, não só
+      "empurrar pra baixo" sem testar o caso oposto.
+   e. Scrollbar da tabela `<details>` é a scrollbar branca padrão do navegador —
+      nunca foi estilizada, quebra o tema escuro.
+   f. SegmentedControl (botões "Janela"/"Escala"): estado inativo não tem
+      background (só ganha no hover) — mostra o fundo da página por trás, parece
+      "não clicável" até passar o mouse.
+4. Monitor do Rig: hashrate em --text-headline — mesmo ponto 1, resolve junto.
+   StatusBadge: hoje só "offline" tem fundo sólido (bg-bad); "normal" e "below" são
+   só borda/texto — o Carlos quer fundo sólido em todos. TENSÃO COM DECISÃO
+   ANTERIOR: o R2 decidiu explicitamente que "below" (contorno) vs "offline"
+   (sólido) se distinguem por PESO, não matiz — é o mecanismo de acessibilidade pra
+   daltonismo (dois negativos na mesma tela). Sólido uniforme nos três empataria
+   esse peso e apagaria a distinção. Ver decisoes_ja_tomadas. Espaço pra gráfico
+   novo: o Carlos sugere pagamentos do dia OU hashrate diário — só o segundo tem
+   dado confirmado no projeto hoje (MinerSnapshot não expõe pagamentos com
+   timestamp; o array `payments` do HeroMiners é mencionado no código-fonte do
+   upstream mas NUNCA foi confirmado ao vivo, ver minerStats.ts).
+</diagnostico>
+
+<decisoes_ja_tomadas>
+Não redecida os itens abaixo — já foram fechados com o Carlos:
+
+1. Fundo: clareia, mas continua "quase preto" neutro (não vira cinza médio nem
+   ganha tinta de cor) — a identidade "terminal escuro" do rig.ai é a razão de
+   existir do sistema. Textura de fundo evolui de linhas (scanline) pra grade de
+   blocos pequenos, com movimento sutil — continua sendo a mesma EXCEÇÃO única e
+   documentada à regra anti-gradiente do projeto (não abre precedente novo).
+2. Bússola de Pools: os chips de destaque NÃO ganham nova família de cor (seria a
+   4ª cor de destaque, proibida desde o R1) nem viram verdes (reabriria a semântica
+   good/bad que o R2 fechou de propósito). Resolva "mais vivo" com PESO — fundo
+   sólido no chip em vez de só texto — não com matiz novo.
+3. Raio-X: a manchete continua full-bleed cortada na borda em telas largas (o
+   corte é o signature move, não é pra remover) — só o TETO da escala encolhe.
+4. Monitor do Rig: os 3 estados do StatusBadge continuam distinguíveis por PESO
+   entre si (offline mais "cheio" que below, below mais "cheio" que normal) — não é
+   pra igualar os três a fundo 100% sólido idêntico. "Efeito dinâmico" pedido pelo
+   Carlos vale só pro estado "normal" (rig vivo/saudável) — não faz sentido animar
+   "vivo" num indicador offline.
+
+O que você decide (com evidência, mesmo padrão do projeto):
+- Fundo: teste 2-3 candidatos de claridade (ainda croma zero/neutro) e escolha o
+  mais claro que preserva AA em mist-400 (o piso de texto corrido) contra o fundo E
+  contra a célula mais clara da textura nova — REMEÇA contraste de TODOS os tokens
+  com scripts/contrast-check.mjs depois de mudar (a mudança de luminosidade-base
+  afeta todo mundo, não só quem está perto do piso). Técnica da textura de blocos e
+  do movimento (CSS puro, mesma família de repeating-gradient da scanline atual ou
+  equivalente) — sua escolha, contanto que fique monocromática, baixíssima
+  opacidade (parta de ~2%, a mesma da scanline atual, e remeça) e o ciclo de
+  movimento seja longo/sutil o bastante pra não competir com dado real na tela.
+- --text-headline: novo teto (hoje 8rem). Calibre com captura real nas 2 telas que
+  usam o token (Pulso da Rede E Monitor do Rig) nos 3 breakpoints — ainda precisa
+  ler como hero da dobra, só não estourar.
+- --text-display: novo teto (hoje 13rem) — mais conservador que o ajuste do
+  headline, já que aqui reduzir demais mata o signature move (ver
+  decisoes_ja_tomadas item 3). Calibre com captura real full-bleed nos 3
+  breakpoints.
+- Histórico de hashrate da rede: parâmetros de amostragem/cap do novo
+  networkHashrateHistory.ts (mesmo padrão de luckHistory.ts/rigStatus.ts) — decida
+  o intervalo mínimo entre leituras e o tamanho do histórico guardado.
+- Efeito "ativo" nas faixas do RewardSplitChart: proponho uma respiração contínua
+  e sutil de opacidade do wash (fillOpacity oscilando poucos pontos percentuais,
+  ciclo de alguns segundos) — só muda opacidade, nunca a cor computada nem
+  introduz elemento novo (restrição dura, ver restricoes). Se tiver uma ideia
+  melhor dentro dessas restrições, pode propor, mas documente por quê.
+- "Efeito dinâmico" do StatusBadge normal: proponho um halo/ping pulsante atrás do
+  dot (padrão comum de indicador "ao vivo") em good — decida o timing e a
+  amplitude com o mesmo cuidado de sutileza dos outros movimentos do sistema.
+- Gráfico novo do Monitor do Rig: ANTES de implementar, sonde de verdade (curl com
+  Origin, mesmo método de sempre) se `payments`/`charts` do HeroMiners
+  (stats_address) e algum endpoint equivalente da 2Miners existem, respondem com
+  CORS aberto, e têm timestamp por entrada. Se confirmar os dois (formato E CORS),
+  pode implementar gráfico de pagamentos do dia. Se NÃO confirmar, implemente
+  gráfico de hashrate diário — reaproveitando/estendendo o histórico que já existe
+  em rigStatus.ts (hoje 30 leituras a cada ~60s ≈ 30 min; pra caber um dia precisa
+  de amostragem mais espaçada e cap maior — calcule e documente os novos números).
+  De qualquer forma, documente em NOTES.md o resultado da sondagem, confirmado ou
+  não.
+</decisoes_ja_tomadas>
+
+<tarefa>
+Um item de cada vez, testando antes de seguir pro próximo (mesma disciplina do
+R1/R2) — comece pelos tokens compartilhados, porque as telas 1 e 4 dependem deles:
+
+0. Tokens de fundo (src/index.css): recalibre --color-ink-950 pro novo valor
+   (mais claro, ainda neutro) e troque a textura scanline por uma grade de blocos
+   pequenos com movimento sutil (novo @keyframes no @theme, sempre pareado com
+   motion-reduce:animate-none). Remeça contraste de TODOS os tokens de cor contra
+   o novo fundo e a nova textura com scripts/contrast-check.mjs; ajuste qualquer
+   token que caia abaixo do piso AA já documentado (só a claridade dele, não o
+   matiz) e registre os números novos em CLAUDE.md/NOTES.md, mesmo formato da
+   tabela do R2.
+
+1. Pulso da Rede (src/modules/network/):
+   a. Recalibre --text-headline (afeta esta tela e o Rig — teste as duas).
+   b. HalvingCountdown.tsx: envolva a seção num tratamento readout (moldura
+      hairline + bg-ink-900, cabeçalho [ PRÓXIMO HALVING ] separado por hairline)
+      igual ao painel RESERVE RATIO do Raio-X — reaproveite a estrutura, não
+      reinvente.
+   c. Crie networkHashrateHistory.ts (mesmo padrão de luckHistory.ts): guarda
+      leituras de hash_rate do networkInfo em localStorage. Adicione um mini-
+      gráfico de tendência na coluna dominante, abaixo da anotação de
+      dificuldade/altura — considere generalizar LuckSparkline.tsx num componente
+      reutilizável em src/components/ui/ (ele já faz exatamente esse tipo de
+      mini-gráfico) em vez de duplicar a lógica de desenho.
+   Teste: `npm run dev`, confira a tela em pelo menos desktop+mobile antes de
+   seguir.
+
+2. Bússola de Pools (src/modules/pools/PoolsPage.tsx):
+   Mude highlightChip() de texto zeph-300 solto pra fundo sólido zeph-300 com
+   texto ink-950 (contraste ~7,6:1, mesma família, sem token novo). Mantenha a
+   convenção mono `[ rótulo ]`. Teste: confira que a linha com os 2 chips (mesma
+   pool sendo maior hashrate E menor fee ao mesmo tempo, se acontecer) não fica
+   poluída — ajuste o gap se precisar.
+
+3. Raio-X da Recompensa (src/modules/rewards/):
+   a. Recalibre --text-display (mais conservador — ver decisoes_ja_tomadas).
+   b. RewardSplitChart.tsx (e SeriesSwatch.tsx se o pattern precisar de ajuste):
+      adicione o efeito de respiração de opacidade no wash das faixas ATIVAS
+      (não a governança zerada). RESTRIÇÃO DURA: rewards-e2e.mjs conta <path> por
+      COR COMPUTADA e acha o overlay de hover por querySelector('rect') — a
+      animação não pode mudar `fill`/cor computada nem adicionar/remover
+      elementos; só anime opacity/fillOpacity via CSS. Rode
+      `node scripts/rewards-e2e.mjs normal` depois e confirme que passa sem
+      alteração de script.
+   c. RewardsPage.tsx: adicione bg-ink-900 ao container do readout [ RESERVE
+      RATIO ] (o mesmo token que tooltip/thead já usam pra elevação).
+   d. ReserveRatioChart.tsx: conserte o rótulo do piso. Reproduza o cenário do
+      bug (janela onde o ratio atual fica bem acima de 4,0, empurrando o piso
+      pra perto do teto do domínio) e confirme visualmente que hoje corta.
+      Documente a causa raiz em NOTES.md antes do fix. Implemente o rótulo
+      flipando de posição (acima da linha quando há espaço, abaixo quando não
+      há) em vez de uma coordenada fixa.
+   e. RewardsPage.tsx: estilize a scrollbar do `<div className="overflow-auto">`
+      da tabela com os tokens do sistema (scrollbar-color pra Firefox +
+      ::-webkit-scrollbar* pra Chrome/Edge) — track ink-900, thumb mist-600 ou
+      equivalente. Considere uma classe utilitária reaproveitável no @layer base
+      (outras telas têm overflow-x-auto em tabela e vão precisar do mesmo
+      tratamento — Pools e a tabela de workers do Rig).
+   f. SegmentedControl (dentro de RewardsPage.tsx): dê background sempre visível
+      ao estado inativo dos botões (hoje só ganha no hover) — mantenha o
+      contraste do estado ativo (bg-zeph-800/40) claramente diferente.
+   Teste depois de CADA subitem (b, d e f mexem em SVG/interação — mais fácil de
+   quebrar sem perceber): rode a e2e e confira visualmente antes de seguir pro
+   próximo módulo.
+
+4. Monitor do Rig (src/modules/rig/):
+   a. --text-headline já resolvido no item 1a — só confirme aqui.
+   b. RigDashboard.tsx (STATUS_PRESENTATION/StatusBadge): dê fundo tintado (não
+      100% sólido, pra preservar a hierarquia de peso normal < below < offline)
+      aos estados "normal" e "below" — ex. bg-good/15 e bg-bad/15 — mantendo
+      offline como está (bg-bad 100% sólido). Adicione o halo/ping pulsante
+      atrás do dot SÓ no estado normal.
+   c. Implemente o gráfico novo conforme a sondagem da decisoes_ja_tomadas
+      (pagamentos SE confirmar API, senão hashrate diário reaproveitando/
+      estendendo rigStatus.ts). Posicione no espaço que sobra na coluna
+      dominante ou no rail — sua escolha, com base em qual fica mais legível.
+   Teste: `node scripts/rig-e2e.mjs normal` e `notfound` antes de seguir.
+
+5. Verificação final:
+   - `npm run build` limpo, sem warning novo.
+   - Rode a suíte e2e completa (rewards normal/lowratio/brokenrewards, rig
+     normal/notfound, pools normal) — confirme TUDO passa.
+   - Rode scripts/design-shots.mjs nos 3 breakpoints e revise as 12 capturas
+     contra a rubrica de autocheck (ver criterios_de_aceite).
+   - Ligue prefers-reduced-motion (emulado) e confirme que a nova textura de
+     fundo, a respiração das faixas e o halo do StatusBadge param de verdade.
+   - Atualize CLAUDE.md (tokens novos com contraste medido — fundo, headline,
+     display) e NOTES.md (achados: causa raiz do bug do rótulo, resultado da
+     sondagem de payments, parâmetros finais de cada decisão aberta acima).
+</tarefa>
+
+<restricoes>
+- Preserva tudo que R1/R2 já fecharam: composição dominante/rail por tela,
+  convenção mono [ LABEL ], hairline dividers, zero glassmorphism/blur/glow/
+  sombra decorativa, zero gradiente novo (só a textura de fundo, que já é
+  exceção documentada).
+- Proibida uma 4ª família de cor de destaque — o "mais vivo" da Bússola de Pools
+  se resolve com peso (fundo sólido), não com token de cor novo.
+- Não iguale os 3 estados do StatusBadge do Rig a fundo 100% sólido idêntico — a
+  distinção de peso entre below e offline é o mecanismo de acessibilidade a
+  daltonismo do R2, não decoração.
+- rewards-e2e.mjs não pode precisar de alteração de seletor: qualquer animação
+  nova nas faixas do RewardSplitChart muda só opacity/fillOpacity, nunca fill
+  computado, nunca adiciona/remove <path>/<rect>.
+- Toda animação nova (textura de fundo, respiração das faixas, halo do
+  StatusBadge) respeita prefers-reduced-motion sem exceção, testado de verdade
+  (emulado), não só código presente.
+- Não invente dado: se a sondagem de payments não confirmar CORS+formato ao
+  vivo, não implemente com dado parcial/mockado — siga com hashrate diário.
+- Contraste WCAG 2.2 AA obrigatório em qualquer texto/token que a mudança do
+  fundo afete, medido de verdade com scripts/contrast-check.mjs.
+- Um item da tarefa de cada vez, testado antes do próximo — não editar as 4
+  telas em paralelo torcendo pra dar certo no final.
+- npm run build limpo, sem warning novo.
+</restricoes>
+
+<criterios_de_aceite>
+- Fundo mais claro (ainda neutro) com contraste de TODOS os tokens remedido e
+  registrado; textura nova (blocos + movimento sutil) documentada com os mesmos
+  números de pior-caso que a scanline tinha.
+- --text-headline e --text-display recalibrados, testados nas telas que os usam,
+  captura real nos 3 breakpoints.
+- HalvingCountdown com tratamento readout (moldura + bg-ink-900); novo mini-
+  gráfico de hashrate de rede com dado real coletado localmente (não mockado).
+- Chips da Bússola de Pools com fundo sólido, mesma família zeph, sem token novo.
+- Faixas do Raio-X com efeito de opacidade contínuo, rewards-e2e passa sem
+  alteração de script.
+- Painel RESERVE RATIO com bg-ink-900; rótulo do piso nunca corta a margem do
+  SVG em nenhum cenário (inclusive o que causava o bug — teste esse caso
+  especificamente); scrollbar da tabela e dos botões Janela/Escala usando
+  tokens do sistema, não o padrão branco do navegador.
+- StatusBadge do Rig com fundo tintado em normal/below (hierarquia de peso
+  preservada), halo pulsante só no estado normal, respeitando
+  prefers-reduced-motion.
+- Gráfico novo do Rig implementado com dado real (payments confirmado por
+  sondagem ao vivo, ou hashrate diário como fallback) — sondagem documentada em
+  NOTES.md de qualquer forma.
+- npm run build limpo; e2e completa (rewards×3, rig×2, pools×1) passa.
+- design-shots.mjs revisado nos 3 breakpoints contra a rubrica abaixo.
+- CLAUDE.md e NOTES.md atualizados com todos os valores finais e decisões.
+</criterios_de_aceite>
+
+Antes de finalizar, rode a rubrica de 7 perguntas do R2 (está em NOTES.md) pra
+cada uma das 4 telas, e adicione um oitavo check específico desta rodada: "o
+fundo mais claro e a textura em movimento ainda deixam o dado real como a coisa
+mais viva da tela, ou a textura de ambiente compete com atenção que devia ir pro
+gráfico/número?" — se a resposta for "compete", reduza a opacidade ou desacelere
+o movimento antes de dar como pronto. Se qualquer tela falhar em 2+ perguntas,
+ajuste antes de encerrar a sessão.
+```
+
+---
+
 ## Depois dos 5 prompts
 
 - Rode a skill **backend-structure-auditor** pra mapear qualquer deriva de padrão que

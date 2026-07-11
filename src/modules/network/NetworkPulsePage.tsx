@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePolling } from '../../hooks/usePolling'
 import {
   getLatestBlockReward,
@@ -23,7 +23,14 @@ import {
 import { StatCard, type StatDelta } from '../../components/ui/StatCard'
 import { ErrorNotice } from '../../components/ui/ErrorNotice'
 import { Skeleton } from '../../components/ui/Skeleton'
+import { TrendSparkline } from '../../components/ui/TrendSparkline'
 import { HalvingCountdown } from './HalvingCountdown'
+import {
+  appendNetworkHashrateReading,
+  loadNetworkHashrateHistory,
+  NETWORK_HASHRATE_LIMIT,
+  type NetworkHashrateReading,
+} from './networkHashrateHistory'
 
 // Pulso da Rede — visão pública da saúde da rede Zephyr.
 // Polling de 30s casando com o cache de 30s da Scanner API; o explorer segue
@@ -81,6 +88,18 @@ export function NetworkPulsePage() {
   const networkInfo = usePolling(getNetworkInfo, POLL_INTERVAL_MS)
   const blockReward = usePolling(getLatestBlockReward, POLL_INTERVAL_MS)
 
+  // Tendência local do hashrate (v3): não existe série histórica em nenhuma
+  // API confirmada — este navegador coleta 1 leitura por bloco (~2 min) com
+  // a página aberta (appendNetworkHashrateReading ignora duplicatas)
+  const [hashrateHistory, setHashrateHistory] = useState<NetworkHashrateReading[]>(() =>
+    loadNetworkHashrateHistory(),
+  )
+  useEffect(() => {
+    const hashrate = networkInfo.data?.hash_rate
+    if (hashrate === undefined) return
+    setHashrateHistory(appendNetworkHashrateReading(hashrate))
+  }, [networkInfo.data])
+
   const fetchDailyStats = useCallback(
     (signal: AbortSignal) =>
       getStats(
@@ -97,6 +116,18 @@ export function NetworkPulsePage() {
   const dailyStats = usePolling(fetchDailyStats, DAILY_STATS_INTERVAL_MS)
 
   const yesterday = useMemo(() => lastClosedDay(dailyStats.data), [dailyStats.data])
+
+  // Resumo acessível da tendência local (o TrendSparkline mostra "coletando…"
+  // com menos de 2 leituras e ignora o resumo)
+  const trendSummary = useMemo(() => {
+    const values = hashrateHistory.map((reading) => reading.h)
+    if (values.length < 2) return ''
+    return (
+      `Tendência do hashrate da rede coletada neste navegador: ${values.length} leituras, ` +
+      `atual ${formatHashrate(values[values.length - 1])}, mínima ${formatHashrate(Math.min(...values))}, ` +
+      `máxima ${formatHashrate(Math.max(...values))}`
+    )
+  }, [hashrateHistory])
 
   // Fontes com falha na última tentativa — o aviso fica visível mesmo com
   // dado antigo na tela (nunca falha silenciosa)
@@ -171,6 +202,28 @@ export function NetworkPulsePage() {
               <p className="mt-1 text-label text-mist-400">
                 estimado pelo daemon da rede (dificuldade ÷ 120 s), via explorer
               </p>
+
+              {/* Tendência coletada localmente (v3): dado real acumulado por
+                  este navegador — nenhuma API pública expõe a série, e a
+                  legenda diz exatamente isso (nunca fingir histórico) */}
+              <div className="mt-10">
+                <p className="font-mono text-caption tracking-wide text-mist-400">
+                  [ TENDÊNCIA · COLETADA NESTE NAVEGADOR ]
+                </p>
+                <div className="mt-3">
+                  <TrendSparkline
+                    values={hashrateHistory.map((reading) => reading.h)}
+                    summary={trendSummary}
+                    width={340}
+                    height={64}
+                  />
+                </div>
+                <p className="mt-2 max-w-md text-label text-mist-400">
+                  Últimas {NETWORK_HASHRATE_LIMIT} leituras (1 por bloco, ~2 min) guardadas
+                  neste navegador com a página aberta — não há série histórica pública de
+                  hashrate pra buscar pronta.
+                </p>
+              </div>
             </>
           )}
         </div>

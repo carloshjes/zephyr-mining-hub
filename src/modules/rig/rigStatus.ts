@@ -77,26 +77,8 @@ function isValidReading(value: unknown): value is HashrateReading {
   )
 }
 
-function loadAllHistories(): Record<string, HashrateReading[]> {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return {}
-    const parsed: unknown = JSON.parse(raw)
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {}
-    const histories: Record<string, HashrateReading[]> = {}
-    for (const [key, readings] of Object.entries(parsed)) {
-      if (Array.isArray(readings)) {
-        histories[key] = readings.filter(isValidReading).slice(-HASHRATE_HISTORY_LIMIT)
-      }
-    }
-    return histories
-  } catch {
-    return {}
-  }
-}
-
 export function loadHashrateHistory(key: string): HashrateReading[] {
-  return loadAllHistories()[key] ?? []
+  return loadAllFrom(STORAGE_KEY, HASHRATE_HISTORY_LIMIT)[key] ?? []
 }
 
 /**
@@ -108,22 +90,87 @@ export function appendHashrateReading(
   hashrate: number,
   now: number = Date.now(),
 ): HashrateReading[] {
-  const histories = loadAllHistories()
-  const previous = histories[key] ?? []
-  const last = previous[previous.length - 1]
-  if (last && now - last.t < MIN_READING_GAP_MS) return previous
-  const next = [...previous, { t: now, h: hashrate }].slice(-HASHRATE_HISTORY_LIMIT)
-  histories[key] = next
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(histories))
-  } catch {
-    // Sem localStorage a régua vive só na sessão — aceitável
-  }
-  return next
+  return appendTo(STORAGE_KEY, key, hashrate, MIN_READING_GAP_MS, HASHRATE_HISTORY_LIMIT, now)
 }
 
 /** Média das leituras, ou undefined com menos de 3 (referência fraca demais). */
 export function referenceAverage(readings: HashrateReading[]): number | undefined {
   if (readings.length < 3) return undefined
   return readings.reduce((sum, reading) => sum + reading.h, 0) / readings.length
+}
+
+// ---------------------------------------------------------------------------
+// Histórico DIÁRIO de hashrate (v3) — alimenta o gráfico de tendência de 24 h
+// do dashboard. STORE SEPARADO do histórico de status acima de propósito: a
+// régua do "abaixo do esperado" é a média de ~30 min (30 leituras / 55 s) e
+// mudar a cadência dela mudaria a semântica do estado (e o rig-e2e semeia
+// aquele storage direto). Parâmetros do diário (decisão v3, NOTES.md):
+// - gap 290 s (~5 min): sobrevive ao jitter do polling de 60 s da pool e
+//   deixa o dia inteiro caber num payload pequeno;
+// - cap 288 leituras = 24 h exatas em passos de 5 min (~7 KB por chave).
+// Fonte: SÓ o hashrate da pool (carteira inteira) — o XMRig mede um rig e
+// misturar escalas falsearia a curva (mesma regra do histórico de status).
+//
+// A implementação virou motor genérico compartilhado com o histórico de
+// status (mesmo formato de storage: mapa chave → leituras).
+
+export const DAILY_HASHRATE_LIMIT = 288
+export const DAILY_READING_GAP_MS = 290_000
+
+const DAILY_STORAGE_KEY = 'zephyr-hub.rig.hashrate-daily.v1'
+
+export function loadDailyHashrateHistory(key: string): HashrateReading[] {
+  return loadAllFrom(DAILY_STORAGE_KEY, DAILY_HASHRATE_LIMIT)[key] ?? []
+}
+
+/** Anexa leitura ao histórico diário (gap de ~5 min, cap de 24 h). */
+export function appendDailyHashrateReading(
+  key: string,
+  hashrate: number,
+  now: number = Date.now(),
+): HashrateReading[] {
+  return appendTo(DAILY_STORAGE_KEY, key, hashrate, DAILY_READING_GAP_MS, DAILY_HASHRATE_LIMIT, now)
+}
+
+// ---------------------------------------------------------------------------
+// Motor comum dos dois históricos (status e diário)
+
+function loadAllFrom(storageKey: string, limit: number): Record<string, HashrateReading[]> {
+  try {
+    const raw = window.localStorage.getItem(storageKey)
+    if (!raw) return {}
+    const parsed: unknown = JSON.parse(raw)
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return {}
+    const histories: Record<string, HashrateReading[]> = {}
+    for (const [key, readings] of Object.entries(parsed)) {
+      if (Array.isArray(readings)) {
+        histories[key] = readings.filter(isValidReading).slice(-limit)
+      }
+    }
+    return histories
+  } catch {
+    return {}
+  }
+}
+
+function appendTo(
+  storageKey: string,
+  key: string,
+  hashrate: number,
+  gapMs: number,
+  limit: number,
+  now: number,
+): HashrateReading[] {
+  const histories = loadAllFrom(storageKey, limit)
+  const previous = histories[key] ?? []
+  const last = previous[previous.length - 1]
+  if (last && now - last.t < gapMs) return previous
+  const next = [...previous, { t: now, h: hashrate }].slice(-limit)
+  histories[key] = next
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(histories))
+  } catch {
+    // Sem localStorage o histórico vive só na sessão — aceitável
+  }
+  return next
 }

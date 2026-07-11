@@ -1,11 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { projectNextHalving } from '../../lib/emission'
 import { formatDateTime, formatInteger, formatZeph } from '../../lib/format'
 import { Skeleton } from '../../components/ui/Skeleton'
 
-// Hero da página: contagem regressiva pro próximo halving.
+// Faixa secundária da página: contagem regressiva pro próximo halving.
 // A projeção é recalculada a cada atualização da recompensa base (30s) e o
 // relógio tica localmente a cada segundo em cima da data estimada.
+//
+// v3: a faixa virou READOUT — moldura hairline sempre presente + superfície
+// elevada ink-900 + cabeçalho separado, a MESMA receita do painel RESERVE
+// RATIO do Raio-X (era o único elemento secundário do produto sem tratamento
+// de instrumento; carregando, em cauda ou contando, a moldura existe).
 
 interface HalvingCountdownProps {
   /** base_reward_atoms do último bloco (string da API) — undefined enquanto carrega. */
@@ -43,6 +48,21 @@ function CountdownSegment({ value, unit }: { value: number; unit: string }) {
   )
 }
 
+// Moldura do readout — compartilhada pelos três estados (carregando, cauda,
+// contagem): o instrumento nunca rende como retângulo vazio nem some
+function ReadoutFrame({ children }: { children: ReactNode }) {
+  return (
+    <section className="border border-hairline bg-ink-900">
+      <header className="border-b border-hairline px-4 py-2">
+        <h2 className="font-mono text-caption tracking-wide text-mist-300">
+          [ PRÓXIMO HALVING ]
+        </h2>
+      </header>
+      <div className="px-4 py-5 sm:px-6">{children}</div>
+    </section>
+  )
+}
+
 export function HalvingCountdown({ baseRewardAtoms, isLoading }: HalvingCountdownProps) {
   // Number() é seguro aqui: a recompensa atual (~6,5e12 átomos) fica bem
   // abaixo do limite de precisão de 2^53
@@ -58,31 +78,23 @@ export function HalvingCountdown({ baseRewardAtoms, isLoading }: HalvingCountdow
     return () => window.clearInterval(timer)
   }, [])
 
-  const heading = (
-    <h2 className="font-mono text-caption tracking-wide text-zeph-300">[ PRÓXIMO HALVING ]</h2>
-  )
-
   if (isLoading || !projection) {
     return (
-      <section className="border-t border-hairline pt-6">
-        {heading}
-        <div className="mt-4 flex gap-6">
-          <Skeleton className="h-12 w-64" />
-        </div>
-      </section>
+      <ReadoutFrame>
+        <Skeleton className="h-12 w-64" />
+      </ReadoutFrame>
     )
   }
 
   if (projection.isTailEmission) {
     return (
-      <section className="border-t border-hairline pt-6">
-        {heading}
-        <p className="mt-3 text-data-md font-semibold">Emissão de cauda ativa</p>
+      <ReadoutFrame>
+        <p className="text-data-md font-semibold">Emissão de cauda ativa</p>
         <p className="mt-2 text-body text-mist-400">
           A recompensa base chegou ao piso de {formatZeph(projection.nextThresholdZeph, 1)}{' '}
           por bloco e não cai mais — não há próximos halvings.
         </p>
-      </section>
+      </ReadoutFrame>
     )
   }
 
@@ -90,16 +102,13 @@ export function HalvingCountdown({ baseRewardAtoms, isLoading }: HalvingCountdow
   const { days, hours, minutes, seconds } = splitCountdown(secondsLeft)
 
   return (
-    <section className="border-t border-hairline pt-6">
+    <ReadoutFrame>
       <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-4">
-        <div>
-          {heading}
-          <div className="mt-3 flex flex-wrap items-end gap-x-6 gap-y-3">
-            <CountdownSegment value={days} unit="dias" />
-            <CountdownSegment value={hours} unit="horas" />
-            <CountdownSegment value={minutes} unit="min" />
-            <CountdownSegment value={seconds} unit="seg" />
-          </div>
+        <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
+          <CountdownSegment value={days} unit="dias" />
+          <CountdownSegment value={hours} unit="horas" />
+          <CountdownSegment value={minutes} unit="min" />
+          <CountdownSegment value={seconds} unit="seg" />
         </div>
         <div className="max-w-xl">
           <p className="text-body text-mist-300">
@@ -117,6 +126,6 @@ export function HalvingCountdown({ baseRewardAtoms, isLoading }: HalvingCountdow
           </p>
         </div>
       </div>
-    </section>
+    </ReadoutFrame>
   )
 }

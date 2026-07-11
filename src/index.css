@@ -1,37 +1,41 @@
 @import "tailwindcss";
 
-/* Tokens da direção visual "Sinal Técnico" v2 (2026-07-10) — fonte única de
+/* Tokens da direção visual "Sinal Técnico" v3 (2026-07-10) — fonte única de
    cor E tipografia do produto. Nenhum componente usa hex ou tamanho de fonte
    próprio: ou utilitário Tailwind gerado daqui, ou var(--color-*) quando o
    valor é data-driven (séries de gráfico).
 
-   v2 sobre o R1 (evidência em NOTES.md, medição com scripts/contrast-check.mjs):
-   - Fundo neutralizado #0a0a0a (referência rig.ai medida: croma zero) +
-     textura scanline monocromática — a ÚNICA exceção à regra anti-gradiente.
-   - Família zeph recalibrada pro matiz ≈244° (paleta oficial medida no
-     zephyrprotocol.com via getComputedStyle); S e L preservados do R1.
-   - Vermelho alert REMOVIDO do sistema. Cor semântica agora é binária:
-     good (verde) = positivo/saudável · bad (laranja) = negativo/erro/offline.
-   - Escala tipográfica de 8 degraus em --text-* (fim do salto manchete→poeira).
+   v3 sobre o v2 (evidência em NOTES.md, medição com scripts/contrast-check.mjs):
+   - Fundo clareou #0a0a0a → #141414 (uso real: o preto puro pesava) — ainda
+     quase-preto NEUTRO, croma zero. Elevação e divisor sobem JUNTO com o
+     matiz preservado (ink-900 v2 teria 1,01:1 sobre o fundo novo — a
+     elevação sumiria).
+   - Textura de fundo evoluiu de scanline pra GRADE DE BLOCOS quadrados com
+     deriva lenta — segue a ÚNICA exceção à regra anti-gradiente.
+   - Família zeph no matiz ≈244° e semântica binária good/bad: intocadas do v2.
 
-   Contraste MEDIDO (WCAG 2.2) contra ink-950 #0a0a0a / listra da textura
-   #0f0f0f / ink-900:
-   - mist-100 16,8:1 · mist-300 9,6:1 · mist-400 5,7:1 (piso de texto corrido;
-     5,5:1 no pior caso da listra — segue AA)
-   - zeph-300 7,6:1 (texto ok) · zeph-500 3,8:1 (gráfico/texto grande APENAS)
-   - good 8,7:1 e bad 7,1:1 (texto ok em qualquer fundo do sistema; texto
-     ink-950 sobre chapado good/bad: 8,7:1 / 7,1:1)
-   - zeph-700 2,0:1 (1,94:1 na listra) e zeph-800/mist-600/hairline: SÓ
-     gráfico-com-alívio ou decoração — nunca texto (mesma política do R1). */
+   Contraste MEDIDO (WCAG 2.2) contra ink-950 #141414 / célula clara da
+   textura #191919 / ink-900 #1d1824:
+   - mist-100 15,6:1 · mist-300 9,0:1 · mist-400 5,3:1 (piso de texto corrido;
+     5,0:1 no pior caso da célula clara — segue AA)
+   - zeph-300 7,1:1 (texto ok) · zeph-500 3,5:1 (gráfico/texto grande APENAS;
+     3,35:1 na célula — segue ≥3:1)
+   - good 8,1:1 e bad 6,6:1 (texto ok em qualquer fundo do sistema; texto
+     ink-950 sobre chapado good/bad: 8,1:1 / 6,6:1)
+   - zeph-700 1,9:1 (1,78:1 na célula) e zeph-800/mist-600/hairline: SÓ
+     gráfico-com-alívio ou decoração — nunca texto (mesma política do R1;
+     os canais de alívio do degrau escuro seguem obrigatórios). */
 @theme {
-  /* Fundo unificado quase preto NEUTRO (sem tinta azul) + superfície elevada.
+  /* Fundo unificado quase preto NEUTRO (croma zero) + superfície elevada.
      ink-900 mantém tinta roxa de propósito: é a elevação de marca sobre o
-     fundo neutro (tooltip, thead sticky). */
-  --color-ink-950: #0a0a0a;
-  --color-ink-900: #141119;
+     fundo neutro (tooltip, thead sticky, readouts). v3: os dois clarearam
+     em conjunto — a elevação preserva a razão de contraste do v2 (1,06:1). */
+  --color-ink-950: #141414;
+  --color-ink-900: #1d1824;
 
-  /* Divisor hairline — substitui a borda pesada arredondada das caixas */
-  --color-hairline: #221f29;
+  /* Divisor hairline — substitui a borda pesada arredondada das caixas.
+     v3: subiu com o fundo (1,23:1, a mesma presença do v2). */
+  --color-hairline: #282530;
 
   /* Família de roxo da marca Zephyr, matiz ≈244° (medido no site oficial;
      antes ≈250–252°, que puxava pra lavanda-quente) */
@@ -75,9 +79,17 @@
   --text-data-md--line-height: 1.2;
   --text-data-lg: 2.125rem;
   --text-data-lg--line-height: 1.15;
-  --text-headline: clamp(3.5rem, 10vw, 8rem);
+  /* v3: teto 8rem → 6rem (uso real: 128px estourava o hero de /rede e
+     /meu-rig em desktop; 96px segue dono da dobra — capturas em NOTES.md).
+     Piso e inclinação intactos: abaixo de ~960px nada muda. */
+  --text-headline: clamp(3.5rem, 10vw, 6rem);
   --text-headline--line-height: 1;
-  --text-display: clamp(4.5rem, 15vw, 13rem);
+  /* v3: teto do display 13rem → 11rem (mais conservador que o headline — o
+     número perdia a mão em xl+). O SUB mantém o teto de 7rem DE PROPÓSITO:
+     medido em NOTES.md, o corte real da manchete na borda só existe na faixa
+     ~1280–1360px e é o sub quem sangra — encolher os dois juntos apagaria o
+     signature move; encolher só o número preserva (e até reforça) o corte. */
+  --text-display: clamp(4.5rem, 15vw, 11rem);
   --text-display--line-height: 1;
   /* Sub da manchete ("pro minerador") — subordinado ao display, só no Raio-X */
   --text-display-sub: clamp(2.5rem, 8vw, 7rem);
@@ -87,6 +99,19 @@
      Todo uso vem acompanhado de motion-reduce:animate-none — sem exceção. */
   --animate-chart-draw: chart-draw 700ms cubic-bezier(0.33, 1, 0.68, 1) both;
   --animate-data-pulse: data-pulse 900ms ease-out;
+  /* Respiração contínua do wash das faixas do Raio-X (v3): opacity do
+     ELEMENTO oscila 1→0,82 (multiplicativa — preserva o washOpacity próprio
+     de cada série), ciclo de 6 s em fase única (dessincronizar leria como
+     tremulação entre faixas vizinhas). Só opacity: a cor computada e a
+     contagem de <path> que o rewards-e2e verifica ficam intactas. */
+  --animate-wash-breathe: wash-breathe 6s ease-in-out infinite;
+  /* Halo "ao vivo" do StatusBadge normal do rig (v3): anel que expande e
+     esvai atrás do ponto — SÓ no estado saudável (animar "vivo" num
+     indicador offline não faz sentido). Tempo na família do twinkle (2,4 s,
+     não o 1 s frenético do ping padrão); o fantasma usa motion-reduce:hidden
+     em vez de animate-none — parado ele seria um disco estático em cima do
+     ponto, então com reduced-motion ele SOME (mesma política: nada se move). */
+  --animate-status-ping: status-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
   /* Cintilância da marca (Prompt N2) — portada da exploração de logo
      (scripts/logo-preview.html, card F3): ~30% dos pontos do LogoMark em 3
      grupos defasados, opacidade nunca zera. Parâmetros EXATOS do preview:
@@ -112,6 +137,26 @@
       opacity: 0.45;
     }
   }
+  @keyframes wash-breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.82;
+    }
+  }
+  @keyframes status-ping {
+    0% {
+      transform: scale(1);
+      opacity: 0.6;
+    }
+    60%,
+    100% {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+  }
   @keyframes twinkle {
     0%,
     100% {
@@ -132,16 +177,76 @@
 @layer base {
   body {
     @apply bg-ink-950 text-mist-100 antialiased;
-    /* Textura scanline monocromática (referência rig.ai): listra branca a 2%
-       a cada 3px. EXCEÇÃO explícita e única à regra "proibido gradiente" —
-       não abre precedente pra gradiente decorativo colorido em lugar nenhum.
-       Pior caso de contraste medido contra a listra #0f0f0f (NOTES.md). */
-    background-image: repeating-linear-gradient(
-      0deg,
-      rgb(255 255 255 / 0.02) 0px,
-      rgb(255 255 255 / 0.02) 1px,
-      transparent 1px,
-      transparent 3px
+  }
+
+  /* Textura de fundo v3: grade de blocos quadrados monocromáticos (3px de
+     bloco, 3px de vão, branco a 2%) com deriva diagonal lenta — evolução da
+     scanline do v2 e a MESMA exceção única e documentada à regra "proibido
+     gradiente"; não abre precedente pra gradiente decorativo colorido.
+     Pior caso de contraste = a célula clara #191919 (medido em NOTES.md).
+
+     Por que um pseudo-elemento e não background-image no body: animar
+     background-position repinta a viewport inteira a cada frame; transform
+     num layer fixo fica só no compositor. O layer nasce 1 período (6px)
+     maior pra cima/esquerda pra deriva nunca expor borda sem textura, e
+     z-index -1 o deixa atrás de todo conteúdo (elementos com bg opaco —
+     rail, thead sticky — cobrem a textura, como já cobriam a scanline).
+     Deriva: 1 período por ciclo (loop sem emenda), ~0,75px/s por eixo —
+     vivo de perto, invisível competindo com dado. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: -6px 0 0 -6px;
+    z-index: -1;
+    pointer-events: none;
+    background-image: conic-gradient(
+      rgb(255 255 255 / 0.02) 0 25%,
+      transparent 0
     );
+    background-size: 6px 6px;
+    animation: texture-drift 8s linear infinite;
+  }
+
+  @keyframes texture-drift {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(6px, 6px, 0);
+    }
+  }
+
+  /* Movimento de ambiente respeita reduced-motion DE VERDADE: a grade fica,
+     a deriva para (mesma política motion-reduce:animate-none dos gráficos). */
+  @media (prefers-reduced-motion: reduce) {
+    body::before {
+      animation: none;
+    }
+  }
+}
+
+/* Scrollbar nos tokens do sistema (v3) — a barra branca padrão do navegador
+   quebrava o tema nas tabelas roláveis. Uma classe só pra todo container com
+   overflow (tabela do Raio-X, Bússola de Pools, workers do Rig): trilho na
+   superfície elevada, polegar decorativo mist-600 (2,4:1 — decoração, mesma
+   classe de uso do token). Chromium novo usa scrollbar-color e ignora os
+   ::-webkit-* (comportamento speçado); os ::-webkit-* cobrem Chromium antigo.
+   Cantos retos, linguagem técnica da direção. */
+@utility scrollbar-themed {
+  scrollbar-color: var(--color-mist-600) var(--color-ink-900);
+
+  &::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  &::-webkit-scrollbar-track {
+    background: var(--color-ink-900);
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-mist-600);
+    border: 2px solid var(--color-ink-900);
+  }
+  &::-webkit-scrollbar-corner {
+    background: var(--color-ink-900);
   }
 }
