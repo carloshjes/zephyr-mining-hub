@@ -1887,6 +1887,292 @@ falhar, ajuste antes de encerrar a sessão.
 
 ---
 
+## Prompt R5 — Fable: lapidações finais (sparklines largos, chips da Bússola, mobile do Raio-X, gráfico do Rig)
+
+Roda depois do R4 — **commite o R4 antes de começar esta sessão** (regras 5/6 do
+HANDOFF: feche a sessão que rodou R4, PowerShell limpa fora de qualquer `claude`
+ativo, add/commit/push, só então abra a sessão nova). Direção decidida em 2026-07-11
+a partir de 5 screenshots anotados do Carlos usando o build do R4 — é lapidação, não
+redesign: nenhum ponto reabre composição, token de cor ou semântica já fechados.
+
+```
+Aja como um engenheiro front-end sênior de direção visual fazendo a rodada de
+lapidação final de um design system já validado (R1–R4) — invoque a skill
+creative-ui-director no início da sessão. Os pontos abaixo vêm de uso real com
+screenshot; a maioria tem direção fechada, e o único com latitude criativa real é o
+tratamento visual das barras do Rig (item 4).
+
+<contexto>
+Leia CLAUDE.md e NOTES.md (em especial as seções do R4 — chips da Bússola,
+TrendSparkline variant bars, scrollbar, motor diário do rig) antes de começar. O
+build de referência é o do R4 recém-commitado.
+</contexto>
+
+<diagnostico>
+1. /rede — o instrumento [ TENDÊNCIA · COLETADA NESTE NAVEGADOR ] usa o
+   TrendSparkline em largura fixa e sobra um vão grande à direita na coluna
+   dominante em desktop: o gráfico parece menor que a importância que tem.
+2. /pools — o empilhamento em coluna do R4 resolveu o desalinhamento dos chips,
+   mas quando os DOIS aparecem (caso real: HeroMiners com maior hashrate E menor
+   fee) a linha fica alta demais. Direção nova do Carlos, com screenshot:
+   [ maior hashrate ] fica AO LADO do nome da pool, na mesma linha; [ menor fee ]
+   fica ABAIXO do primeiro chip (não abaixo do nome). Há espaço pra alargar a
+   tabela pra direita se precisar.
+3. /recompensa (mobile) — dois pontos:
+   a. Os botões do SegmentedControl da janela (100/200/500/1.000 blocos) estão
+      altos demais no mobile — afinar (menos padding vertical).
+   b. A scrollbar da tabela ainda lê grossa e com TINTA ROXA — o thumb hairline
+      (#282530) tem matiz ≈262°: croma baixa, mas ainda roxa, e o Carlos percebe.
+      Direção: fina/sutil e NEUTRA de verdade (cinza/preto, croma zero).
+4. /meu-rig — a faixa [ SALDO PENDENTE · MESMAS LEITURAS ] SAI (decisão do Carlos
+   usando o produto: duas séries empilhadas competem e o saldo diz pouco no dia a
+   dia). O gráfico de barras [ TENDÊNCIA 24 H ] vira o único instrumento de
+   tendência da tela e deve CRESCER — ocupar a largura disponível à direita — e
+   ficar mais vivo/visível ("adicionar algum efeito ativo", nas palavras dele),
+   dentro das regras de movimento do sistema.
+   Também checado pelo Carlos com os DOIS estados acontecendo de verdade: o
+   [ Minerando normal ] (readout nu do R4) está correto, mas o
+   [ Hashrate abaixo do esperado ] ainda rende como caixa contornada/tintada —
+   decisão dele: os dois usam a MESMA anatomia de readout nu, mudando só a cor
+   (good→bad) e o texto.
+5. Favicon: o atual (Z̶ em zeph-300) SAI — o Carlos vai implementar outro
+   depois; até lá a aba fica sem ícone customizado.
+6. Estabilidade: nada do mobile pode quebrar com essas mudanças — verificação
+   explícita nos 3 breakpoints ao final.
+</diagnostico>
+
+<decisoes_ja_tomadas>
+Não redecida:
+1. Chips da Bússola: maior hashrate ao lado do nome (mesma linha), menor fee
+   embaixo do CHIP (formando coluna de chips à direita do nome, não abaixo dele).
+   Quando só um chip existe, ele fica ao lado do nome. Continua RANKING (zeph),
+   nunca good/bad.
+2. A faixa do saldo pendente sai da UI. A amostragem do `b?` no motor diário
+   (rigStatus.ts) é decisão sua: manter (campo opcional, custo ~zero, reabilita
+   fácil) com comentário justificando, ou remover — sem migração de storage nos
+   dois casos. Documente a escolha.
+3. Scrollbar neutra: a família atual inteira (hairline/mist/ink-900) tem matiz
+   roxo — vai precisar de um token DECORATIVO novo e neutro (ex.
+   --color-scroll, cinza croma zero na faixa de ~#333–#3f3f3f) registrado no
+   @theme com papel documentado (SÓ scrollbar, nunca texto/borda de conteúdo).
+   Afinar também (6px). A mudança é na @utility scrollbar-themed — vale
+   automaticamente pras 3 tabelas.
+4. Largura responsiva dos gráficos: prefira MEDIR o container (o hook
+   useElementWidth já existe em src/hooks — use-o) a fixar um width maior na mão.
+   Vale pros dois instrumentos: a linha do /rede (item 1) e as barras do rig
+   (item 4). Altura pode subir junto no rig se a proporção pedir.
+5. StatusBadge: normal e below passam a compartilhar a anatomia de readout NU
+   (ponto + rótulo mono), diferenciados por COR (good/bad) e pelo TEXTO do
+   rótulo; offline continua caixa sólida (superfície = pior estado). Isso muda
+   deliberadamente a escada do R4 (below perde a caixa) — registre o desvio no
+   NOTES.md: o canal não-cor entre normal e below agora é o texto por extenso
+   (e o halo, que segue SÓ no normal); offline segue distinto por peso.
+6. Favicon: remova o <link rel="icon"> do index.html e o public/favicon.svg —
+   SEM substituto neste prompt (o novo ícone é do Carlos, vem depois).
+
+O que você decide (com evidência, padrão do projeto):
+- Tratamento visual das barras do rig (skill creative-ui-director): candidatos a
+  considerar — última barra (leitura mais recente) em zeph-300 com as demais em
+  zeph-500; hover/focus com o valor da leitura em caption mono; data-pulse na
+  chegada de leitura nova (useDataPulse já existe). TODO movimento novo em par
+  com motion-reduce:animate-none, sem exceção. As barras seguem mais quietas que
+  o hero — instrumento secundário não vira segunda região dominante (rubrica).
+- Quanto o SegmentedControl afina no mobile: mantenha área de toque utilizável
+  (não desça de ~32px de alvo real) — meça no viewport 390 e documente o valor.
+- Se a tabela da Bússola precisa de min-width maior pro chip ao lado do nome não
+  quebrar em lg/xl — decida medindo nos breakpoints reais.
+</decisoes_ja_tomadas>
+
+<tarefa>
+Um item de cada vez, e2e do módulo antes de seguir:
+
+1. /rede (NetworkPulsePage.tsx): TrendSparkline da tendência de rede em largura
+   responsiva via useElementWidth — preenche a coluna dominante em desktop,
+   segue coubível no mobile. Confira que o uso do TrendSparkline na Bússola
+   (luck) fica INTACTO.
+2. /pools (PoolsPage.tsx): rearranjo dos chips conforme decisão 1. Force o caso
+   real de dois chips (HeroMiners hoje) e confirme visualmente em 1360 e 1024.
+   ATENÇÃO — mudança de contrato de e2e deliberada: os 3 checks permanentes que
+   o R4 adicionou ao pools-e2e verificam o arranjo empilhado antigo (tops
+   distintos/lefts iguais); atualize-os pro arranjo novo (chip 1 na linha do
+   nome; chip 2 abaixo do chip 1) e documente a mudança no próprio script.
+3. /recompensa: afinar o SegmentedControl no mobile (item a) e a scrollbar
+   neutra + 6px (item b, com o token novo da decisão 3). Rode rewards-e2e
+   normal + lowratio (a scrollbar não tem contrato de cor no e2e, mas confirme).
+4. /meu-rig (RigDashboard.tsx, TrendSparkline.tsx, rigStatus.ts): remover a
+   faixa do saldo pendente (decisão 2); barras em largura responsiva (decisão
+   4) e tratamento visual novo (sua latitude, com a skill); padronizar o estado
+   below na anatomia do normal (decisão 5) — force os dois estados (o rig-e2e
+   já semeia o cenário below) e capture-os. Se algum check do rig-e2e
+   referenciar a faixa removida ou a caixa do below, atualize documentando.
+   Rode rig-e2e normal + notfound.
+5. Favicon: remover link + arquivo (decisão 6); confirme que o build não
+   referencia o arquivo removido.
+6. Verificação final: npm run build limpo; e2e completa (rewards×3, rig×2,
+   pools×1); design-shots nos 3 breakpoints com revisão contra a rubrica de 8
+   perguntas — atenção especial ao mobile (item 5 do diagnóstico: nada quebrou);
+   CLAUDE.md e NOTES.md atualizados (arranjo novo dos chips, token da scrollbar,
+   decisão do b?, tratamento das barras, larguras responsivas).
+</tarefa>
+
+<restricoes>
+- Preserva tudo que R1–R4 fecharam: tokens (fora o decorativo novo da scrollbar),
+  composição dominante/rail, convenção mono [ LABEL ], semântica good/bad/zeph,
+  zero gradiente novo, nunca eixo duplo, procedência do dado sempre declarada.
+- TrendSparkline: a variante line continua default e os usos existentes não
+  mudam de comportamento (só a largura do /rede).
+- Nenhum dado novo de API — tudo desta rodada é apresentação sobre dado que já
+  chega.
+</restricoes>
+
+<criterios_de_aceite>
+- Sparkline do /rede preenchendo a coluna dominante em desktop (captura).
+- Chips da Bússola no arranjo novo, confirmado com o caso real de dois chips
+  (captura em 1360 e 1024), pools-e2e atualizado e passando.
+- SegmentedControl mais fino no mobile com alvo de toque documentado; scrollbar
+  6px neutra (croma zero) nas 3 tabelas.
+- Faixa do saldo pendente ausente; barras do rig maiores/responsivas com o
+  tratamento novo, motion-reduce pareado, rig-e2e passando.
+- Estados normal e below do rig com a MESMA anatomia de readout nu (só cor e
+  texto mudam; captura dos dois), offline seguindo sólido; desvio da escada do
+  R4 registrado no NOTES.md.
+- Favicon removido (index.html sem <link rel="icon">, public/favicon.svg fora
+  do repo).
+- npm run build limpo; e2e completa verde; design-shots 12/12 revisadas
+  (rubrica de 8), mobile explicitamente conferido; CLAUDE.md/NOTES.md
+  atualizados.
+</criterios_de_aceite>
+```
+
+---
+
+## Prompt T1 — Fable: tema claro "white/blue" + botão de troca de tema
+
+Roda depois do R5 — **commite o R5 antes** (regras 5/6 do HANDOFF). Direção e paleta
+decididas em 2026-07-11 no chat de planejamento (paleta "A · Azul técnico" escolhida
+pelo Carlos entre 3 candidatas): o produto ganha um segundo tema, claro, azul sobre
+branco, cobrindo TUDO — fundo, textura, logo, gráficos, tabelas, estados, efeitos —
+com um botão de troca que segue a linguagem do sistema. O tema escuro atual continua
+sendo o padrão e não muda em nada.
+
+```
+Aja como um engenheiro front-end sênior implementando o segundo tema de um design
+system totalmente tokenizado — invoque a skill creative-ui-director no início. A
+vantagem estrutural: NENHUM componente usa hex solto (regra do projeto desde o R1),
+então o tema é, na essência, um segundo conjunto de VALORES pros mesmos tokens do
+@theme de src/index.css — mais a infraestrutura de troca/persistência e a verificação
+de contraste do conjunto novo.
+
+<contexto>
+Leia CLAUDE.md e NOTES.md (tokens v3/R4, textura de blocos, rampa da logo, semântica
+good/bad, scrollbar) antes de começar. Repare como TUDO já referencia var(--color-*):
+componentes via utilitário Tailwind, SVG data-driven via style, LogoMark via var() por
+ponto — é isso que torna este prompt viável numa sessão.
+</contexto>
+
+<paleta_de_partida>
+Valores de PARTIDA (medidos aproximadamente no planejamento; recalibre com
+scripts/contrast-check.mjs como fonte de verdade, mantendo os mesmos PISOS de papel
+do tema escuro: destaque ≥7:1, suporte ≥3:1 mesmo na célula da textura, piso de
+texto corrido ≥4,5:1 com folga, alívio/decoração documentados):
+
+- fundo (ink-950 claro): #f7f7f7 — NEUTRO croma zero, espelho do #141414.
+- textura: mesma grade de blocos 3px/vão 3px com deriva, PRETO a ~2-3% (célula
+  escura ≈ #eceef2 vira o pior caso de contraste — meça contra ela).
+- superfície elevada (ink-900 claro): #ffffff — no claro a elevação é MAIS clara
+  que o fundo (direção invertida de propósito; documente).
+- hairline claro: ~#d9dde6 (tinta azul sutil, espelho da tinta roxa do escuro).
+- família azul (matiz ≈217°, papéis idênticos aos do zeph):
+  zeph-300→#1d4ed8 (destaque/manchete/chip), zeph-500→#3b82f6 (suporte/gráfico),
+  zeph-700→#93c5fd (SÓ gráfico com alívio), zeph-800→#bfdbfe (SÓ decoração).
+- texto (espelho do mist, cinza-azul): mist-100→#171c26, mist-300→#3f4859,
+  mist-400 (piso)→#5a6373, mist-600 (decoração)→#a9b1c2.
+- estados: good→#15803d, bad→#c2410c (semântica binária intacta; texto claro
+  sobre chapado — meça).
+- scrollbar (token neutro do R5): valor claro neutro (~#c8c8c8).
+</paleta_de_partida>
+
+<decisoes_ja_tomadas>
+1. Arquitetura: os tokens MANTÊM os nomes atuais (ink/zeph/mist/good/bad — são
+   papéis, não cores literais); o tema claro é um bloco de override
+   `[data-theme='light']` redefinindo os MESMOS custom properties. Nenhum
+   componente muda de classe por causa do tema.
+2. Escuro continua o DEFAULT (identidade do produto e contrato dos e2e, que
+   verificam cor computada no default). Persistência em localStorage
+   (`zephyr-hub.theme.v1`); aplicar o atributo ANTES do primeiro paint (script
+   inline mínimo no index.html) pra não piscar tema errado no load.
+3. Botão de troca: convenção mono do sistema — `[ TEMA · ESCURO ]` /
+   `[ TEMA · CLARO ]` — no rail (desktop) e no bloco de topo (mobile), como
+   <button> acessível (rótulo por extenso é o estado ATUAL; decida e documente
+   se o rótulo mostra o atual ou o destino — consistente nos dois arranjos).
+4. A logo acompanha SOZINHA (os pontos referenciam var()) — mas a legibilidade
+   do tom por ponto no fundo claro precisa de captura ampliada (mesma técnica de
+   sempre) nos DOIS tamanhos (rail 176px, mobile 128px). O ESPELHO manual de
+   tokens do scripts/logo-preview.html ganha o conjunto claro também (armadilha
+   conhecida do N2 — ele não flui sozinho).
+5. Favicon: o R5 REMOVEU o ícone atual (um novo, do Carlos, virá depois e fora
+   deste prompt) — não crie favicon aqui. Se quando esta sessão rodar já existir
+   um novo, ele NÃO muda com o tema (vive fora da cascata) — documente.
+6. Textura, respiração, draw-in, pulso, halo, cintilância: os MESMOS efeitos nos
+   dois temas (tempos e keyframes idênticos; só as cores fluem via var()).
+   Confira em especial a textura (o branco 2% do escuro vira preto ~2-3% no
+   claro — é um par de cores no conic-gradient, tokenize-o) e os washes/tints
+   compostos (good/10, bad/20, zeph-800/40 do SegmentedControl): recalcule a
+   composição real sobre fundo claro com o contrast-check e ajuste os
+   percentuais SE algum papel perder o piso (documente cada ajuste).
+</decisoes_ja_tomadas>
+
+<tarefa>
+1. Tokenização da troca: bloco [data-theme='light'] em src/index.css com o
+   conjunto da paleta de partida; par de cores da textura vira token se ainda
+   não for; script inline anti-flash no index.html; hook/util de tema
+   (localStorage + set do atributo).
+2. Botão de troca nos dois arranjos da casca (AppShell), convenção mono,
+   acessível, sem layout shift ao alternar o rótulo.
+3. Calibração medida: estenda scripts/contrast-check.mjs com a seção do tema
+   claro (todos os pares texto/fundo/célula-da-textura/superfície-elevada +
+   chapados good/bad/zeph-300 + tints compostos) e recalibre os valores de
+   partida até todos os papéis baterem os pisos. Tabela final no NOTES.md.
+4. Varredura de fuga: procure QUALQUER cor que não flua com o tema (hex solto
+   remanescente, rgba fixo, cor em atributo SVG em vez de style, canvas/imagem).
+   Cada achado: corrigir pra token ou documentar exceção (ex.: favicon).
+5. Verificação visual: design-shots nas 4 telas × 3 breakpoints × 2 TEMAS (24
+   capturas — adicione o parâmetro de tema ao script); revisão contra a rubrica
+   de 8 perguntas TAMBÉM no claro (hierarquia em P&B, estados sem cor, textura
+   não compete, etc.); capturas ampliadas da logo no claro (item 4 das
+   decisões).
+6. e2e completa no default escuro (contratos intactos — nenhum espelho de token
+   dos scripts deve precisar mudar); adicione ao menos um check de tema: troca
+   pelo botão aplica [data-theme='light'], persiste após reload, e volta.
+7. `npm run build` limpo; CLAUDE.md e NOTES.md atualizados (tabela do tema
+   claro, arquitetura da troca, decisões 1–6, achados da varredura).
+</tarefa>
+
+<restricoes>
+- O tema ESCURO não muda NADA (nenhum valor de token atual, nenhum componente) —
+  qualquer ajuste visual que você sinta falta no escuro fica pra outro prompt.
+- Zero gradiente novo (a textura segue a exceção única já documentada, nos dois
+  temas), zero sombra/blur/glow — a elevação no claro é superfície branca +
+  hairline, não sombra.
+- Semântica binária good/bad intacta; estados continuam nunca só-cor.
+- Nenhuma mudança de composição, tipografia ou movimento — este prompt é SÓ
+  cor/tema + botão de troca.
+</restricoes>
+
+<criterios_de_aceite>
+- Tema claro completo e aplicável via botão nos dois arranjos, persistente entre
+  reloads, sem flash de tema errado no load.
+- contrast-check com a seção clara passando os pisos de papel (tabela no
+  NOTES.md); nenhuma fuga de token sem documentação.
+- 24 capturas revisadas (4 telas × 3 breakpoints × 2 temas) contra a rubrica;
+  logo legível tom a tom no claro (captura ampliada).
+- e2e completa verde no escuro + check novo de troca/persistência de tema.
+- `npm run build` limpo; CLAUDE.md/NOTES.md atualizados.
+</criterios_de_aceite>
+```
+
+---
+
 ## Depois dos 5 prompts
 
 - Rode a skill **backend-structure-auditor** pra mapear qualquer deriva de padrão que

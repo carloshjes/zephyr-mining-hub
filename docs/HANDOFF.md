@@ -51,7 +51,7 @@ rewrite resolve isso sem backend próprio).
 | N1 (Fable) | Casca de navegação vira rail vertical (logo 128px) | ✅ feito, commitado e enviado | `3eb7d97` |
 | N2 (Fable) | Cintilância da logo (95/288 pontos, 3 fases) + recomposição mobile do rail (logo 96px, nav em grade 2×2) | ✅ feito, commitado e enviado | `e785e82` |
 | R3 (Fable) | Sinal Técnico v3: fundo mais claro + textura de blocos com movimento, --text-headline/--text-display recalibrados, halving vira readout, sparkline de hashrate de rede (novo, `networkHashrateHistory.ts` + `TrendSparkline.tsx` generalizado de `LuckSparkline`), chips da Bússola com fundo sólido, faixas do Raio-X com respiração de opacidade, RESERVE RATIO com bg-ink-900, fix do rótulo do piso (medido: 0,07 px da borda antes do fix, flip dinâmico depois), scrollbar/botões estilizados, StatusBadge do Rig com fundo tintado + halo no estado normal, gráfico de hashrate 24h no Rig (payments sondado ao vivo — 2Miners confirmou CORS+formato, HeroMiners não; regra "as duas ou nenhuma" descartou payments) | ✅ feito, verificado e commitado | `0c11837` |
-| R4 (Fable) | Correções de layout + acabamento a partir de 6 screenshots reais do Carlos: rampa da logo sem tom de branco (mist-300 saiu, 4 tons [.40,.29,.21,.10], regenerada via logo-export.mjs), rail 16rem (teto matemático do breakpoint xl) + header mobile 128px, chips da Bússola empilham em coluna + "N workers" nowrap, --text-display 11rem→9rem, legenda duplicada do Raio-X removida, rótulo do piso removido com código morto, scrollbar 8px thumb hairline, TrendSparkline variant bars + pendingBalance como faixa própria, StatusBadge normal vira readout nu (escada nada < tintado < sólido) | ✅ feito e verificado 2026-07-11 (e2e completa verde com 3 checks novos no pools-e2e + 1 contrato alterado no lowratio, build limpo, relato revisado por conteúdo neste chat) — **commit pendente**, working tree pronto | (preencher hash após o commit) |
+| R4 (Fable) | Correções de layout + acabamento a partir de 6 screenshots reais do Carlos: rampa da logo sem tom de branco (mist-300 saiu, 4 tons [.40,.29,.21,.10], regenerada via logo-export.mjs), rail 16rem (teto matemático do breakpoint xl) + header mobile 128px, chips da Bússola empilham em coluna + "N workers" nowrap, --text-display 11rem→9rem, legenda duplicada do Raio-X removida, rótulo do piso removido com código morto, scrollbar 8px thumb hairline, TrendSparkline variant bars + pendingBalance como faixa própria, StatusBadge normal vira readout nu (escada nada < tintado < sólido) | ✅ feito, verificado, commitado e enviado | `de6398c` |
 | 5 (Fable) | Integração final | ⬜ não iniciado — entra depois da tradução pro inglês | — |
 | — | Tradução pro inglês | ⬜ sessão separada, depois do R2 (não escrita ainda) | — |
 | — | Prompt de deploy no Vercel | ⬜ ainda não escrito | — |
@@ -196,12 +196,27 @@ porque tendem a se repetir:
 7. ~~Prompt R3 (skill `creative-ui-director`)~~ — rodou em duas sessões (rate
    limit no meio, retomada com `claude --continue`), **verificado e commitado**
    (`0c11837`).
-8. ~~Prompt R4~~ — rodou e foi verificado (2026-07-11); **commit pendente** (regras
-   5/6: fechar a sessão do Fable, PowerShell limpa, add/commit/push).
+8. ~~Prompt R4~~ — rodou, verificado, **commitado e enviado** (`de6398c`).
+8b. **Prompt R5 (lapidações finais)** — escrito em 2026-07-11 a partir de 5
+   screenshots do build R4, com 2 adendos checados depois: sparkline do /rede em
+   largura responsiva, chips da Bússola (maior hashrate ao lado do nome, menor
+   fee abaixo do chip), SegmentedControl mais fino no mobile + scrollbar neutra
+   (token decorativo novo, croma zero), faixa do saldo pendente SAI do rig +
+   barras maiores/responsivas com tratamento visual novo (latitude da skill),
+   estado below do rig padronizado na anatomia de readout nu do normal (desvio
+   deliberado da escada do R4 — texto/halo viram o canal não-cor), favicon
+   removido (novo ícone virá do Carlos depois). Pronto pra colar. ANTES de rodar:
+   commitar os docs pendentes (analise + prompts R5/T1 + handoff).
+8c. **Prompt T1 (tema claro white/blue)** — paleta "A · Azul técnico" (matiz
+   ≈217°, fundo neutro #f7f7f7) escolhida pelo Carlos entre 3 candidatas em
+   2026-07-11. Override [data-theme='light'] dos mesmos tokens, escuro segue
+   default, botão mono `[ TEMA · … ]` no rail e no bloco mobile, contrast-check
+   estendido, design-shots ×2 temas. Pronto pra colar — **só depois do commit do
+   R5**.
 9. Rodar as skills `backend-structure-auditor` e `code-audit-cleanup` — via Skill
    tool do chat Cowork, não via Claude Code. Subiu pra ANTES da tradução de
    propósito: os achados alimentam a reescrita do Prompt 5 e auditar antes de
-   traduzir evita retrabalho em texto que muda.
+   traduzir evita retrabalho em texto que muda. Roda depois do T1 (UI estável).
 10. Tradução pro inglês — sessão separada, prompt ainda não escrito. Decisão
     recomendada: inglês hardcode (sem i18n), registrar no CLAUDE.md.
 11. Prompt 5 (integração final) — **REESCREVER antes de colar**: foi escrito antes
