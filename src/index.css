@@ -87,6 +87,13 @@
      Todo uso vem acompanhado de motion-reduce:animate-none — sem exceção. */
   --animate-chart-draw: chart-draw 700ms cubic-bezier(0.33, 1, 0.68, 1) both;
   --animate-data-pulse: data-pulse 900ms ease-out;
+  /* Cintilância da marca (Prompt N2) — portada da exploração de logo
+     (scripts/logo-preview.html, card F3): ~30% dos pontos do LogoMark em 3
+     grupos defasados, opacidade nunca zera. Parâmetros EXATOS do preview:
+     2,6s ease-in-out, atrasos 0 / 0,9s / 1,7s por grupo. */
+  --animate-twinkle-1: twinkle 2.6s ease-in-out infinite;
+  --animate-twinkle-2: twinkle 2.6s ease-in-out 0.9s infinite;
+  --animate-twinkle-3: twinkle 2.6s ease-in-out 1.7s infinite;
 
   @keyframes chart-draw {
     from {
@@ -103,6 +110,15 @@
     }
     35% {
       opacity: 0.45;
+    }
+  }
+  @keyframes twinkle {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
     }
   }
 

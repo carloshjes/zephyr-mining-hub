@@ -794,3 +794,90 @@ screenshot é de página inteira — abaixo da 1ª dobra a coluna esquerda sai
 vazia NA FOTO; no navegador o rail acompanha o scroll). Evidências:
 .e2e-out/logo/rail-*.png (estudo de tamanho + contexto) e
 .e2e-out/shot-*.png (12 telas).
+
+# NOTES — Prompt N2: recomposição mobile + cintilância da marca (2026-07-10)
+
+Duas lacunas vistas com o produto rodando de verdade: abaixo de xl a casca
+ainda era o header intacto do R2 (logo 38px silhueta + nav quebrando em
+flex-wrap desalinhado) — o único lugar com menos cuidado de composição que o
+resto do sistema — e a cintilância da F3, validada na exploração (Prompt L1),
+nunca tinha sido portada (LogoMark 100% estático por decisão da época, com a
+ressalva "se um dia for pro app, respeitar prefers-reduced-motion" — o dia
+chegou, a pedido do Carlos).
+
+## Bloco de topo mobile — mesma linguagem do rail, custo vertical MEDIDO
+
+Método: `scripts/mobile-shell-shots.mjs` (novo; receita do rail-logo-shots —
+crop ×1 + lupa nearest-neighbor ×4 no app real, deviceScaleFactor 1 porque a
+régua conservadora é o ×1, retina só melhora) + medição da altura do bloco
+por candidato num viewport 390×700 (altura real de celular pequeno).
+
+- Empilhamento 1:1 do rail (logo 128 → wordmark → nav vertical, com os
+  respiros do rail, medido do rail REAL): **419px = 60% de um viewport de
+  700px** — rejeitado com número. No rail esse empilhamento é de graça (tem
+  a altura inteira da viewport); no topo do mobile competiria com o conteúdo.
+- Candidatos (logo → altura do bloco → % de 700px): 64 → 165px (24%) ·
+  80 → 181px (26%) · **96 → 197px (28%)** · 112 → 213px (30%).
+- Veredito do tom por ponto nos crops ×1 (.e2e-out/logo/mobile-{64,80,96,
+  112}px.png + -lupa4x.png): a 64 a variação quase não existe; a 80 é sutil;
+  a **96 lê a olho nu** (ponto ≈2,9px — mesma leitura do estudo N1) dentro
+  do orçamento de altura; 112 iria ao teto por ganho marginal. Escolhido
+  96px — 2,5× os 38px antigos, e legível o bastante pra justificar a
+  cintilância também aqui (critério do prompt: tom ilegível = não animar).
+- Composição final: logo 96 com wordmark empilhado AO LADO (ordem de leitura
+  logo → wordmark → nav preservada; wordmark ABAIXO do logo somaria ~64px de
+  altura sem ganho de leitura) e nav em **grade 2×2 deliberada** a <md, linha
+  única em md+. Grade com `grid-cols-[auto_auto]` (colunas por conteúdo) de
+  propósito: colunas fr iguais estourariam — o rótulo mais longo mede ≈173px
+  e (358 − gap)/2 < 173 a 390px. Conferido ao vivo: exatamente 2 linhas de
+  nav a 390 (grade, não wrap acidental) e 1 linha a 768; bloco a 768 =
+  167px (16% de 1024). Contextos: mobile-context-{390,768}.png.
+
+## Cintilância — portada do preview, não redesenhada
+
+- Fonte: card F3 · CINTILÂNCIA de scripts/logo-preview.html,
+  `assignTwinkle(dots, seed 23)` — r < 0,30 anima, grupo = 1 + floor(r/0,10).
+  O logo-export.mjs agora COLHE as classes twN como 4º valor da tupla
+  ([x, y, tom, tw], tw 0 = estático, 1–3 = grupo de fase) em vez de
+  descartá-las; sanidade nova: fração cintilante fora de 20–40% aborta o
+  export. Resultado real: **95/288 pontos (33,0%) em grupos 30/33/32**.
+  O export também emite dots-literal.txt (o array DOTS pronto) — o LogoMark
+  foi atualizado por splice programático, nenhum ponto editado à mão
+  (conferido: 0 divergências de x/y/tom contra o array anterior).
+- Keyframes e tempos centralizados no @theme (`--animate-twinkle-1/2/3`):
+  twinkle 2,6s ease-in-out infinite, atrasos 0/0,9s/1,7s por grupo,
+  opacidade 1→0,35→1 (nunca zera) — os valores EXATOS do preview, nada
+  reinventado. Classe aplicada por ponto via lookup de strings completas
+  (Tailwind só gera o que lê literal no fonte), SEMPRE pareada com
+  `motion-reduce:animate-none`.
+- Prova ao vivo (sonda CDP, 16 checks, TUDO PASSOU 2026-07-10): no rail
+  (1360) e no bloco mobile (390) — 288 pontos, grupos 30/33/32,
+  animationName=twinkle 2,6s com atrasos 0s/0,9s/1,7s por grupo, ponto sem
+  fase segue estático, opacidade oscilando ao vivo (min 0,35 / max ≈1). Com
+  **prefers-reduced-motion: reduce EMULADO** (CDP setEmulatedMedia):
+  animationName=none e opacidade constante em 1 por 1,2s de amostragem —
+  desliga DE VERDADE; removendo a emulação, a animação volta.
+
+## Desvio colateral — espelho de tokens do logo-preview.html estava no R1
+
+A primeira rodada do export regenerou favicon-zeph.svg com hex #a996f5: o
+espelho manual de tokens do preview (cujo comentário manda atualizá-lo quando
+os tokens do app mudarem) nunca recebeu a recalibração v2 de matiz. Não afeta
+os pontos (posição/tom/fase são geometria + índices de token — daí as 0
+divergências acima), mas era armadilha pro byproduct do favicon. Espelho
+re-sincronizado (ink-950 neutro + família zeph 244°) e export re-rodado:
+favicon-zeph.svg agora resolve #9c96f5, igual à decisão de produção.
+
+## Verificação N2
+
+`npm run build` limpo · lint sem warning novo (2 pré-existentes em arquivos
+não tocados: logo-shots.mjs e SeriesSwatch.tsx) · regra de acessibilidade do
+N1 re-provada pós-mudança de markup (CDP getFullAXTree nos dois arranjos:
+"Mining Hub" StaticText exatamente 1×, nenhuma imagem decorativa exposta) ·
+e2e SEM alteração de script: rewards normal + rig normal + pools normal —
+**TUDO PASSOU 2026-07-10** · design-shots re-rodado, 12/12 capturas
+revisadas: bloco novo
+consistente nas 4 telas em tablet/mobile, rail intacto em desktop (pontos da
+marca aparecem em opacidades variadas nas fotos — é a cintilância congelada
+pelo screenshot, esperado, não defeito). Evidências: .e2e-out/logo/
+mobile-*.png (estudo de tamanho + contextos) e .e2e-out/shot-*.png.

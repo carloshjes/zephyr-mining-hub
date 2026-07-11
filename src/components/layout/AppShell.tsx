@@ -6,8 +6,9 @@ import { LogoMark } from '../ui/LogoMark'
 // largas — a marca em halftone ganha a altura que a barra horizontal negava
 // (a 38px o tom por ponto era imperceptível; a 128px o ponto rende ~3,8px e a
 // variação lê a olho nu — medição em NOTES.md). Abaixo do breakpoint a casca
-// RECOMPÕE pra barra horizontal de hoje (decisão deliberada, não rail
-// espremido). Indicador de rota ativa na convenção "Sinal Técnico": rótulo
+// RECOMPÕE pra um bloco de topo com a MESMA linguagem do rail (logo grande →
+// wordmark empilhado → nav agrupado) — não rail espremido nem o header antigo
+// do R2. Indicador de rota ativa na convenção "Sinal Técnico": rótulo
 // mono entre colchetes, roxo de marca. Os colchetes existem (transparentes)
 // também no estado inativo pra troca de rota não deslocar o layout.
 const NAV_ITEMS = [
@@ -75,20 +76,22 @@ export function AppShell() {
         </nav>
       </aside>
 
-      {/* Barra horizontal (< xl) — a recomposição deliberada pra telas
-          estreitas: exatamente a casca do R2, logo em 38px + nav inline. */}
+      {/* Bloco de topo (< xl) — recomposição da MESMA ordem visual do rail
+          (logo → wordmark → nav) deitada num bloco de largura cheia. O
+          empilhamento 1:1 do rail custaria a altura inteira de um celular
+          (medição em NOTES.md), então o wordmark empilhado senta AO LADO do
+          logo e o nav vira grade 2×2 deliberada (uma linha a partir de md) —
+          agrupamento decidido, não flex-wrap acidental. Logo em 96px: tom
+          por ponto lê a olho nu no crop ×1 (evidência em NOTES.md). */}
       <header className="border-b border-hairline bg-ink-950 xl:hidden">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-8 gap-y-2 px-4 py-3.5 sm:px-6">
-          <div className="flex items-center gap-3">
-            {/* 38px (v2): a variação tonal por ponto só lê a partir de ~32px
-                (docs/logo-exploracao.md) — aqui ela é silhueta mesmo, o
-                momento de textura da marca vive no rail. */}
-            <LogoMark size={38} className="shrink-0" />
-            <span className="text-data-md font-semibold tracking-tight">
-              Zephyr <span className="text-zeph-300">Mining Hub</span>
-            </span>
+        <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6">
+          <div className="flex items-center gap-4">
+            <LogoMark size={96} className="shrink-0" />
+            <p className="text-data-md leading-tight font-semibold tracking-tight">
+              Zephyr <span className="block text-zeph-300">Mining Hub</span>
+            </p>
           </div>
-          <nav className="flex flex-wrap gap-x-5 gap-y-1 font-mono text-label tracking-wide">
+          <nav className="mt-3 grid grid-cols-[auto_auto] gap-x-6 gap-y-1 font-mono text-label tracking-wide md:flex md:gap-x-5">
             <NavLinks />
           </nav>
         </div>

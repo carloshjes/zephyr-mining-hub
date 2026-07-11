@@ -3,8 +3,13 @@
 // padrão CDP-sem-dependências do logo-shots.mjs, via file:// e SEM ?anim=1.
 //
 // Saída (.e2e-out/logo/, regenerável):
-// - f3-dots.json: pontos da F3 do card "F3 · CINTILÂNCIA" (x/y/tom por rect do
-//   SVG renderizado + rampa de tokens + hex resolvidos) — insumo do LogoMark.
+// - f3-dots.json: pontos da F3 do card "F3 · CINTILÂNCIA" (x/y/tom/fase de
+//   cintilância por rect do SVG renderizado + rampa de tokens + hex
+//   resolvidos) — insumo do LogoMark. A fase (tw 0 = estático, 1–3 = grupo)
+//   vem das classes twN que assignTwinkle(dots, seed 23) põe nos rects —
+//   até o Prompt N2 o export as DESCARTAVA (marca 100% estática); agora são
+//   o 4º valor da tupla.
+// - dots-literal.txt: o array DOTS pronto pra colar no LogoMark.tsx.
 // - favicon-mist.svg / favicon-zeph.svg: o Z̶ SÓLIDO (card CONTROLE, 16px) com
 //   o token resolvido pra hex — favicon vive FORA da cascata do app, var() não
 //   resolve lá. Os dois candidatos saem pra decisão de olho na aba real.
@@ -85,7 +90,9 @@ async function waitFor(expression, timeoutMs, label) {
 }
 
 await send('Page.enable')
-// SEM ?anim=1 — export é 100% estático (a cintilação é só da página de preview)
+// SEM ?anim=1 — a captura é de estado parado (nenhuma animação rodando);
+// as classes twN existem no markup independentemente do toggle e são
+// colhidas como dado (a fase), não como animação
 await send('Page.navigate', { url: PAGE })
 await waitFor('window.__logoPreviewReady === true', 20_000, 'preview pronto')
 
@@ -103,8 +110,8 @@ const payload = JSON.parse(await evaluate(`JSON.stringify((() => {
     h: r.getAttribute('height'),
     opacity: r.getAttribute('opacity'),
     fillVar: (r.getAttribute('style') || '').match(/var\\((--[a-z0-9-]+)\\)/)?.[1] ?? null,
-    // classes twN vêm do assignTwinkle (roda sempre) — registradas aqui pra
-    // PROVAR que o export as descarta (o LogoMark não as reproduz)
+    // classes twN vêm do assignTwinkle(dots, seed 23): ~30% dos pontos em
+    // 3 grupos de fase — viram o 4º valor da tupla do LogoMark (Prompt N2)
     twinkleClass: r.getAttribute('class'),
   }))
 
@@ -133,24 +140,45 @@ const payload = JSON.parse(await evaluate(`JSON.stringify((() => {
 const RAMP = ['--color-mist-300', '--color-zeph-300', '--color-mist-400', '--color-zeph-500', '--color-zeph-700']
 const badTone = payload.rects.filter((r) => !RAMP.includes(r.fillVar))
 const withOpacity = payload.rects.filter((r) => r.opacity !== null)
-const twinkled = payload.rects.filter((r) => r.twinkleClass !== null)
+const badTwinkle = payload.rects.filter((r) => ![null, 'tw1', 'tw2', 'tw3'].includes(r.twinkleClass))
 if (payload.viewBox !== '0 0 22 22') throw new Error(`viewBox inesperado: ${payload.viewBox}`)
 if (badTone.length > 0) throw new Error(`${badTone.length} rect(s) fora da rampa semBranco`)
 if (withOpacity.length > 0) throw new Error(`${withOpacity.length} rect(s) com opacity (glitch?) — F3 não tem`)
+if (badTwinkle.length > 0) throw new Error(`${badTwinkle.length} rect(s) com classe fora de tw1..tw3`)
 
-const dots = payload.rects.map((r) => [Number(r.x), Number(r.y), RAMP.indexOf(r.fillVar)])
+// tw 0 = ponto estático · 1–3 = grupo de fase da cintilância (atrasos
+// 0s/0,9s/1,7s no app). ~30% animados por construção (assignTwinkle) —
+// cinto-e-suspensório contra mudança silenciosa do preview.
+const dots = payload.rects.map((r) => [
+  Number(r.x), Number(r.y), RAMP.indexOf(r.fillVar),
+  r.twinkleClass ? Number(r.twinkleClass.slice(2)) : 0,
+])
+const twinkled = dots.filter((d) => d[3] > 0).length
+const share = twinkled / dots.length
+if (share < 0.2 || share > 0.4) throw new Error(`fração cintilante ${(share * 100).toFixed(1)}% fora de 20–40% — preview mudou?`)
+const perGroup = [1, 2, 3].map((g) => dots.filter((d) => d[3] === g).length)
 writeFileSync(path.join(OUT_DIR, 'f3-dots.json'), JSON.stringify({
   source: 'scripts/logo-preview.html · card F3 · CINTILÂNCIA (rev sem branco)',
-  params: 'FINAL_PARAMS 22×22 quadrado t=.18 barra=haste · sparkle seed 11 · pesos [.30,.28,.20,.15,.07]',
+  params: 'FINAL_PARAMS 22×22 quadrado t=.18 barra=haste · sparkle seed 11 · pesos [.30,.28,.20,.15,.07] · twinkle seed 23 (~30%, 3 fases)',
   viewBox: payload.viewBox,
   dotSide: payload.rects[0].w,
   ramp: RAMP,
   hex: payload.hex,
   dotCount: payload.dotCount,
-  twinkleClassesDescartadas: twinkled.length,
+  twinkle: { total: twinkled, perGroup },
   dots,
 }, null, 1))
-console.log(`f3: ${payload.dotCount} pts, lado ${payload.rects[0].w}, ${twinkled.length} classes twN descartadas`)
+// Literal pronto pro DOTS do LogoMark.tsx — 9 tuplas por linha, indentação 2
+writeFileSync(path.join(OUT_DIR, 'dots-literal.txt'), `${dots
+  .map((d) => `[${d.join(', ')}]`)
+  .reduce((lines, t, i) => {
+    if (i % 9 === 0) lines.push([])
+    lines[lines.length - 1].push(t)
+    return lines
+  }, [])
+  .map((line) => `  ${line.join(', ')},`)
+  .join('\n')}\n`)
+console.log(`f3: ${payload.dotCount} pts, lado ${payload.rects[0].w}, cintilância ${twinkled} pts (${(share * 100).toFixed(1)}%) em grupos ${perGroup.join('/')}`)
 console.log(`status da página: ${payload.statusLine.slice(0, 120)}…`)
 
 // Favicon: sólido 16px com token resolvido (fora da cascata do app). Remove o

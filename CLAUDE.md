@@ -62,8 +62,13 @@ da textura (#0f0f0f, pior caso) e o ink-900 — números em NOTES.md.
 - Movimento (v2): draw-in dos gráficos na montagem (`animate-chart-draw` via
   `useChartEntrance`, que tem trava de assentamento de 1 s — compositor lento salta
   pro estado final, medido em NOTES.md) + pulso sutil de dado novo
-  (`animate-data-pulse` via `useDataPulse`). TODO uso de animação vem em par com
-  `motion-reduce:animate-none`, sem exceção.
+  (`animate-data-pulse` via `useDataPulse`) + cintilância da marca (N2 2026-07-10):
+  ~30% dos 288 pontos do LogoMark em 3 grupos defasados via `--animate-twinkle-1/2/3`
+  (2,6s ease-in-out, atrasos 0/0,9s/1,7s, opacidade 1→0,35 — nunca zera), parâmetros
+  EXATOS do preview F3 (assignTwinkle seed 23), fase exportada como 4º valor da tupla
+  de LogoMark — não invente valores nem edite fases à mão. TODO uso de animação vem
+  em par com `motion-reduce:animate-none`, sem exceção (cintilância provada desligando
+  com reduced-motion emulado, NOTES.md).
 - `scripts/design-shots.mjs` fotografa as 4 telas em 3 breakpoints; rubrica de revisão
   agora tem 7 perguntas (as 6 do R1 + "positivo e negativo na mesma tela distinguíveis
   por daltonismo?") — resultado em NOTES.md.
@@ -75,17 +80,24 @@ da textura (#0f0f0f, pior caso) e o ink-900 — números em NOTES.md.
   Breakpoint é xl e NÃO lg de propósito: os módulos abrem 2 colunas em lg assumindo a
   viewport inteira — com o rail de 14rem a coluna só devolve a largura de design deles
   a partir de ~1248px (o aperto foi fotografado, NOTES.md). Abaixo de xl a casca
-  RECOMPÕE deliberadamente pra barra horizontal do R2 (logo 38px + nav inline, testada
-  a 768/390). A casca publica `--shell-rail-w` (0px sem rail) e o full-bleed da
+  RECOMPÕE deliberadamente pra um bloco de topo com a MESMA linguagem do rail (N2
+  2026-07-10, substituiu o header do R2): logo 96px com wordmark empilhado ao lado,
+  nav abaixo em grade 2×2 deliberada (<md) ou linha única (md+) — nunca flex-wrap
+  acidental. Bloco mede 197px num viewport 390×700 (28% da tela; empilhar 1:1 como o
+  rail custaria 419px = 60%, medições em NOTES.md). A casca publica `--shell-rail-w`
+  (0px sem rail) e o full-bleed da
   manchete do Raio-X consome via `w-[calc(100vw_-_var(--shell-rail-w,0px))]` no lugar
   do antigo w-screen — main agora centra na COLUNA à direita do rail, não na viewport,
   e w-screen cru desalinharia (conta em NOTES.md). Footer vive dentro da coluna
   (full-width real começaria escondido embaixo do rail fixo). main mantém max-w-6xl.
-- Marca integrada (2026-07-10): o rail usa `LogoMark` em 128px (N1, bullet acima); a
-  barra horizontal estreita (<xl) segue em 38px (v2 — 26px ficava no piso; a variação
-  tonal por ponto só lê a partir de ~32px, ver docs/logo-exploracao.md).
-  NÃO editar os pontos à mão, regenerar com `scripts/logo-export.mjs`; a rampa de pontos
-  referencia tokens via var(), então a recalibração de matiz fluiu sozinha. Favicon é o
+- Marca integrada (2026-07-10): o rail usa `LogoMark` em 128px (N1, bullet acima); o
+  bloco de topo (<xl) usa 96px (N2 — os 38px do R2 eram silhueta; a variação tonal por
+  ponto só lê a partir de ~32px e a 96px lê a olho nu no crop ×1, ver
+  docs/logo-exploracao.md e NOTES.md), o que também habilita a cintilância nos DOIS
+  arranjos. NÃO editar os pontos à mão, regenerar com `scripts/logo-export.mjs` (emite
+  também o literal pronto em .e2e-out/logo/dots-literal.txt); a rampa de pontos
+  referencia tokens via var(), então a recalibração de matiz fluiu sozinha — o espelho
+  manual de tokens do logo-preview.html NÃO flui, foi re-sincronizado no N2. Favicon é o
   Z̶ sólido em zeph-300 resolvido pra hex `#9c96f5` (favicon vive fora da cascata do app,
   var() não resolve lá; acompanhou a recalibração) — decisão e evidência em NOTES.md.
 
