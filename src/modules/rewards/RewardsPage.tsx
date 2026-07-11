@@ -320,8 +320,11 @@ export function RewardsPage() {
                 .
               </p>
               {/* Barra de proporção: decorativa e de leitura por ORDEM (fixa,
-                  minerador→yield) — a diferenciação por textura fica com a
-                  legenda logo abaixo, que carrega os mesmos swatches do chart */}
+                  minerador→yield). A legenda com swatch/textura vive SÓ no
+                  cabeçalho do gráfico "Divisão da recompensa" — a manchete
+                  tinha uma quase idêntica logo acima dela e, em uso real, as
+                  duas liam como repetição (removida em 2026-07-11; os valores
+                  em ZEPH por fatia seguem na tabela e no tooltip). */}
               <div aria-hidden className="mt-4 flex h-2.5 max-w-3xl gap-0.5 overflow-hidden">
                 {REWARD_SERIES.filter((def) => latest.values[def.key] > 0).map((def) => (
                   <div
@@ -332,23 +335,6 @@ export function RewardsPage() {
                     }}
                   />
                 ))}
-              </div>
-              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-label">
-                {REWARD_SERIES.map((def) => {
-                  const isZero = latest.values[def.key] === 0
-                  return (
-                    <span
-                      key={def.key}
-                      className={`inline-flex items-center gap-1.5 ${
-                        isZero ? 'text-mist-400' : 'text-mist-300'
-                      }`}
-                    >
-                      <SeriesSwatch def={def} muted={isZero} />
-                      {def.label.toLowerCase()}{' '}
-                      <span className="font-mono">{formatZeph(latest.values[def.key], 3)}</span>
-                    </span>
-                  )
-                })}
               </div>
             </>
           ) : (

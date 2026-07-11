@@ -17,7 +17,7 @@ rewrite/proxy do Vercel em produção (mesma ideia do proxy do Vite dev server).
 - Campo ausente na resposta da API vira "—" na tela. Nunca inventar/mockar valor.
 - Loading e erro usam um componente compartilhado (não reinventar por módulo).
 
-## Direção visual — "Sinal Técnico" (R1 2026-07-09 · v2 2026-07-10 · v3 2026-07-11, ver NOTES.md)
+## Direção visual — "Sinal Técnico" (R1 2026-07-09 · v2 2026-07-10 · v3 e R4 2026-07-11, ver NOTES.md)
 Tokens centralizados no `@theme` de `src/index.css` — NUNCA hex solto em componente
 (utilitário Tailwind ou `var(--color-*)`; em SVG data-driven, via `style`, não atributo).
 Contraste MEDIDO com `scripts/contrast-check.mjs` (WCAG 2.2) contra o fundo, a célula
@@ -37,25 +37,28 @@ clara da textura (#191919, pior caso) e o ink-900 — números em NOTES.md.
   alívio, 1,9:1), zeph-800 `#302d54` (SÓ decoração). Lado a lado antigo vs novo:
   `scripts/zeph-hue-compare.html`.
 - Texto cinza-roxo: mist-100/300/400 (piso de texto corrido = mist-400, 5,3:1 — 5,0:1
-  na célula clara, segue AA); mist-600 `#57536a` é SÓ decorativo (inclui o thumb da
-  scrollbar) — nunca texto de conteúdo. Scrollbar de container rolável usa a utility
-  `scrollbar-themed` (track ink-900 + thumb mist-600) — nunca a barra padrão branca.
+  na célula clara, segue AA); mist-600 `#57536a` é SÓ decorativo — nunca texto de
+  conteúdo. Scrollbar de container rolável usa a utility `scrollbar-themed` (8px,
+  track ink-900 + thumb HAIRLINE — R4: o mist-600 no thumb ainda lia com tinta de
+  roxo em uso real) — nunca a barra padrão branca.
 - COR DE ESTADO É BINÁRIA (v2): good `#22c55e` (8,1:1) = positivo/saudável/normal ·
   bad `#f97316` (6,6:1) = negativo/erro/offline/abaixo do piso. O vermelho alert do R1
   SAIU do sistema por completo. Proibida qualquer outra cor de destaque. Nenhum estado
-  é só-cor: sempre texto/glifo junto, e dois negativos na mesma tela (rig: abaixo vs
-  offline) se distinguem por PESO — v3: escada de fundo good/10 (normal) < bad/20
-  (abaixo) < bad sólido (offline), contraste dos tints medido (6,96:1 / 4,89:1) —
-  nunca por matiz. Destaque COMPARATIVO (chips [ maior hashrate ]/[ menor fee ]) não
-  é estado → v3: fundo sólido zeph-300 com texto ink-950 (vivacidade por peso, não
-  matiz novo).
+  é só-cor: sempre texto/glifo junto, e os estados do rig se distinguem por PESO —
+  R4: normal SEM caixa (linha de readout nua com ponto+halo; good 8,1:1 direto no
+  fundo) < bad/20 contornado (abaixo, 4,89:1 medido) < bad sólido (offline) —
+  superfície significa "algo errado", e nunca por matiz. Destaque COMPARATIVO
+  (chips [ maior hashrate ]/[ menor fee ]) não é estado → v3: fundo sólido zeph-300
+  com texto ink-950 (vivacidade por peso, não matiz novo); R4: quando a MESMA pool
+  ganha os dois chips, eles empilham em coluna abaixo do nome (nunca flex-wrap).
 - Escala tipográfica em tokens `--text-*` (proibido `text-[Npx]` novo em componente):
   caption 11 (mono/eixos/tags) · label 12 (legenda/tabela) · body 14 (corrido) ·
   lede 16 (destaque/título de seção) · data-md 22 (h1/valor de stat) · data-lg 34
   (readout/countdown) · headline clamp(3.5rem,10vw,6rem) (hero rede/rig — teto
-  recalibrado no v3, capturas em NOTES.md) · display clamp(4.5rem,15vw,11rem)
-  (manchete Raio-X — teto v3) · display-sub clamp(2.5rem,8vw,7rem) (teto MANTIDO de
-  propósito: é o sub quem sangra na borda; encolher os dois apagaria o corte).
+  recalibrado no v3, capturas em NOTES.md) · display clamp(4.5rem,15vw,9rem)
+  (manchete Raio-X — teto R4, só age acima de ~960px de viewport) · display-sub
+  clamp(2.5rem,8vw,7rem) (teto MANTIDO de propósito: é o sub quem sangra na borda;
+  encolher os dois apagaria o corte).
 - Mono (`font-mono`, system stack) só pra metadado técnico: altura de bloco, timestamp,
   eixos, rótulos `[ ENTRE COLCHETES ]` (rota ativa, status, tags). Nunca corpo de texto.
 - Composição: cada tela tem UMA região dominante + rail secundário. O painel de reserve
@@ -69,8 +72,11 @@ clara da textura (#191919, pior caso) e o ink-900 — números em NOTES.md.
   são COLETADAS localmente (networkHashrateHistory.ts / histórico diário em
   rigStatus.ts, store separado do histórico de status — não misture as cadências) e
   desenhadas pelo `TrendSparkline` compartilhado (ui/) — a UI sempre declara a
-  procedência do dado. Proibido continua: gradiente (fora a exceção acima),
-  glassmorphism, blur, glow, sombra decorativa.
+  procedência do dado. R4: o TrendSparkline tem `variant` line (default — rede,
+  pools) e bars (SÓ o rig); a leitura diária do rig amostra também o saldo pendente
+  ({t,h,b?}) e o desenha como FAIXA própria empilhada — nunca eixo duplo, e a
+  legenda avisa que o saldo zera quando a pool paga. Proibido continua: gradiente
+  (fora a exceção acima), glassmorphism, blur, glow, sombra decorativa.
 - Séries do Raio-X (rewardSeries.ts): rampa monocromática ordinal validada + TEXTURA
   por série (v2): minerador liso, reserva hachura diagonal, yield pontilhado —
   diferenciação que não depende de matiz; legenda/tooltip usam a mesma receita via
@@ -95,32 +101,36 @@ clara da textura (#191919, pior caso) e o ink-900 — números em NOTES.md.
 - `scripts/design-shots.mjs` fotografa as 4 telas em 3 breakpoints; rubrica de revisão
   agora tem 8 perguntas (as 7 do R2 + "a textura de fundo em movimento compete com o
   dado real, ou o dado segue a coisa mais viva da tela?") — resultado em NOTES.md.
-- Casca de navegação (2026-07-10, Prompt N1): rail vertical FIXO à esquerda em `xl:`+ —
-  LogoMark 128px no topo (o momento de textura da marca: ponto ~3,8px real, variação
-  tonal lê a olho nu — medição e capturas em NOTES.md), wordmark empilhado abaixo, os
-  4 itens de nav na vertical com a MESMA convenção mono `[ Rótulo ]`, divisor hairline
-  vertical à direita, bg chapado ink-950 (conteúdo rola por baixo do rail fixo).
-  Breakpoint é xl e NÃO lg de propósito: os módulos abrem 2 colunas em lg assumindo a
-  viewport inteira — com o rail de 14rem a coluna só devolve a largura de design deles
-  a partir de ~1248px (o aperto foi fotografado, NOTES.md). Abaixo de xl a casca
-  RECOMPÕE deliberadamente pra um bloco de topo com a MESMA linguagem do rail (N2
-  2026-07-10, substituiu o header do R2): logo 96px com wordmark empilhado ao lado,
-  nav abaixo em grade 2×2 deliberada (<md) ou linha única (md+) — nunca flex-wrap
-  acidental. Bloco mede 197px num viewport 390×700 (28% da tela; empilhar 1:1 como o
-  rail custaria 419px = 60%, medições em NOTES.md). A casca publica `--shell-rail-w`
-  (0px sem rail) e o full-bleed da
+- Casca de navegação (N1 2026-07-10 · R4 2026-07-11): rail vertical FIXO à esquerda
+  em `xl:`+, largura 16rem (R4 — o TETO com breakpoint xl: 1024 + 256 = 1280 exato,
+  medição em NOTES.md; alargar mais forçaria 2xl e tiraria o rail da faixa
+  1280–1535) — LogoMark 176px no topo (o momento de textura da marca: ponto ~5,3px
+  real), wordmark empilhado abaixo em data-lg, os 4 itens de nav na vertical em
+  text-body mono com a MESMA convenção `[ Rótulo ]`, divisor hairline vertical à
+  direita, bg chapado ink-950 (conteúdo rola por baixo do rail fixo). Breakpoint é
+  xl e NÃO lg de propósito: os módulos abrem 2 colunas em lg assumindo a viewport
+  inteira — a coluna com rail devolve exatamente esses 1024px a partir de 1280.
+  Abaixo de xl a casca RECOMPÕE deliberadamente pra um bloco de topo com a MESMA
+  linguagem do rail (N2, recalibrado no R4): logo 128px com wordmark data-lg ao
+  lado, BASE do texto alinhada à base da marca (items-end), nav abaixo em grade 2×2
+  deliberada (<md, em text-label — a 14px a grade estouraria os 358px úteis de um
+  390) ou linha única (md+) — nunca flex-wrap acidental. Bloco mede 229px num
+  viewport 390×700 (33% da tela — régua do R4 prioriza presença; medições em
+  NOTES.md). A casca publica `--shell-rail-w` (0px sem rail) e o full-bleed da
   manchete do Raio-X consome via `w-[calc(100vw_-_var(--shell-rail-w,0px))]` no lugar
   do antigo w-screen — main agora centra na COLUNA à direita do rail, não na viewport,
   e w-screen cru desalinharia (conta em NOTES.md). Footer vive dentro da coluna
   (full-width real começaria escondido embaixo do rail fixo). main mantém max-w-6xl.
-- Marca integrada (2026-07-10): o rail usa `LogoMark` em 128px (N1, bullet acima); o
-  bloco de topo (<xl) usa 96px (N2 — os 38px do R2 eram silhueta; a variação tonal por
-  ponto só lê a partir de ~32px e a 96px lê a olho nu no crop ×1, ver
-  docs/logo-exploracao.md e NOTES.md), o que também habilita a cintilância nos DOIS
-  arranjos. NÃO editar os pontos à mão, regenerar com `scripts/logo-export.mjs` (emite
-  também o literal pronto em .e2e-out/logo/dots-literal.txt); a rampa de pontos
-  referencia tokens via var(), então a recalibração de matiz fluiu sozinha — o espelho
-  manual de tokens do logo-preview.html NÃO flui, foi re-sincronizado no N2. Favicon é o
+- Marca integrada (2026-07-10 · rampa R4): o rail usa `LogoMark` em 176px; o bloco
+  de topo (<xl) usa 128px (tamanhos R4 — a variação tonal por ponto lê a olho nu nos
+  dois, crops em NOTES.md), o que também habilita a cintilância nos DOIS arranjos.
+  Rampa "semBranco" está na 2ª rodada (R4): 4 tons — zeph-300/mist-400/zeph-500/
+  zeph-700, pesos [.40,.29,.21,.10] — o mist-300 SAIU (lia como branco em uso real);
+  teto de brilho é o zeph-300. NÃO editar os pontos à mão, regenerar com
+  `scripts/logo-export.mjs` (emite também o literal pronto em
+  .e2e-out/logo/dots-literal.txt); a rampa de pontos referencia tokens via var(),
+  então a recalibração de matiz fluiu sozinha — o espelho manual de tokens do
+  logo-preview.html NÃO flui, foi re-sincronizado no N2. Favicon é o
   Z̶ sólido em zeph-300 resolvido pra hex `#9c96f5` (favicon vive fora da cascata do app,
   var() não resolve lá; acompanhou a recalibração) — decisão e evidência em NOTES.md.
 
@@ -187,6 +197,8 @@ fetch real, não só do servidor):
   confirmação do formato de sucesso (sem endereço de teste; o /api/stats pool-wide
   serializa payments SEM endereço), por isso o gráfico do rig é hashrate diário
   coletado localmente, não pagamentos (regra: as duas pools ou nenhuma — NOTES.md).
+  R4: o saldo pendente (pendingBalance, campo já normalizado nas duas pools) entrou
+  como 2ª série da MESMA coleta local — faixa própria sob as barras, nunca eixo duplo.
 
 Também confirmado funcionando (CORS aberto, testado com fetch real do navegador):
 - HeroMiners — GET https://zephyr.herominers.com/api/stats, CORS `*` confirmado.

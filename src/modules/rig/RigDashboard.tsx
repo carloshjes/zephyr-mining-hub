@@ -49,27 +49,36 @@ interface RigDashboardProps {
 // Estado binário da direção v2: positivo=verde (good), negativo=laranja
 // (bad) — o vermelho saiu do sistema. "Abaixo" e "offline" são AMBOS
 // negativos: quem os distingue é o TEXTO e o peso, nunca só a cor
-// (daltonismo). v3: normal/below ganharam fundo TINTADO (pedido de uso
-// real), preservando a escada de peso — good/10 < bad/20 < bad sólido
-// (contraste medido: good 6,96:1 e bad 4,89:1 sobre os próprios tints,
-// NOTES.md); igualar os três a sólido apagaria a distinção de peso do R2.
+// (daltonismo).
+//
+// Redesenho 2026-07-11 (uso real): na região DOMINANTE, colado no hero, o
+// estado NORMAL rendia como "chip fechado" (borda + tint + padding) — um
+// card destoando do vocabulário readout/mono que resolve estado no resto do
+// sistema (selos do Pulso da Rede, tags [ ... ] dos workers). O saudável — o
+// estado de 99% do tempo — agora é a linha mais QUIETA da região: ponto com
+// halo + rótulo mono em good, sem caixa nenhuma. As superfícies ficam
+// reservadas pros negativos, exatamente como o v3 as media (bad/20 tintado
+// pro "abaixo", bad sólido pro offline — contraste 4,89:1 e 6,57:1 em
+// NOTES.md). A escada de peso do R2 fica MAIS íngreme, não menos:
+// nada < caixa tintada com contorno < caixa sólida — e nenhum degrau é
+// só-cor (texto por extenso + glifo em todos).
 const STATUS_PRESENTATION: Record<
   RigStatusKind,
   { label: string; className: string; dot: string }
 > = {
   normal: {
     label: 'Minerando normal',
-    className: 'border-good/60 bg-good/10 text-good',
+    className: 'text-good',
     dot: 'bg-good',
   },
   below: {
     label: 'Hashrate abaixo do esperado',
-    className: 'border-bad/60 bg-bad/20 text-bad',
+    className: 'border border-bad/60 bg-bad/20 px-3 py-1 text-bad',
     dot: 'bg-bad',
   },
   offline: {
     label: 'Offline',
-    className: 'border-bad bg-bad text-ink-950 font-semibold',
+    className: 'border border-bad bg-bad px-3 py-1 font-semibold text-ink-950',
     dot: 'bg-ink-950',
   },
 }
@@ -81,7 +90,7 @@ function StatusBadge({ status, detail }: { status: RigStatusKind; detail: string
       <span
         data-testid="rig-status"
         data-status={status}
-        className={`inline-flex items-center gap-2 border px-3 py-1 font-mono text-body ${className}`}
+        className={`inline-flex items-center gap-2 font-mono text-body ${className}`}
       >
         {/* Halo "ao vivo" SÓ no estado saudável (v3): anel que expande e
             esvai atrás do ponto. Com reduced-motion o fantasma SOME
@@ -193,7 +202,9 @@ export function RigDashboard({ config }: RigDashboardProps) {
   useEffect(() => {
     const hashrate = poolPoll.data?.currentHashrate
     if (hashrate === undefined) return
-    setDailyHistory(appendDailyHashrateReading(poolKey, hashrate))
+    // O saldo pendente entra na MESMA leitura diária quando a pool o expõe
+    // (2Miners expõe; HeroMiners pode vir "—" → leitura só com hashrate)
+    setDailyHistory(appendDailyHashrateReading(poolKey, hashrate, poolPoll.data?.pendingBalance))
   }, [poolPoll.data, poolKey])
 
   // Resumo acessível da tendência (mesma receita do Pulso da Rede; o
@@ -207,6 +218,25 @@ export function RigDashboard({ config }: RigDashboardProps) {
       `máxima ${formatHashrate(Math.max(...values))}`
     )
   }, [dailyHistory])
+
+  // Segunda métrica REAL da mesma coleta (2026-07-11): saldo pendente por
+  // leitura. Sem eixo duplo — decisão de dataviz do projeto: duas séries de
+  // escala diferente viram dois desenhos empilhados na MESMA janela (é o que
+  // o Raio-X já faz com fatia × ratio). Leituras sem o campo ficam de fora;
+  // com menos de 2, a faixa nem renderiza (nunca fingir série).
+  const balanceValues = useMemo(
+    () => dailyHistory.flatMap((reading) => (reading.b !== undefined ? [reading.b] : [])),
+    [dailyHistory],
+  )
+  const balanceSummary = useMemo(() => {
+    if (balanceValues.length < 2) return ''
+    return (
+      `Saldo pendente na pool nas mesmas leituras: ${balanceValues.length} pontos, ` +
+      `atual ${formatZeph(balanceValues[balanceValues.length - 1], 4)}, ` +
+      `máximo ${formatZeph(Math.max(...balanceValues), 4)}. ` +
+      'O saldo zera quando a pool paga — a queda brusca é o pagamento.'
+    )
+  }, [balanceValues])
 
   useEffect(() => {
     const hashrate = xmrig?.hashrate60s ?? xmrig?.hashrate10s
@@ -279,7 +309,11 @@ export function RigDashboard({ config }: RigDashboardProps) {
                   série de pagamentos confirmada ao vivo (sondagem em
                   NOTES.md), então o gráfico do dia é o hashrate da carteira
                   na pool, coletado por este navegador — dado real, nunca
-                  inventado, e a legenda diz a procedência */}
+                  inventado, e a legenda diz a procedência. 2026-07-11:
+                  virou BARRAS (pedido de uso real) e ganhou a segunda
+                  métrica da mesma coleta — saldo pendente — como faixa
+                  própria embaixo, nunca eixo duplo (regra de dataviz do
+                  projeto; leituras sem o campo ficam de fora). */}
               <div className="mt-10">
                 <p className="font-mono text-caption tracking-wide text-mist-400">
                   [ TENDÊNCIA 24 H · COLETADA NESTE NAVEGADOR ]
@@ -290,12 +324,32 @@ export function RigDashboard({ config }: RigDashboardProps) {
                     summary={dailySummary}
                     width={340}
                     height={64}
+                    variant="bars"
                   />
                 </div>
                 <p className="mt-2 max-w-md text-label text-mist-400">
                   Hashrate da carteira na pool, até {DAILY_HASHRATE_LIMIT} leituras (1 a cada
                   ~5 min ≈ 24 h) guardadas neste navegador com a página aberta.
                 </p>
+                {balanceValues.length >= 2 && (
+                  <div className="mt-5">
+                    <p className="font-mono text-caption tracking-wide text-mist-400">
+                      [ SALDO PENDENTE · MESMAS LEITURAS ]
+                    </p>
+                    <div className="mt-3">
+                      <TrendSparkline
+                        values={balanceValues}
+                        summary={balanceSummary}
+                        width={340}
+                        height={36}
+                      />
+                    </div>
+                    <p className="mt-2 max-w-md text-label text-mist-400">
+                      O saldo pendente cresce com os shares e <strong className="font-medium text-mist-300">zera quando a pool paga</strong> — a
+                      queda brusca na serra é o pagamento, não um erro.
+                    </p>
+                  </div>
+                )}
               </div>
             </>
           ) : (

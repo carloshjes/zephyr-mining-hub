@@ -18,7 +18,10 @@ import { fileURLToPath } from 'node:url'
 
 const PORT = 9228
 const APP_URL = 'http://localhost:5173/rede'
-const SIZES = [64, 80, 96, 112, 128]
+// Rodada 2026-07-11 (rail 16rem): candidatos maiores — o estudo original
+// (64–128) vive no histórico do NOTES.md; 216 é o teto físico do conteúdo
+// do rail (256 − 2×20 de padding)
+const SIZES = [128, 144, 160, 176, 192]
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const OUT_DIR = path.join(ROOT, '.e2e-out', 'logo')

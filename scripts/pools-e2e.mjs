@@ -168,6 +168,35 @@ if (MODE === 'normal') {
     rows.filter((r) => r.chips.some((c) => c.includes('maior hashrate'))).map((r) => r.name).join(','))
   check('chip "menor fee" na HeroMiners (única com fee)', (hero?.chips ?? []).some((c) => c.includes('menor fee')))
 
+  // --- dois chips na MESMA pool (regressão de 2026-07-11): empilhados em
+  // coluna, alinhados à esquerda, abaixo do nome — o flex-wrap horizontal
+  // do R3 quebrava desalinhado. No dado real de hoje a HeroMiners é o caso
+  // (maior hashrate E única com fee); se o mundo mudar e nenhuma pool tiver
+  // os dois, o check degrada pra "n/a" sem falhar.
+  const twoChipGeom = await evaluate(`(() => {
+    const tr = Array.from(document.querySelectorAll('tbody tr')).find((tr) => {
+      const t = Array.from(tr.querySelectorAll('td:first-child span')).map((s) => s.innerText)
+      return t.some((c) => c.includes('maior hashrate')) && t.some((c) => c.includes('menor fee'))
+    })
+    if (!tr) return null
+    const name = tr.querySelector('a').getBoundingClientRect()
+    const chips = Array.from(tr.querySelectorAll('td:first-child span'))
+      .filter((s) => /maior hashrate|menor fee/.test(s.innerText))
+      .map((s) => s.getBoundingClientRect())
+    return {
+      stacked: chips.length === 2 && Math.round(chips[0].top) !== Math.round(chips[1].top),
+      leftAligned: chips.length === 2 && Math.round(chips[0].left) === Math.round(chips[1].left),
+      belowName: chips.every((c) => c.top >= name.bottom - 1),
+    }
+  })()`)
+  if (twoChipGeom === null) {
+    check('dois chips juntos: n/a (nenhuma pool com os dois neste ciclo)', true)
+  } else {
+    check('dois chips juntos empilham em coluna', twoChipGeom.stacked)
+    check('dois chips juntos alinhados à esquerda', twoChipGeom.leftAligned)
+    check('dois chips juntos abaixo do nome', twoChipGeom.belowName)
+  }
+
   // --- ordenação padrão: hashrate desc (na medição de 2026-07-08, HeroMiners
   // ~22 MH/s > 2Miners ~1,4 MH/s; se as pools trocarem de posição no mundo
   // real, atualize as expectativas abaixo) ---

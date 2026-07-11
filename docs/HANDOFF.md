@@ -50,7 +50,8 @@ rewrite resolve isso sem backend próprio).
 | R2 (Fable) | Sinal Técnico v2: good/laranja (vermelho saiu), zeph recalibrado a ≈244°, fundo neutralizado + textura, escala tipográfica (9 tokens), movimento nos gráficos, causa raiz do painel vazio corrigida, logo 38px | ✅ feito — suíte e2e verde (rewards/rig/pools), `npm run build` limpo (relato do Fable), CLAUDE.md/NOTES.md atualizados, commitado e enviado | `015d0b1` |
 | N1 (Fable) | Casca de navegação vira rail vertical (logo 128px) | ✅ feito, commitado e enviado | `3eb7d97` |
 | N2 (Fable) | Cintilância da logo (95/288 pontos, 3 fases) + recomposição mobile do rail (logo 96px, nav em grade 2×2) | ✅ feito, commitado e enviado | `e785e82` |
-| R3 (Fable) | Sinal Técnico v3: fundo mais claro + textura de blocos com movimento, --text-headline/--text-display recalibrados, halving vira readout, sparkline de hashrate de rede (novo, `networkHashrateHistory.ts` + `TrendSparkline.tsx` generalizado de `LuckSparkline`), chips da Bússola com fundo sólido, faixas do Raio-X com respiração de opacidade, RESERVE RATIO com bg-ink-900, fix do rótulo do piso (medido: 0,07 px da borda antes do fix, flip dinâmico depois), scrollbar/botões estilizados, StatusBadge do Rig com fundo tintado + halo no estado normal, gráfico de hashrate 24h no Rig (payments sondado ao vivo — 2Miners confirmou CORS+formato, HeroMiners não; regra "as duas ou nenhuma" descartou payments) | ✅ feito e **verificado** (retomado após rate limit — sessão nova, `--continue`): build limpo, contraste remedido (mist-400 5,04:1 pior caso, segue AA), e2e 6/6 sem alteração de script, design-shots 8/8 na rubrica nas 4 telas, reduced-motion provado. **Pendente só o commit** — comandos abaixo. | — |
+| R3 (Fable) | Sinal Técnico v3: fundo mais claro + textura de blocos com movimento, --text-headline/--text-display recalibrados, halving vira readout, sparkline de hashrate de rede (novo, `networkHashrateHistory.ts` + `TrendSparkline.tsx` generalizado de `LuckSparkline`), chips da Bússola com fundo sólido, faixas do Raio-X com respiração de opacidade, RESERVE RATIO com bg-ink-900, fix do rótulo do piso (medido: 0,07 px da borda antes do fix, flip dinâmico depois), scrollbar/botões estilizados, StatusBadge do Rig com fundo tintado + halo no estado normal, gráfico de hashrate 24h no Rig (payments sondado ao vivo — 2Miners confirmou CORS+formato, HeroMiners não; regra "as duas ou nenhuma" descartou payments) | ✅ feito, verificado e commitado | `0c11837` |
+| R4 (Fable) | Correções de layout + acabamento a partir de 6 screenshots reais do Carlos: rampa da logo sem tom de branco (mist-300 saiu, 4 tons [.40,.29,.21,.10], regenerada via logo-export.mjs), rail 16rem (teto matemático do breakpoint xl) + header mobile 128px, chips da Bússola empilham em coluna + "N workers" nowrap, --text-display 11rem→9rem, legenda duplicada do Raio-X removida, rótulo do piso removido com código morto, scrollbar 8px thumb hairline, TrendSparkline variant bars + pendingBalance como faixa própria, StatusBadge normal vira readout nu (escada nada < tintado < sólido) | ✅ feito e verificado 2026-07-11 (e2e completa verde com 3 checks novos no pools-e2e + 1 contrato alterado no lowratio, build limpo, relato revisado por conteúdo neste chat) — **commit pendente**, working tree pronto | (preencher hash após o commit) |
 | 5 (Fable) | Integração final | ⬜ não iniciado — entra depois da tradução pro inglês | — |
 | — | Tradução pro inglês | ⬜ sessão separada, depois do R2 (não escrita ainda) | — |
 | — | Prompt de deploy no Vercel | ⬜ ainda não escrito | — |
@@ -61,21 +62,10 @@ tree (relatado numa sessão anterior deste chat) — Carlos commitou antes de ab
 sessão do R3, como o próprio prompt exigia. Confirmado por `git log` real: `e785e82`,
 `HEAD` = `origin/main`.
 
-**⚠️ PENDÊNCIA DE GIT ATIVA (R3, 2026-07-11):** o R3 rodou em duas sessões — bateu o
-rate limit no meio, Carlos desligou o desktop, retomou depois com `claude --continue`
-(sessão persistida em disco, contexto intacto) e terminou os itens que faltavam
-(gráfico do Rig, sondagem de payments, verificação final, CLAUDE.md/NOTES.md). Tudo
-verificado de verdade (ver tabela acima), mas **nada commitado ainda** — o working tree
-mistura a leva de código/notas técnicas do Fable com HANDOFF.md/zephyr-mining-hub-prompts.md
-(deste chat). Comandos exatos, na ordem (regras 5/6 abaixo — feche a sessão do Fable
-antes de rodar isso numa PowerShell separada):
-```
-git add CLAUDE.md NOTES.md scripts/contrast-check.mjs scripts/logo-preview.html src/
-git commit -m "prompt R3: sinal tecnico v3 (fundo vivo, densidade de dado, acabamento por tela)"
-git add docs/HANDOFF.md docs/zephyr-mining-hub-prompts.md
-git commit -m "docs: registra prompt R3 e sincroniza handoff"
-git push
-```
+**Pendência de git do R3 (RESOLVIDA, 2026-07-11):** o R3 rodou em duas sessões (rate
+limit no meio, retomada com `claude --continue`) e ficou um tempo só no working tree —
+Carlos commitou logo em seguida. Confirmado por `git log` real: `0c11837`, `HEAD` =
+`origin/main`. Nenhuma ação de git pendente até o R4 rodar.
 
 **Achado de sessão anterior (2026-07-10):** `CLAUDE.md` teve DOIS incidentes de
 truncamento/duplicação no working tree (seção "Riscos conhecidos" sumindo, depois
@@ -91,6 +81,17 @@ Sinal Tecnico v2"). Conteúdo conferido por amostragem: tokens `--color-good: #2
 reconferido nesta sessão nem nas seguintes (sandbox Linux; os binários nativos instalados
 no projeto são Windows-only — `rolldown`/`lightningcss`/`oxlint` `-win32-x64-msvc`) — não
 é regressão, é limite deste ambiente; o Fable já tinha relatado build limpo no Windows.
+
+**Lição nova (2026-07-11, revisão do R4 neste chat): `git status`/`git diff` rodados
+do sandbox do Cowork sobre a pasta montada podem MENTIR.** Observado ao vivo: o diff
+mostrava src/ limpo com o R4 INTEIRO no working tree — o índice do git guarda cache
+de stat (mtime/tamanho) gravado no Windows, e o mount do sandbox apresentou metadados
+defasados que batiam com o cache (ex.: AppShell.tsx com conteúdo R4 mas mtime
+pré-R4), então o git pulou a comparação de conteúdo. Confirmação da verdade foi por
+CONTEÚDO: `git cat-file -p HEAD:<arquivo>` + `git diff --no-index` (50 linhas de
+diferença num arquivo que o status dizia limpo). Regra: verificação de estado de git
+feita pelo chat Cowork só vale por conteúdo (show/cat-file/hash-object); status/diff
+confiáveis só rodados no Windows, pelo Carlos.
 
 ## Lições da sessão de 2026-07-09 (git + sessão do Fable concorrente)
 
@@ -193,16 +194,27 @@ porque tendem a se repetir:
 6. ~~Prompt N2 (cintilância + recomposição mobile)~~ — rodou, **commitado e
    enviado** (`e785e82`).
 7. ~~Prompt R3 (skill `creative-ui-director`)~~ — rodou em duas sessões (rate
-   limit no meio, retomada com `claude --continue`), **verificado de verdade**
-   (build/contraste/e2e/design-shots/reduced-motion — ver tabela acima).
-   **AÇÃO IMEDIATA: falta commitar** — comandos exatos no aviso de pendência de
-   git acima. Faça isso antes de qualquer prompt novo.
-8. Tradução pro inglês — sessão separada, prompt ainda não escrito; melhor depois
-   do R3 (senão traduz uma UI que muda de novo em seguida).
-9. Prompt 5 (integração final) — já pronto em `docs/zephyr-mining-hub-prompts.md`, mas só
-   depois dos itens 7 e 8 (senão revisa uma UI/texto que muda de novo logo em seguida).
-10. Escrever o prompt de deploy no Vercel — **ainda não existe**, mesmo estilo dos
-    outros (ver `docs/guia_conversar_com_llm.md`); parte do rewrite já usado em
-    `vite.config.ts`.
-11. Rodar as skills `backend-structure-auditor` e `code-audit-cleanup` — via Skill tool
-    deste chat, não via Claude Code.
+   limit no meio, retomada com `claude --continue`), **verificado e commitado**
+   (`0c11837`).
+8. ~~Prompt R4~~ — rodou e foi verificado (2026-07-11); **commit pendente** (regras
+   5/6: fechar a sessão do Fable, PowerShell limpa, add/commit/push).
+9. Rodar as skills `backend-structure-auditor` e `code-audit-cleanup` — via Skill
+   tool do chat Cowork, não via Claude Code. Subiu pra ANTES da tradução de
+   propósito: os achados alimentam a reescrita do Prompt 5 e auditar antes de
+   traduzir evita retrabalho em texto que muda.
+10. Tradução pro inglês — sessão separada, prompt ainda não escrito. Decisão
+    recomendada: inglês hardcode (sem i18n), registrar no CLAUDE.md.
+11. Prompt 5 (integração final) — **REESCREVER antes de colar**: foi escrito antes
+    do R1–R3 e metade dos itens já foi feita (loading/erro compartilhado, navegação
+    com rota ativa, tema único). A reescrita absorve: README.md desatualizado,
+    ErrorBoundary por módulo (não existe nenhum — erro de render vira tela branca),
+    varredura order=desc e os 2 lint warnings herdados do N2. Detalhe em
+    `docs/ANALISE-MELHORIAS-2026-07-11.md`.
+12. Escrever o prompt de deploy no Vercel — **ainda não existe**. Além do rewrite
+    do proxy (`/zephyr-api/(.*)` → `zephyrprotocol.com/api/$1`), precisa de
+    fallback de SPA (catch-all → index.html, DEPOIS do rewrite da API, senão
+    deep-link em /pools dá 404) e do teste pendente de Local Network Access
+    (página pública https → XMRig local). Detalhe na seção 3 da análise.
+13. Pós-deploy (backlog mapeado em `docs/ANALISE-MELHORIAS-2026-07-11.md`):
+    K1Pool via o mesmo rewrite (destravada pelo deploy), higiene de localStorage,
+    CI mínimo (build+lint), Vitest pra lógica pura (emission/format/históricos).

@@ -54,6 +54,11 @@ export interface HashrateReading {
   t: number
   /** Hashrate em H/s. */
   h: number
+  /** Saldo pendente na pool (ZEPH) na mesma leitura — só o histórico DIÁRIO
+      amostra (2026-07-11); opcional porque nem toda pool expõe o campo
+      (HeroMiners pode vir "—") e leituras antigas não o têm. Atenção de
+      leitura: o saldo ZERA quando a pool paga — a serra é o pagamento. */
+  b?: number
 }
 
 export const HASHRATE_HISTORY_LIMIT = 30
@@ -68,12 +73,15 @@ export function historyKey(poolId: string, wallet: string, source: 'pool' | 'xmr
 }
 
 function isValidReading(value: unknown): value is HashrateReading {
+  const reading = value as HashrateReading
   return (
     typeof value === 'object' &&
     value !== null &&
-    typeof (value as HashrateReading).t === 'number' &&
-    typeof (value as HashrateReading).h === 'number' &&
-    Number.isFinite((value as HashrateReading).h)
+    typeof reading.t === 'number' &&
+    typeof reading.h === 'number' &&
+    Number.isFinite(reading.h) &&
+    // b é opcional; presente, precisa ser número finito
+    (reading.b === undefined || (typeof reading.b === 'number' && Number.isFinite(reading.b)))
   )
 }
 
@@ -90,7 +98,7 @@ export function appendHashrateReading(
   hashrate: number,
   now: number = Date.now(),
 ): HashrateReading[] {
-  return appendTo(STORAGE_KEY, key, hashrate, MIN_READING_GAP_MS, HASHRATE_HISTORY_LIMIT, now)
+  return appendTo(STORAGE_KEY, key, { h: hashrate }, MIN_READING_GAP_MS, HASHRATE_HISTORY_LIMIT, now)
 }
 
 /** Média das leituras, ou undefined com menos de 3 (referência fraca demais). */
@@ -123,13 +131,23 @@ export function loadDailyHashrateHistory(key: string): HashrateReading[] {
   return loadAllFrom(DAILY_STORAGE_KEY, DAILY_HASHRATE_LIMIT)[key] ?? []
 }
 
-/** Anexa leitura ao histórico diário (gap de ~5 min, cap de 24 h). */
+/** Anexa leitura ao histórico diário (gap de ~5 min, cap de 24 h). O saldo
+    pendente (ZEPH) entra na MESMA leitura quando a pool o expõe — dado real
+    do mesmo poll, nunca inventado; ausente, a leitura vai só com hashrate. */
 export function appendDailyHashrateReading(
   key: string,
   hashrate: number,
+  pendingBalance?: number,
   now: number = Date.now(),
 ): HashrateReading[] {
-  return appendTo(DAILY_STORAGE_KEY, key, hashrate, DAILY_READING_GAP_MS, DAILY_HASHRATE_LIMIT, now)
+  return appendTo(
+    DAILY_STORAGE_KEY,
+    key,
+    { h: hashrate, ...(pendingBalance !== undefined ? { b: pendingBalance } : {}) },
+    DAILY_READING_GAP_MS,
+    DAILY_HASHRATE_LIMIT,
+    now,
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -156,7 +174,7 @@ function loadAllFrom(storageKey: string, limit: number): Record<string, Hashrate
 function appendTo(
   storageKey: string,
   key: string,
-  hashrate: number,
+  entry: Omit<HashrateReading, 't'>,
   gapMs: number,
   limit: number,
   now: number,
@@ -165,7 +183,7 @@ function appendTo(
   const previous = histories[key] ?? []
   const last = previous[previous.length - 1]
   if (last && now - last.t < gapMs) return previous
-  const next = [...previous, { t: now, h: hashrate }].slice(-limit)
+  const next = [...previous, { t: now, ...entry }].slice(-limit)
   histories[key] = next
   try {
     window.localStorage.setItem(storageKey, JSON.stringify(histories))

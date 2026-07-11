@@ -242,8 +242,15 @@ if (MODE === 'brokenrewards') {
   )
   check('trechos abaixo do piso no laranja de estado negativo',
     await evaluate(`getComputedStyle(document.querySelector('[data-testid="ratio-alert-segment"]')).stroke === '${STROKE_BAD}'`))
-  check('rótulo do piso visível',
-    await evaluate(`Array.from(document.querySelectorAll('svg text')).some((t) => t.textContent.includes('piso da faixa alvo'))`))
+  // Contrato ATUALIZADO em 2026-07-11: o rótulo textual do piso SAIU de vez
+  // (decisão do Carlos — na janela de 1.000 blocos nenhum lado ficava
+  // legível); a demarcação visual é só a linha tracejada, e o "4,0" segue no
+  // eixo Y e no texto "alvo: 4,0–8,0". O check antigo exigia o rótulo
+  // presente; agora exige AUSENTE + linha do piso de pé.
+  check('rótulo textual do piso AUSENTE (removido de vez)',
+    await evaluate(`!Array.from(document.querySelectorAll('svg text')).some((t) => t.textContent.includes('piso da faixa alvo'))`))
+  check('linha tracejada do piso presente',
+    await evaluate(`Array.from(document.querySelectorAll('svg line')).some((l) => l.getAttribute('stroke-dasharray') === '4 3')`))
   await screenshot('rewards-lowratio.png')
 } else {
   // --- manchete com dado real ---

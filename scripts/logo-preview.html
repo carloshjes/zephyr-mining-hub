@@ -139,9 +139,11 @@
   const RAMPS = {
     // padrão (F1/F2): mist-100 como ponto "aceso"
     padrao: ['--color-mist-100', '--color-zeph-300', '--color-zeph-500', '--color-zeph-700'],
-    // F3 sem branco (pedido do Carlos): só roxo/púrpura/cinza-roxo —
-    // mist-300 (9,6:1) vira o teto de brilho, um degrau abaixo do mist-100
-    semBranco: ['--color-mist-300', '--color-zeph-300', '--color-mist-400', '--color-zeph-500', '--color-zeph-700'],
+    // F3 sem branco (pedido do Carlos, 2 rodadas): a 1ª tirou o mist-100;
+    // em uso real o mist-300 (9,0:1, 30% dos pontos) AINDA lia como "branco"
+    // — saiu também (2026-07-11). Teto de brilho agora é o zeph-300 (7,1:1):
+    // a marca fica só roxo/cinza-roxo de verdade.
+    semBranco: ['--color-zeph-300', '--color-mist-400', '--color-zeph-500', '--color-zeph-700'],
   }
 
   // PRNG determinístico (mulberry32) — glitch/cintilância reproduzíveis
@@ -381,8 +383,10 @@
   const FINALISTS = [
     { id: 'f1', name: 'F1 · VARREDURA ↘',    tone: 'sweep',    ramp: 'padrao', desc: 'degraus mist-100→zeph-700 na diagonal' },
     { id: 'f2', name: 'F2 · BARRA DESTACADA', tone: 'elements', ramp: 'padrao', desc: 'corpo claro · barra zeph-500' },
-    // sem branco a pedido do Carlos — rampa própria de 5 tons + pesos novos
-    { id: 'f3', name: 'F3 · CINTILÂNCIA',     tone: 'sparkle',  ramp: 'semBranco', weights: [.30, .28, .20, .15, .07], desc: 'sem branco · 5 tons zeph/mist · seed 11' },
+    // sem branco a pedido do Carlos — 2ª rodada (2026-07-11): mist-300 saiu
+    // da rampa; os pesos antigos [.30,.28,.20,.15,.07] foram redistribuídos
+    // PROPORCIONALMENTE entre os 4 tons restantes (÷0,70 e arredondado)
+    { id: 'f3', name: 'F3 · CINTILÂNCIA',     tone: 'sparkle',  ramp: 'semBranco', weights: [.40, .29, .21, .10], desc: 'sem tom claro · 4 tons zeph/mist · seed 11' },
   ]
 
   // ---------- exploração original (histórico da rodada 1) ----------

@@ -1139,3 +1139,149 @@ reduced-motion provado emulado (seção acima) · sondagem de payments
 documentada (seção acima). Evidências regeneráveis em .e2e-out/; as
 sondagens pontuais (ratio-label-probe, reduced-motion-probe) viveram no
 scratchpad da sessão — os números e o método estão nas seções acima.
+
+# NOTES — Prompt R4: regressões e acabamento de uso real (2026-07-11)
+
+Seis pontos anotados pelo Carlos em screenshots do build R3 em produção —
+mistura de bug de layout (chips da Bússola, workers cortando) e acabamento
+dentro do sistema fechado (rail/header maiores, rampa da logo, display,
+scrollbar, StatusBadge). Tokens de cor, semântica good/bad, composição
+dominante/rail e convenção mono intactos.
+
+## Rampa da logo — 2ª rodada sem branco: mist-300 SAIU
+
+Em uso real o mist-300 (#b7b2c9 — o tom MAIS claro e o de MAIOR peso, 30%
+dos 288 pontos) ainda lia como "branco". Rampa semBranco reduzida a 4 tons
+(zeph-300/mist-400/zeph-500/zeph-700) com os pesos antigos redistribuídos
+proporcionalmente (÷0,70): **[.40, .29, .21, .10]**. Teto de brilho agora é
+o zeph-300 (7,1:1) — a marca é só roxo/cinza-roxo. Fluxo de sempre:
+logo-preview.html (rampa + pesos do card F3) → logo-export.mjs (sanidade:
+288 pts, cintilância 95 = 33,0% em grupos 30/33/32 — IDÊNTICA, os seeds não
+mudaram) → splice programático no LogoMark.tsx (verificado: 0 divergências
+de geometria/fase, 114 tons re-sorteados). Favicon inalterado (#9c96f5).
+Captura ampliada (rail-176px-lupa4x.png): nenhum tom lê como branco; os 4
+degraus seguem distinguíveis a olho nu.
+
+## Rail 16rem — o TETO com breakpoint xl, medido de novo
+
+Pedido: rail inteiro maior (sobrava espaço). A conta do N1 limita: módulos
+abrem 2 colunas em lg assumindo viewport ≥1024 ⇒ rail ≤ 1280 − 1024 =
+**256px (16rem) com breakpoint xl**. 18rem forçaria 2xl (1536) e tiraria o
+rail da faixa 1280–1535 — a mais comum de desktop; rejeitado. Medido a 1280
+EXATOS (scratchpad/rail-invariant-probe): rail 256px · coluna/main = 1024px
+· hero "92,73 MH/s" a 96px em **1 linha** · os 4 itens de nav em 1 linha
+cada · full-bleed do Raio-X cobre a coluna exata (left 249 = os mesmos 7px
+de meia-calha de scrollbar do N1 — paridade). Dentro do rail: logo 128 →
+**176px** (ponto 176×0,66/22 ≈ 5,3px; teto físico do conteúdo é 216px =
+256 − 2×20 de padding), wordmark data-md → **data-lg**, nav label →
+**body** (o rótulo mais longo, 24 chars mono a 14px ≈ 202px, cabe nos 216),
+py-6 → py-8. Estudo de tamanho re-fotografado em rail-{128…192}px.png.
+
+## Header mobile — base alinhada + 128px (régua nova, medida)
+
+`items-center` → `items-end` (base do wordmark na base da logo — pedido) e
+wordmark pra data-lg também aqui. Régua da rodada: presença primeiro, custo
+de altura documentado (inverte a prioridade do N2, a pedido de quem usa).
+Candidatos num viewport 390×700 (mobile-shell-shots): 96 → 197px (28%) ·
+112 → 213px (30%) · **128 → 229px (33%, escolhido)** · 144 → 245px (35%,
+ganho marginal — rejeitado com número). Nav segue grade deliberada: 2
+linhas a 390, 1 a 768 (bloco a 768: 199px). Nav mobile FICA em text-label
+(12px): a 14px a grade 2×2 estoura os 358px úteis de um viewport 390
+(173+144+24 de gap = 341 cabem; 202+168+24 = 394 não).
+
+## Bússola — chips empilhados (bug real) + workers nowrap
+
+O `flex flex-wrap` do R3 quebrava desalinhado quando a MESMA pool ganhava
+os dois chips — cenário real: HeroMiners é maior hashrate E única com fee.
+Fix: célula vira `flex flex-col items-start` — nome numa linha, chips
+empilhados abaixo, à esquerda. Medido ao vivo com o caso real (1360 e
+1024): tops distintos, lefts iguais, ambos abaixo do nome. A contagem
+"N workers" ganhou `whitespace-nowrap` (quebrava "2.206 / workers"
+competindo por largura) — 1 linha medida nas duas larguras. pools-e2e
+ganhou 3 checks permanentes do cenário (degradam pra "n/a" sem falhar se
+nenhuma pool tiver os dois chips num ciclo futuro).
+
+## Raio-X — display 9rem, legenda única, rótulo do piso REMOVIDO
+
+- **--text-display: teto 11rem → 9rem** (mais uma rodada de uso real; mesmo
+  passo do R3). Medido: 144px a 1360 · 115,2px a 768 (15vw — inalterado) ·
+  72px a 390 (piso — inalterado). O corte do sub na borda segue vivo
+  (shot-recompensa-desktop.png); display-sub intacto de propósito.
+- **Legenda da manchete removida** (linhas com SeriesSwatch + valor em ZEPH
+  por fatia): duplicava a legenda estrutural do gráfico "Divisão da
+  recompensa" logo abaixo — ao vivo lia como repetição. A barra de
+  proporção (aria-hidden) fica; os valores em ZEPH por fatia seguem na
+  tabela e no tooltip. Medido: 1 grupo de legenda na tela (era 2).
+- **Rótulo "piso da faixa alvo (4,0)" saiu DE VEZ** (decisão do Carlos): na
+  janela de 1.000 blocos a série oscila tanto ao redor do piso que nenhum
+  lado ficava legível — o flip do R3 tratava o sintoma, não o caso. Só a
+  linha tracejada demarca; o "4,0" segue no eixo Y e no "alvo: 4,0–8,0".
+  Código morto removido (floorLabelY, FLOOR_LABEL_*, função de colisão).
+  Sondado nas 4 janelas (100/200/500/1000): rótulo ausente, linha presente.
+  **Contrato do rewards-e2e atualizado**: o check "rótulo do piso visível"
+  (lowratio) virou DOIS — "rótulo AUSENTE" + "linha tracejada presente".
+  Único ajuste de script da rodada, documentado no próprio check.
+- **scrollbar-themed: 10px → 8px, thumb mist-600 → hairline** (o mist-600,
+  matiz ≈250°, ainda lia com tinta de roxo; o hairline é a mesma classe de
+  presença dos divisores). Confirmação computada: scrollbar-color
+  rgb(40,37,48) sobre rgb(29,24,36). Uma utility só — refletiu nas 3
+  tabelas (Raio-X, Bússola, workers do Rig) sem tocar componente.
+
+## Rig — tendência em BARRAS + saldo pendente como 2ª métrica (entrou)
+
+- TrendSparkline ganhou `variant: 'line' | 'bars'` (default line — Pulso da
+  Rede e Bússola intactos, pools-e2e passou sem mudança). Barras partem do
+  piso do DOMÍNIO (min − 15% do span), não do zero — textura de tendência,
+  não magnitude (hashrate estável ancorado no zero viraria bloco chapado);
+  barra corrente no accent zeph-300, demais mist-600; com as 288 leituras
+  cheias a barra afina até 1px e o conjunto lê como textura densa —
+  deliberado, mesma linguagem da grade de fundo.
+- **pendingBalance ENTROU** como segunda métrica: é dado real do MESMO poll
+  (2Miners expõe; HeroMiners pode vir "—" → leitura sai só com hashrate). A
+  leitura diária virou {t, h, b?} (validação tolerante: b ausente ok, b
+  inválido descarta a leitura; storage e chave inalterados — leituras
+  antigas seguem válidas). SEM eixo duplo (regra de dataviz do projeto):
+  o saldo é uma FAIXA própria empilhada sob as barras, mesma janela — a
+  mesma solução fatia×ratio do Raio-X. A legenda avisa que o saldo ZERA
+  quando a pool paga (a serra é o pagamento, não bug); com <2 leituras com
+  saldo a faixa nem renderiza (nunca fingir série). rig-e2e intacto: o
+  normal semeia só o histórico de STATUS, e a faixa nova é opcional.
+
+## StatusBadge do rig — o normal perdeu a caixa (skill creative-ui-director)
+
+Diagnóstico (modo design-system-constrained-upgrade, lean): na região
+DOMINANTE, colado no hero de 96px, o estado normal como chip fechado
+(borda + tint + padding) era o único elemento "card" numa tela que resolve
+estado com readout mono — e é o estado de 99% do tempo, sempre aceso.
+Alternativa considerada (estado embutido na linha de caption do hero):
+rejeitada — mistura estado com metadado de fonte e perde o ponto/halo.
+Escolhida: **normal = linha de readout nua** (ponto + halo + `[ Minerando
+normal ]` mono em good, zero superfície; good sobre ink-950 = 8,08:1, já
+medido no v3) · **below/offline INTACTOS do v3** (bad/20 contornado 4,89:1
+· bad sólido 6,57:1). A escada de peso do R2 fica MAIS íngreme: nada <
+caixa tintada < caixa sólida — superfície agora significa "algo errado".
+Nenhum degrau é só-cor (texto por extenso + glifo em todos); halo "ao
+vivo" segue exclusivo do normal com motion-reduce:hidden. Supersede o tint
+good/10 do normal introduzido no R3 (o pedido de lá era vivacidade; a
+desta rodada é pertencimento ao vocabulário — o halo cumpre a vivacidade).
+Contratos preservados: data-testid/data-status e os textos dos rótulos
+(rig-e2e normal + notfound passaram sem alteração).
+
+## Verificação R4 (2026-07-11)
+
+`npm run build` limpo (175ms) · lint só com os 2 warnings PRÉ-existentes do
+N2 (SeriesSwatch.tsx, logo-shots.mjs) · e2e completa: rewards
+normal/lowratio/brokenrewards + rig normal/notfound + pools normal (com os
+3 checks novos de chips) — **TUDO PASSOU 2026-07-11** · design-shots 12/12
+re-fotografadas e revisadas na rubrica de 8 perguntas: as 4 telas passaram
+(o rail maior não criou segunda dominante — a marca é âncora de navegação,
+não compete com o dado; a textura de barras do rig segue mais quieta que o
+hero; display menor deixou a manchete MAIS integrada à dobra sem perder o
+corte). Checks extras da rodada: (1) ciclo real com HeroMiners = maior
+hashrate E menor fee fotografado com os chips empilhados corretos; (2) as
+4 janelas do ratio abertas uma a uma — rótulo do piso ausente em todas.
+Sondas da rodada no scratchpad da sessão (rail-invariant-probe,
+pools-chips-probe, rewards-round-probe, rig-visual-probe) — números e
+método registrados acima. Evidências regeneráveis: .e2e-out/logo/rail-*.png
+e mobile-*.png (estudos de tamanho), .e2e-out/pools-chips-*.png,
+rewards-round-*.png, rig-round-*.png e shot-*.png (12).

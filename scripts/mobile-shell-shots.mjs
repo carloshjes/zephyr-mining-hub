@@ -20,7 +20,9 @@ import { fileURLToPath } from 'node:url'
 
 const PORT = 9229
 const APP_URL = 'http://localhost:5173/rede'
-const SIZES = [64, 80, 96, 112]
+// Rodada 2026-07-11: régua nova a pedido de uso real — presença/legibilidade
+// primeiro, custo de altura documentado (o estudo 64–112 vive no NOTES.md)
+const SIZES = [96, 112, 128, 144]
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const OUT_DIR = path.join(ROOT, '.e2e-out', 'logo')

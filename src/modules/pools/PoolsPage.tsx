@@ -226,8 +226,13 @@ export function PoolsPage() {
               const isLowestFee = def.id === lowestFeeId
               return (
                 <tr key={def.id} className={isTopHashrate ? 'bg-zeph-800/20' : ''}>
+                  {/* Nome numa linha; chips (quando houver) empilhados em
+                      coluna logo abaixo, alinhados à esquerda. O flex-wrap
+                      horizontal do R3 quebrava desalinhado quando a MESMA
+                      pool ganhava os dois chips (caso real: HeroMiners com
+                      maior hashrate E menor fee) — visto em produção. */}
                   <td className="px-3 py-3">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-col items-start gap-1.5">
                       <a
                         href={def.website}
                         target="_blank"
@@ -268,7 +273,9 @@ export function PoolsPage() {
                       <td className="px-3 py-3 text-right font-mono text-label">
                         {orDash(snapshot?.miners, formatInteger)}
                         {snapshot?.workers !== undefined && (
-                          <span className="block text-caption text-mist-400">
+                          // nowrap: a linha secundária competia por largura
+                          // com as outras colunas e quebrava "1.234\nworkers"
+                          <span className="block text-caption whitespace-nowrap text-mist-400">
                             {formatInteger(snapshot.workers)} workers
                           </span>
                         )}

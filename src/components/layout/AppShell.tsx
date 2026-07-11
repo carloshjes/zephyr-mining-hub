@@ -54,24 +54,27 @@ export function AppShell() {
     // (100vw − rail): como o main centraliza na COLUNA e não mais na viewport,
     // o antigo w-screen desalinharia — a conta e a prova estão em NOTES.md.
     // overflow-x-clip: impede que esse full-bleed vire scroll horizontal.
-    <div className="flex min-h-screen flex-col overflow-x-clip [--shell-rail-w:0px] xl:pl-(--shell-rail-w) xl:[--shell-rail-w:14rem]">
+    <div className="flex min-h-screen flex-col overflow-x-clip [--shell-rail-w:0px] xl:pl-(--shell-rail-w) xl:[--shell-rail-w:16rem]">
       {/* Rail fixo (xl+): marca no topo, nav empilhado. bg chapado ink-950 —
           mesmo tratamento da barra do R1/R2 — porque conteúdo rola por baixo;
           divisor hairline agora VERTICAL, na borda direita. O breakpoint é xl
           (não lg) de propósito: os módulos abrem a composição de 2 colunas em
-          lg assumindo a viewport inteira — com o rail comendo 14rem, a coluna
-          só devolve a largura de design deles a partir de ~1248px (medição do
-          aperto em NOTES.md). */}
-      <aside className="fixed inset-y-0 left-0 z-10 hidden w-(--shell-rail-w) flex-col overflow-y-auto border-r border-hairline bg-ink-950 px-5 py-6 xl:flex">
+          lg assumindo a viewport inteira — a coluna com rail precisa devolver
+          esses 1024px de largura de design. 16rem é o TETO do rail com
+          breakpoint xl (1024 + 256 = 1280 exato, medido de novo em NOTES.md
+          nesta rodada) — alargar mais forçaria 2xl e tiraria o rail da faixa
+          1280–1535, a mais comum de desktop. */}
+      <aside className="fixed inset-y-0 left-0 z-10 hidden w-(--shell-rail-w) flex-col overflow-y-auto border-r border-hairline bg-ink-950 px-5 py-8 xl:flex">
         {/* Marca F3 (halftone, estática) — decorativa: o wordmark abaixo é o
-            nome acessível. 128px: no rail o ponto rende ~3,8px real e a
-            variação tonal lê SEM zoom (evidência: .e2e-out/logo/rail-128px.png
-            + lupa, gerados por scripts/rail-logo-shots.mjs). */}
-        <LogoMark size={128} className="shrink-0" />
-        <p className="mt-5 text-data-md leading-tight font-semibold tracking-tight">
+            nome acessível. 176px (subiu de 128 no pedido de uso real de
+            2026-07-11): ponto ~5,3px real, variação tonal folgada a olho nu
+            (evidência: .e2e-out/logo/rail-176px.png + lupa, gerados por
+            scripts/rail-logo-shots.mjs). */}
+        <LogoMark size={176} className="shrink-0" />
+        <p className="mt-6 text-data-lg leading-tight font-semibold tracking-tight">
           Zephyr <span className="block text-zeph-300">Mining Hub</span>
         </p>
-        <nav className="mt-10 flex flex-col gap-y-2 font-mono text-label tracking-wide">
+        <nav className="mt-10 flex flex-col gap-y-2.5 font-mono text-body tracking-wide">
           <NavLinks />
         </nav>
       </aside>
@@ -80,14 +83,17 @@ export function AppShell() {
           (logo → wordmark → nav) deitada num bloco de largura cheia. O
           empilhamento 1:1 do rail custaria a altura inteira de um celular
           (medição em NOTES.md), então o wordmark empilhado senta AO LADO do
-          logo e o nav vira grade 2×2 deliberada (uma linha a partir de md) —
-          agrupamento decidido, não flex-wrap acidental. Logo em 96px: tom
-          por ponto lê a olho nu no crop ×1 (evidência em NOTES.md). */}
+          logo, com a BASE alinhada à base da marca (items-end — pedido de
+          uso real de 2026-07-11; o items-center antigo deixava o texto
+          flutuando no meio), e o nav vira grade 2×2 deliberada (uma linha a
+          partir de md) — agrupamento decidido, não flex-wrap acidental.
+          Logo em 128px: a régua desta rodada prioriza presença sobre
+          economia de altura (medições novas em NOTES.md). */}
       <header className="border-b border-hairline bg-ink-950 xl:hidden">
         <div className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-4">
-            <LogoMark size={96} className="shrink-0" />
-            <p className="text-data-md leading-tight font-semibold tracking-tight">
+          <div className="flex items-end gap-4">
+            <LogoMark size={128} className="shrink-0" />
+            <p className="text-data-lg leading-tight font-semibold tracking-tight">
               Zephyr <span className="block text-zeph-300">Mining Hub</span>
             </p>
           </div>

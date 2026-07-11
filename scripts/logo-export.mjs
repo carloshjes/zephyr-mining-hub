@@ -136,8 +136,9 @@ const payload = JSON.parse(await evaluate(`JSON.stringify((() => {
   }
 })())`))
 
-// Sanidade do export antes de gravar qualquer coisa
-const RAMP = ['--color-mist-300', '--color-zeph-300', '--color-mist-400', '--color-zeph-500', '--color-zeph-700']
+// Sanidade do export antes de gravar qualquer coisa. Rampa semBranco 2ª
+// rodada (2026-07-11): mist-300 saiu — em uso real ainda lia como "branco".
+const RAMP = ['--color-zeph-300', '--color-mist-400', '--color-zeph-500', '--color-zeph-700']
 const badTone = payload.rects.filter((r) => !RAMP.includes(r.fillVar))
 const withOpacity = payload.rects.filter((r) => r.opacity !== null)
 const badTwinkle = payload.rects.filter((r) => ![null, 'tw1', 'tw2', 'tw3'].includes(r.twinkleClass))
@@ -159,7 +160,7 @@ if (share < 0.2 || share > 0.4) throw new Error(`fração cintilante ${(share * 
 const perGroup = [1, 2, 3].map((g) => dots.filter((d) => d[3] === g).length)
 writeFileSync(path.join(OUT_DIR, 'f3-dots.json'), JSON.stringify({
   source: 'scripts/logo-preview.html · card F3 · CINTILÂNCIA (rev sem branco)',
-  params: 'FINAL_PARAMS 22×22 quadrado t=.18 barra=haste · sparkle seed 11 · pesos [.30,.28,.20,.15,.07] · twinkle seed 23 (~30%, 3 fases)',
+  params: 'FINAL_PARAMS 22×22 quadrado t=.18 barra=haste · sparkle seed 11 · pesos [.40,.29,.21,.10] (rampa sem mist-300) · twinkle seed 23 (~30%, 3 fases)',
   viewBox: payload.viewBox,
   dotSide: payload.rects[0].w,
   ramp: RAMP,

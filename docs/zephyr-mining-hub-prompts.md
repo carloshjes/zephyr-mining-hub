@@ -1632,6 +1632,261 @@ ajuste antes de encerrar a sessão.
 
 ---
 
+## Prompt R4 — Fable: correções de layout + acabamento (rail, Raio-X, Pools, Rig)
+
+Roda depois do R3 (já commitado e enviado, `0c11837`). Direção decidida a partir de 8
+pontos que o Carlos trouxe com SCREENSHOTS reais do produto em produção (não descrição
+de memória) — três deles são bugs de layout genuínos (regressões introduzidas por
+mudanças recentes, não decisão de direção), os demais são acabamento visual. Invoque a
+skill `creative-ui-director` de novo nesta sessão: a maioria dos pontos já tem direção
+fechada abaixo, mas dois (o rótulo do piso removido e o StatusBadge do Rig) pedem uma
+leitura crítica sua antes de implementar — não é só "aplicar a lista".
+
+```
+Aja como um engenheiro front-end sênior de direção visual, corrigindo regressões de
+layout e refinando acabamento a partir de uso real do produto em produção — invoque a
+skill creative-ui-director no início desta sessão. Nem todo item abaixo é "direção
+nova": alguns são bugs (trate como bug — causa raiz, fix, teste do cenário exato que
+quebrou); outros são acabamento onde você tem autonomia de execução dentro do sistema
+"Sinal Técnico" já validado (R1/R2/R3) — não redecida tokens, composição
+dominante/rail ou semântica de cor já fechados nas sessões anteriores.
+
+<contexto>
+O Carlos usou o produto real (build do R3, já em produção) e trouxe 6 screenshots
+anotados cobrindo o rail de navegação, o header mobile, a Bússola de Pools, o Raio-X
+da Recompensa e o Monitor do Rig. Leia CLAUDE.md, NOTES.md e o código de src/ antes de
+começar — em especial as seções do R3 (mais recente) sobre o painel de reserve ratio,
+o StatusBadge e a scrollbar customizada, que são exatamente onde ficam os pontos desta
+rodada.
+</contexto>
+
+<diagnostico>
+0. Rail de navegação (desktop, `xl:`+):
+   a. A LogoMark usa a rampa "semBranco" (5 tons: mist-300/zeph-300/mist-400/zeph-500/
+      zeph-700, pesos 30/28/20/15/7 — ver LogoMark.tsx) — mas mist-300 (#b7b2c9, o tom
+      MAIS claro da rampa, e o de MAIOR peso, 30% dos 288 pontos) ainda lê como
+      "branco" pro Carlos usando o produto real, mesmo não sendo literalmente
+      mist-100. Pedido: só roxo/cinza, sem esse tom claro demais.
+   b. O rail (`--shell-rail-w: 14rem`, logo 128px) deixa espaço vazio sobrando na
+      coluna — pedido pra aumentar o rail inteiro (largura, logo, wordmark, nav), não
+      só um elemento.
+1. Header mobile (`<xl`): o wordmark "Zephyr Mining Hub" hoje centraliza verticalmente
+   (`items-center`) ao lado da logo de 96px — o Carlos quer a base do texto alinhada
+   com a base da logo, e ambos maiores (mesmo diagnóstico do rail: sobra espaço).
+2. Bússola de Pools — dois bugs de layout reais, vistos ao vivo com dado real (a
+   HeroMiners sendo maior hashrate E menor fee ao mesmo tempo):
+   a. Os dois chips [ maior hashrate ]/[ menor fee ] quebram de forma desalinhada
+      quando aparecem juntos na mesma célula — o `flex flex-wrap` do R3 (que deu
+      fundo sólido aos chips) não foi testado nesse cenário específico antes de
+      fechar a sessão.
+   b. A contagem "workers" (linha secundária da coluna Mineradores) corta/quebra —
+      provável falta de `whitespace-nowrap` competindo por espaço com as outras
+      colunas.
+3. Raio-X da Recompensa:
+   a. `--text-display` já foi recalibrado de 13rem (R2) pra 11rem (R3), mas ainda lê
+      grande demais em uso real — mais uma rodada de calibração, mesma disciplina.
+   b. Duplicação real: RewardsPage.tsx tem DUAS legendas quase idênticas em sequência
+      vertical — uma dentro da manchete (linhas ~336-352, com valor em ZEPH de cada
+      fatia do bloco mais recente) e outra no cabeçalho do gráfico "Divisão da
+      recompensa, bloco a bloco" (linhas ~405-421, sem valor, com "· 0 na janela").
+      Mesmos swatches/texturas/cores nas duas — ao vivo, lê como repetição, não como
+      duas informações diferentes.
+   c. O rótulo textual "piso da faixa alvo (4,0)" no ReserveRatioChart.tsx JÁ recebeu
+      um fix sofisticado no R3 (flip de posição + halo de contraste atrás do texto,
+      com lógica de menor colisão com a série) — mas na janela de 1.000 blocos
+      (reserve_ratio oscila muito ao redor do piso nesse range) a linha cruza a
+      região do texto com frequência alta o bastante pra continuar ilegível em algum
+      trecho, não importa o lado escolhido. O Carlos decidiu: tirar o texto de vez,
+      em todas as janelas (100/200/500/1000) — a linha tracejada do piso sozinha já
+      demarca isso visualmente, e o número "4,0" já aparece no eixo Y e no texto
+      "alvo: 4,0–8,0" acima do gráfico.
+   d. O scroll da tabela `<details>` já usa a classe `scrollbar-themed`
+      (src/index.css) com mist-600/ink-900 — tecnicamente não é branco nem zeph, mas
+      o Carlos ainda percebe alguma tinta e acha a barra grossa (10px hoje).
+4. Monitor do Rig:
+   a. O `[ TENDÊNCIA 24 H ]` (TrendSparkline, introduzido no R3) é uma linha — o
+      Carlos quer barras verticais, e pergunta se dá pra somar outra métrica real (não
+      inventada) no mesmo gráfico.
+   b. O StatusBadge (`[ Minerando normal ]`, também v3) é uma caixa com borda +
+      fundo tintado + padding + o dot com halo dentro — na região DOMINANTE da tela,
+      ao lado do hero "16,43 kH/s", esse tratamento de "chip fechado" destoa do resto
+      do sistema, que resolve estado com a convenção mono `[ rótulo ]` + cor de
+      texto/glifo (readouts, badges de saúde no Pulso da Rede) em vez de caixas tipo
+      card. O Carlos não deu direção exata ("está estranho") — é o ponto que mais
+      precisa da skill criativa nesta rodada.
+</diagnostico>
+
+<decisoes_ja_tomadas>
+Não redecida os itens abaixo:
+
+1. Tokens, composição dominante/rail, convenção mono [ LABEL ], semântica good/bad,
+   zero gradiente (fora a textura de fundo já documentada) — nada disso muda aqui.
+2. A distinção de PESO entre os 3 estados do StatusBadge do Rig (normal < below <
+   offline) é o mecanismo de acessibilidade a daltonismo do R2 — qualquer redesenho
+   do item 4b preserva essa hierarquia, mesmo mudando a forma como ela é expressa.
+3. O rótulo "piso da faixa alvo (4,0)" SAI de vez do SVG do ReserveRatioChart — não é
+   pra tentar mais uma variação de posicionamento. Remova o código morto associado
+   (floorLabelY, FLOOR_LABEL_CLEARANCE, FLOOR_LABEL_W, FLOOR_LABEL_INK, a função de
+   colisão), não só esconda visualmente.
+4. Das duas legendas duplicadas do Raio-X, mantenha a que fica junto do gráfico
+   "Divisão da recompensa, bloco a bloco" (é a legenda estrutural do gráfico que ela
+   descreve) — remova o bloco de legenda de dentro da seção da manchete. A barra de
+   proporção decorativa (aria-hidden, acima da legenda removida) continua.
+
+O que você decide (com evidência, mesmo padrão do projeto):
+- Rampa da logo sem mist-300: vá em scripts/logo-preview.html (rampa "semBranco" do
+  card F3), ajuste a definição de tons/pesos removendo o candidato a "branco" e
+  redistribua entre os tons roxo/cinza restantes, depois rode scripts/logo-export.mjs
+  de novo pra regenerar LogoMark.tsx — NÃO edite o array DOTS à mão (os índices
+  dependem da ordem/tamanho da rampa no gerador). Confirme com captura ampliada
+  (mesma técnica de sempre) que nenhum tom lê como branco a olho nu.
+- Tamanho novo do rail (largura, logo, wordmark, nav): aumente proporcionalmente e
+  MEÇA de novo o invariante do breakpoint (NOTES.md, seção do Prompt N1: a coluna
+  com rail precisa ≥ largura de design dos módulos em `lg:`, senão os heros com
+  clamp(vw) quebram linha — é por isso que o breakpoint é `xl` hoje). Um rail maior
+  pode empurrar esse cálculo pra além de 1280px; decida se o breakpoint sobe pra
+  `2xl` ou se algum outro ajuste resolve, com a mesma medição real (simulação DOM +
+  captura) que a sessão N1 fez. Reverifique também a legibilidade do tom por ponto
+  no logo maior (scripts/rail-logo-shots.mjs).
+- Tamanho novo do header mobile (logo, wordmark): a sessão N2 escolheu 96px medindo
+  % da altura de um viewport 390×700 e favorecendo o menor tamanho com ganho
+  perceptível — o Carlos agora prioriza tamanho sobre economia de altura. Re-teste
+  candidatos maiores (112/128px) com scripts/mobile-shell-shots.mjs e escolha
+  favorecendo legibilidade/presença, documentando a nova régua de decisão (não é
+  reabrir a metodologia, é recalibrar o critério a pedido de quem usa o produto).
+- Segunda métrica no gráfico de barras do Rig: avalie se dá pra amostrar
+  `pendingBalance` (já consumido em RigDashboard.tsx via `poolPoll.data`) junto com o
+  hashrate no motor diário (rigStatus.ts) — dado real, sem sondagem nova de API. Se
+  implementar, avise no texto/legenda que o saldo pendente ZERA quando a pool paga
+  (comportamento esperado, não bug). Se não der pra fazer com confiança, entregue só
+  hashrate em barras — não force uma métrica capenga.
+- Redesenho do StatusBadge do Rig: use a skill creative-ui-director pra esse
+  componente especificamente. Considere pelo menos uma alternativa que se pareça
+  mais com o vocabulário "readout"/mono do resto do sistema (texto+glifo colorido,
+  menos "caixa fechada tipo card") antes de decidir — preservando a hierarquia de
+  peso normal<below<offline e o halo "ao vivo" (ou uma evolução dele) no estado
+  normal.
+- Largura/tom final da scrollbar: comece reduzindo de 10px pra algo mais fino
+  (6-8px) e reavalie se mist-600 ainda lê com tinta de roxo contra o fundo — se sim,
+  considere hairline como thumb. É um `@utility` só (scrollbar-themed em
+  src/index.css), então o ajuste vale automaticamente pras 3 tabelas que já usam a
+  classe (Pools, Raio-X, Workers do Rig) — não duplique por tela.
+- Novo teto de `--text-display`: calibre com captura real nos 3 breakpoints, mesma
+  disciplina das rodadas anteriores (preserva o corte full-bleed — só o número
+  encolhe, não o mecanismo de composição).
+</decisoes_ja_tomadas>
+
+<tarefa>
+Um item de cada vez, testando antes de seguir (mesma disciplina de sempre) — comece
+pela casca (compartilhada), depois por tela na ordem abaixo:
+
+0. Rail de navegação (src/components/layout/AppShell.tsx, LogoMark.tsx,
+   scripts/logo-preview.html, scripts/logo-export.mjs):
+   a. Ajuste a rampa "semBranco" no gerador (remova o tom que lê como branco,
+      redistribua pesos), rode o export, confirme LogoMark.tsx regenerado (não
+      editado à mão) e a captura ampliada sem tom claro demais.
+   b. Aumente `--shell-rail-w`, o tamanho do LogoMark no rail e a tipografia do
+      wordmark/nav. Reverifique o invariante do breakpoint xl (NOTES.md, Prompt N1)
+      com a mesma medição real — ajuste o breakpoint se necessário. Capture o rail
+      ampliado de novo pra confirmar legibilidade do tom por ponto no tamanho novo.
+
+1. Header mobile (AppShell.tsx): troque `items-center` por `items-end` no container
+   logo+wordmark; teste candidatos maiores de tamanho com scripts/mobile-shell-shots.mjs
+   e escolha favorecendo presença (ver decisoes_ja_tomadas). Teste em 390 e 768px.
+
+2. Bússola de Pools (src/modules/pools/PoolsPage.tsx):
+   a. Reestruture o container do nome+chips: nome numa linha, os chips (quando mais
+      de um) empilhados em coluna logo abaixo, alinhados à esquerda — não mais
+      wrap horizontal solto. Force o cenário real (uma pool sendo maior hashrate E
+      menor fee ao mesmo tempo — hoje a HeroMiners é esse caso) e confirme
+      visualmente antes de seguir.
+   b. Dê `whitespace-nowrap` à contagem de workers; se ainda cortar, investigue a
+      largura da coluna/tabela e ajuste (min-width da tabela ou da célula).
+
+3. Raio-X da Recompensa (src/modules/rewards/RewardsPage.tsx,
+   src/modules/rewards/ReserveRatioChart.tsx, src/index.css):
+   a. Recalibre `--text-display` (novo teto, mais conservador que 11rem).
+   b. Remova o bloco de legenda de dentro da seção da manchete (mantém a barra de
+      proporção decorativa); confirme que a legenda do gráfico "Divisão da
+      recompensa, bloco a bloco" continua completa e é a única da tela.
+   c. Remova o rótulo "piso da faixa alvo (4,0)" do ReserveRatioChart.tsx e todo o
+      código morto associado (ver decisoes_ja_tomadas item 3) — mantenha só a linha
+      tracejada do piso. Teste nas 4 janelas (100/200/500/1000 blocos).
+   d. Ajuste a `@utility scrollbar-themed` em src/index.css (largura + tom, ver
+      decisoes_ja_tomadas) — confirme que reflete nas 3 tabelas que a usam.
+   Rode `node scripts/rewards-e2e.mjs normal` (e `lowratio`, já que mexe no
+   ReserveRatioChart) antes de seguir pro próximo módulo.
+
+4. Monitor do Rig (src/components/ui/TrendSparkline.tsx,
+   src/modules/rig/RigDashboard.tsx, src/modules/rig/rigStatus.ts):
+   a. Adicione variante de barras ao TrendSparkline (prop nova, default mantém o
+      comportamento de linha atual — não quebre os usos existentes no Pulso da Rede
+      e na Bússola de Pools). Use a variante de barras só no Rig. Avalie a segunda
+      métrica (pendingBalance) conforme decisoes_ja_tomadas.
+   b. Invoque a skill creative-ui-director focada no StatusBadge — diagnostique,
+      considere ao menos uma alternativa ao "chip fechado" atual, escolha e
+      implemente preservando a hierarquia de peso e o halo do estado normal.
+   Rode `node scripts/rig-e2e.mjs normal` e `notfound` antes de seguir.
+
+5. Verificação final:
+   - `npm run build` limpo, sem warning novo.
+   - e2e completa (rewards normal/lowratio/brokenrewards, rig normal/notfound, pools
+     normal) — confirme TUDO passa, inclusive o cenário forçado de dois chips juntos
+     na Bússola (se o pools-e2e não cobrir isso, adicione um check).
+   - design-shots.mjs nos 3 breakpoints, revisão contra a rubrica de 8 perguntas do
+     R3 (NOTES.md).
+   - Atualize CLAUDE.md e NOTES.md: novos valores de token (rail, display, rampa da
+     logo), o breakpoint do rail se mudou, a decisão final do StatusBadge, e se a
+     segunda métrica do Rig entrou ou não (e por quê).
+</tarefa>
+
+<restricoes>
+- Preserva tudo que R1/R2/R3 já fecharam — tokens, composição dominante/rail,
+  convenção mono [ LABEL ], semântica good/bad/zeph, zero gradiente novo.
+- Não reabra a metodologia de medição do rail/header mobile — REAPLIQUE ela com um
+  critério de tamanho maior (o método continua o mesmo: captura real, medir %, não
+  "parece bom").
+- rewards-e2e.mjs e rig-e2e.mjs não podem precisar de alteração de seletor por causa
+  das mudanças de layout — se algum seletor mirar a legenda removida ou o rótulo do
+  piso removido, ajuste o script também e documente.
+- O StatusBadge redesenhado não pode perder a distinção de peso normal<below<offline
+  nem virar dependente só de cor (mesma regra de daltonismo do R2).
+- Não invente segunda métrica do Rig sem dado real — pendingBalance é a única
+  candidata identificada; se não render bem, não force outra.
+- npm run build limpo, sem warning novo.
+- Um item de cada vez, testado antes do próximo.
+</restricoes>
+
+<criterios_de_aceite>
+- Logo do rail sem nenhum tom lendo como branco (captura ampliada); rail maior com
+  breakpoint revalidado por medição real (documentado se mudou de xl pra outro).
+- Header mobile com wordmark alinhado à base da logo, tamanho recalibrado e medido.
+- Bússola de Pools: os dois chips nunca mais quebram desalinhados quando aparecem
+  juntos (testado com o caso real); contagem de workers não corta em nenhuma largura
+  de coluna razoável.
+- Raio-X: `--text-display` menor (captura real); UMA legenda só na tela (a do
+  gráfico); rótulo do piso ausente nas 4 janelas, sem código morto; scrollbar mais
+  fina e sem tinta de roxo perceptível, refletida nas 3 tabelas.
+- Monitor do Rig: tendência em barras verticais (linha preservada nos outros usos do
+  componente); segunda métrica presente E explicada, ou ausente e documentada por
+  quê; StatusBadge redesenhado com diagnóstico da skill registrado, hierarquia de
+  peso preservada.
+- npm run build limpo; e2e completa passa (rewards×3, rig×2, pools×1, com o cenário
+  de dois chips coberto).
+- design-shots.mjs revisado nos 3 breakpoints contra a rubrica de 8 perguntas.
+- CLAUDE.md e NOTES.md atualizados com todos os valores finais.
+</criterios_de_aceite>
+
+Antes de finalizar, dois checks extras desta rodada, além da rubrica de 8 perguntas
+de sempre: (1) recarregue a Bússola de Pools até pegar um ciclo em que a mesma pool
+seja maior hashrate E menor fee — confirme visualmente que os chips não quebram; (2)
+abra o Raio-X nas 4 janelas de blocos, uma de cada vez, e confirme que o gráfico do
+reserve ratio nunca mostra o texto do piso em nenhuma delas. Se qualquer um dos dois
+falhar, ajuste antes de encerrar a sessão.
+```
+
+---
+
 ## Depois dos 5 prompts
 
 - Rode a skill **backend-structure-auditor** pra mapear qualquer deriva de padrão que
