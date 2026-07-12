@@ -14,6 +14,7 @@ import {
   formatZeph,
   orDash,
 } from '../../lib/format'
+import { POOL_POLL_INTERVAL_MS } from '../../lib/poolPolling'
 import { ErrorNotice } from '../../components/ui/ErrorNotice'
 import { Skeleton } from '../../components/ui/Skeleton'
 import {
@@ -25,9 +26,8 @@ import {
 import { LuckSparkline } from './LuckSparkline'
 
 // Bússola de Pools — comparador das pools ZEPH ativas.
-// As APIs de pool têm cache próprio (~30 s); 60 s de polling é folgado e ainda
-// dá um histórico de luck útil (20 leituras ≈ 20 min de tendência).
-const POLL_INTERVAL_MS = 60_000
+// A cadência compartilhada ainda dá um histórico de luck útil (20 leituras
+// ≈ 20 min de tendência).
 
 type SortKey = 'name' | 'fee' | 'hashrate' | 'miners' | 'minPayout' | 'luck' | 'height'
 type SortDir = 'asc' | 'desc'
@@ -124,7 +124,7 @@ function SortableHeader({ label, sortKey, sort, onSort, align = 'right' }: Sorta
 }
 
 export function PoolsPage() {
-  const poll = usePolling(fetchAllPoolSnapshots, POLL_INTERVAL_MS)
+  const poll = usePolling(fetchAllPoolSnapshots, POOL_POLL_INTERVAL_MS)
   const [sort, setSort] = useState<SortState>({ key: 'hashrate', dir: 'desc' })
   const [luckHistory, setLuckHistory] = useState<LuckHistoryMap>(() => loadLuckHistory())
 

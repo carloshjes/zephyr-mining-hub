@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { LogoMark } from '../ui/LogoMark'
+import { RouteErrorBoundary } from '../ui/RouteErrorBoundary'
 import { applyTheme, currentTheme, type Theme } from '../../lib/theme'
 
 // Casca comum de navegação — os 4 módulos do produto moram aqui dentro.
@@ -202,6 +203,7 @@ function DonationFooter() {
 }
 
 export function AppShell() {
+  const location = useLocation()
   // O inline script do index.html já aplicou o atributo antes do paint —
   // o estado inicial só o espelha (nunca decide o tema no mount)
   const [theme, setTheme] = useState<Theme>(() => currentTheme())
@@ -282,7 +284,11 @@ export function AppShell() {
           desenhada contra esse cap — o rail muda onde a coluna começa, não a
           largura de texto que ela comporta. */}
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
-        <Outlet />
+        {/* A chave reinicia o boundary ao trocar de módulo: um throw fica
+            contido na rota ativa sem prender a navegação no fallback. */}
+        <RouteErrorBoundary key={location.pathname}>
+          <Outlet />
+        </RouteErrorBoundary>
       </main>
 
       {/* Footer vive DENTRO da coluna (herda o pl do rail): full-width real

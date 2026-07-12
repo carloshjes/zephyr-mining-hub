@@ -3,6 +3,7 @@ import { usePolling } from '../../hooks/usePolling'
 import { useChartEntrance } from '../../hooks/useChartEntrance'
 import { useDataPulse } from '../../hooks/useDataPulse'
 import { useElementWidth } from '../../hooks/useElementWidth'
+import { useFailingSources } from '../../hooks/useFailingSources'
 import {
   getLatestBlockReward,
   getLiveStats,
@@ -181,15 +182,21 @@ export function NetworkPulsePage() {
 
   // Fontes com falha na última tentativa — o aviso fica visível mesmo com
   // dado antigo na tela (nunca falha silenciosa)
-  const failingSources = [
-    liveStats.error && 'Scanner API (livestats)',
-    blockReward.error && 'Scanner API (blockrewards)',
-    networkInfo.error && 'Explorer',
-    dailyStats.error && 'Scanner API (stats)',
-  ].filter((source): source is string => Boolean(source))
-
-  const noDataAtAll =
-    !liveStats.data && !networkInfo.data && !blockReward.data && failingSources.length > 0
+  const { failingSources, noDataAtAll } = useFailingSources([
+    { error: liveStats.error, data: liveStats.data, label: 'Scanner API (livestats)' },
+    {
+      error: blockReward.error,
+      data: blockReward.data,
+      label: 'Scanner API (blockrewards)',
+    },
+    { error: networkInfo.error, data: networkInfo.data, label: 'Explorer' },
+    {
+      error: dailyStats.error,
+      data: dailyStats.data,
+      label: 'Scanner API (stats)',
+      countsForNoData: false,
+    },
+  ])
 
   return (
     <div className="space-y-8">

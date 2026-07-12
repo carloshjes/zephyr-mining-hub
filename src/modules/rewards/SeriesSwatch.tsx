@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import type { RewardSeriesDef } from './rewardSeries'
+import { seriesPatternId, type RewardSeriesDef } from './rewardSeries'
 
 // Par visual da diferenciação de série do v2: o <pattern> compartilhado
 // (hachura/pontilhado) e a miniatura de legenda que repete a receita exata da
@@ -10,10 +10,6 @@ import type { RewardSeriesDef } from './rewardSeries'
 // o script): dentro de <pattern> só <line>/<circle> (o e2e conta <path> por
 // cor computada e localiza o overlay de hover por querySelector('rect') no
 // svg do gráfico); na miniatura, o wash é <rect> (rect não colide com nada).
-
-export function seriesPatternId(base: string, key: RewardSeriesDef['key']): string {
-  return `${base}-${key}`
-}
 
 /** <pattern> da textura de uma série — usar dentro de <defs>. */
 export function SeriesTexturePattern({ def, id }: { def: RewardSeriesDef; id: string }) {

@@ -16,6 +16,10 @@ import type { BlockReward } from '../../lib/api/zephyrScanner'
 
 export type RewardSeriesKey = 'miner' | 'reserve' | 'yield' | 'governance'
 
+export function seriesPatternId(base: string, key: RewardSeriesKey): string {
+  return `${base}-${key}`
+}
+
 export interface RewardSeriesDef {
   key: RewardSeriesKey
   label: string

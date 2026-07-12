@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePolling } from '../../hooks/usePolling'
 import { useDataPulse } from '../../hooks/useDataPulse'
 import { useElementWidth } from '../../hooks/useElementWidth'
+import { useFailingSources } from '../../hooks/useFailingSources'
 import { getMinerPool, MinerNotFoundError, type MinerSnapshot } from '../../lib/api/minerStats'
 import { fetchXmrigSummary, type XmrigSummary } from '../../lib/api/xmrig'
 import {
@@ -24,6 +25,7 @@ import {
   formatZeph,
   orDash,
 } from '../../lib/format'
+import { POOL_POLL_INTERVAL_MS } from '../../lib/poolPolling'
 import type { RigConfig } from './rigConfig'
 import { estimateDailyEarnings } from './earnings'
 import {
@@ -46,8 +48,6 @@ import {
 // demais métricas da pool encolhem pra um rail hairline ao lado — acabou o
 // card farm de 4 caixas iguais.
 
-// APIs de pool têm cache de ~30 s; 60 s é o mesmo passo da Bússola de Pools
-const POOL_POLL_MS = 60_000
 // XMRig é local (sem rede) — 5 s dá sensação de tempo real sem custo
 const XMRIG_POLL_MS = 5_000
 // Ganho estimado: mesmas 3 fontes e mesmo passo do Pulso da Rede (cache de
@@ -229,7 +229,7 @@ export function RigDashboard({ config }: RigDashboardProps) {
     },
     [pool, wallet, config.poolId],
   )
-  const poolPoll = usePolling<MinerSnapshot>(poolFetcher, POOL_POLL_MS)
+  const poolPoll = usePolling<MinerSnapshot>(poolFetcher, POOL_POLL_INTERVAL_MS)
 
   // Sem XMRig configurado o fetcher resolve null — seção nem é renderizada
   const xmrigFetcher = useCallback(
@@ -335,11 +335,23 @@ export function RigDashboard({ config }: RigDashboardProps) {
     networkInfoPoll.isLoading || blockRewardPoll.isLoading || liveStatsPoll.isLoading
   // Falha visível por fonte (convenção: erro nunca silencioso), no escopo do
   // bloco — o restante da tela tem seus próprios avisos
-  const earningsFailingSources = [
-    networkInfoPoll.error && 'Explorer (network hashrate)',
-    blockRewardPoll.error && 'Scanner (reward)',
-    liveStatsPoll.error && 'Scanner (price)',
-  ].filter((source): source is string => Boolean(source))
+  const { failingSources: earningsFailingSources } = useFailingSources([
+    {
+      error: networkInfoPoll.error,
+      data: networkInfoPoll.data,
+      label: 'Explorer (network hashrate)',
+    },
+    {
+      error: blockRewardPoll.error,
+      data: blockRewardPoll.data,
+      label: 'Scanner (reward)',
+    },
+    {
+      error: liveStatsPoll.error,
+      data: liveStatsPoll.data,
+      label: 'Scanner (price)',
+    },
+  ])
 
   const notFound = poolPoll.error instanceof MinerNotFoundError
 

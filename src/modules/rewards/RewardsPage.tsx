@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { usePolling } from '../../hooks/usePolling'
 import { useDataPulse } from '../../hooks/useDataPulse'
+import { useFailingSources } from '../../hooks/useFailingSources'
 import {
   getLiveStats,
   getRecentBlockRewards,
@@ -214,14 +215,15 @@ export function RewardsPage() {
 
   const [tableOpen, setTableOpen] = useState(false)
 
-  const failingSources = [
-    rewardsPoll.error && 'Scanner API (blockrewards)',
-    ratiosPoll.error && 'Scanner API (stats)',
-    liveStats.error && 'Scanner API (livestats)',
-  ].filter((source): source is string => Boolean(source))
-
-  const noDataAtAll =
-    !rewardsData && !ratiosData && !liveStats.data && failingSources.length > 0
+  const { failingSources, noDataAtAll } = useFailingSources([
+    {
+      error: rewardsPoll.error,
+      data: rewardsData,
+      label: 'Scanner API (blockrewards)',
+    },
+    { error: ratiosPoll.error, data: ratiosData, label: 'Scanner API (stats)' },
+    { error: liveStats.error, data: liveStats.data, label: 'Scanner API (livestats)' },
+  ])
 
   const windowHours = (blockCount * 120) / 3_600
 

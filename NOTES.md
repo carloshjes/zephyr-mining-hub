@@ -2100,3 +2100,66 @@ O working tree segue com a tradução EN1 inteira + a auditoria de estrutura sem
 mais a mudança do `minerStats.ts` e a reescrita do Prompt 5/HANDOFF feitas agora.
 Recomendado a Carlos: commitar tudo junto antes de rodar qualquer prompt novo (mesma
 lógica do commit agrupado N3+G1+R6) — mensagem sugerida em `docs/HANDOFF.md`.
+
+# NOTES — Prompt 5: integração final (2026-07-12)
+
+## Bug de infraestrutura encontrado durante a validação
+
+O Edge 150.0.4078.65 desta máquina encerrava os processos headless dos E2E com
+`0x80000003` logo após abrir o WebSocket do CDP; o Node então terminava com
+`unsettled top-level await` no primeiro `Page.enable`. A causa foi isolada por
+variação de uma flag por vez: `--disable-gpu` não alterou a falha, enquanto
+`--no-sandbox` fez o `theme-e2e.mjs` passar integralmente. A correção fica
+restrita aos runners headless locais, com perfil temporário descartável; não
+altera código nem configuração do produto.
+
+## Consolidações aplicadas
+
+- `README.md` deixou de listar três placeholders e virou a porta de entrada do
+  produto completo: quatro módulos, Sinal Técnico escuro/claro, idioma e
+  scripts/docs de verificação.
+- `RouteErrorBoundary` foi colocado imediatamente ao redor do `Outlet`, com
+  `key={location.pathname}`. Um `throw` temporário em `NetworkPulsePage` mostrou
+  o fallback `[ FAILED ]` do `ErrorNotice` enquanto rail, tema e footer seguiam
+  vivos; a injeção foi removida logo depois. A captura temporária foi
+  sobrescrita pelo `theme-e2e` normal no fechamento da rodada.
+- `src/lib/poolPolling.ts` passou a definir `POOL_POLL_INTERVAL_MS` e a derivar
+  `POOL_HISTORY_MIN_READING_GAP_MS`; Pools/Rig importam as mesmas constantes e
+  não há mais `55_000`, `POLL_INTERVAL_MS = 60_000` ou `POOL_POLL_MS = 60_000`
+  redefinidos nos módulos.
+- `useFailingSources` substituiu os blocos copiados de Network/Rewards e também
+  a lista adaptada do earnings do Rig. A assimetria foi preservada: o erro de
+  `dailyStats` aparece no aviso do Network Pulse, mas `countsForNoData: false`
+  impede essa fonte secundária de transformar sozinha a página em bloqueante.
+- `useChartHover` concentra `HoverState`, pointer scrub, ArrowLeft/ArrowRight,
+  Home/End/Escape, limpeza por origem e clamp de tooltip. Reserve Ratio mantém
+  margem 72; Reward Split mantém 96.
+- O grep de `blockrewards?order=desc` retornou somente a linha do fallback de
+  `getRecentBlockRewards`, já ancorado primeiro e documentado; ficou intacto.
+- Os dois warnings antigos foram corrigidos: o callback CDP de
+  `logo-shots.mjs` usa `if/else`, e `seriesPatternId` saiu do arquivo de
+  componentes `SeriesSwatch.tsx` para `rewardSeries.ts`.
+
+## Achado 3 — decisão de backlog
+
+Os motores de `luckHistory.ts`, `networkHashrateHistory.ts` e `rigStatus.ts`
+não foram generalizados nesta sessão. Não há bug ativo, e a aparente repetição
+esconde três contratos observáveis diferentes: mapa por pool, array plano de
+rede e dois mapas do rig; além disso, chaves/cadências são semeadas diretamente
+pelos E2E. Fazer a extração junto da mudança de interação dos gráficos elevaria
+o blast radius sem ganho de aceite. Backlog explícito: projetar um utilitário de
+storage que preserve formatos, chaves, type guards, gaps e caps byte a byte,
+com a mesma matriz E2E antes/depois.
+
+## Verificação desta rodada
+
+- `npm run lint`: zero warnings.
+- `npm run build`: typecheck e Vite limpos.
+- E2E após `useChartHover`: pools `normal`/`broken2miners`; rewards
+  `normal`/`lowratio`/`brokenrewards`; rig `normal`/`notfound`; tema — todos
+  passaram. O modo `broken2miners` usou a URL inválida temporária prevista no
+  próprio runner e a alteração foi revertida imediatamente.
+- A busca de redefinições das constantes compartilhadas e a busca do
+  `order=desc` passaram. A varredura sintática EN1 terminou com zero acentuação
+  em strings/JSX/CSS fora de comentários; `contrast-check.mjs` e
+  `git diff --check` também passaram.

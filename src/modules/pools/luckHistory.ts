@@ -1,3 +1,5 @@
+import { POOL_HISTORY_MIN_READING_GAP_MS } from '../../lib/poolPolling'
+
 // Histórico simples do "luck" por pool em localStorage, pro mini-gráfico de
 // tendência da tabela. Guarda as últimas LUCK_HISTORY_LIMIT leituras por pool;
 // localStorage indisponível (modo privado, cota cheia) degrada pra histórico
@@ -13,11 +15,6 @@ export interface LuckReading {
 export type LuckHistoryMap = Record<string, LuckReading[]>
 
 export const LUCK_HISTORY_LIMIT = 20
-
-// Leituras mais próximas que isso são ignoradas — evita encher o histórico
-// com duplicatas em recarregamentos seguidos ou no refetch ao voltar pra aba
-// (o polling normal é de 60 s).
-const MIN_READING_GAP_MS = 55_000
 
 const STORAGE_KEY = 'zephyr-hub.pools.luck-history.v1'
 
@@ -61,7 +58,7 @@ function saveLuckHistory(history: LuckHistoryMap): void {
 /**
  * Anexa uma leitura por pool ao histórico persistido e devolve o mapa novo
  * (imutável, pronto pra setState). Leituras muito próximas da anterior são
- * ignoradas (ver MIN_READING_GAP_MS).
+ * ignoradas (ver POOL_HISTORY_MIN_READING_GAP_MS).
  */
 export function appendLuckReadings(
   readings: { poolId: string; luck: number }[],
@@ -73,7 +70,7 @@ export function appendLuckReadings(
   for (const { poolId, luck } of readings) {
     const previous = history[poolId] ?? []
     const last = previous[previous.length - 1]
-    if (last && now - last.t < MIN_READING_GAP_MS) continue
+    if (last && now - last.t < POOL_HISTORY_MIN_READING_GAP_MS) continue
     history[poolId] = [...previous, { t: now, luck }].slice(-LUCK_HISTORY_LIMIT)
     changed = true
   }

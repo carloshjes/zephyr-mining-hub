@@ -1,10 +1,16 @@
-import { useId, useMemo, useState, type KeyboardEvent, type PointerEvent } from 'react'
+import { useId, useMemo } from 'react'
 import { useChartEntrance } from '../../hooks/useChartEntrance'
+import { useChartHover } from '../../hooks/useChartHover'
 import { useElementWidth } from '../../hooks/useElementWidth'
 import { formatInteger, formatNumber, formatZeph } from '../../lib/format'
 import { axisTicks, niceCeil, niceStep, type ChartMargins } from './chartGeometry'
-import { REWARD_SERIES, sharePercent, type RewardSlices } from './rewardSeries'
-import { SeriesSwatch, SeriesTexturePattern, seriesPatternId } from './SeriesSwatch'
+import {
+  REWARD_SERIES,
+  seriesPatternId,
+  sharePercent,
+  type RewardSlices,
+} from './rewardSeries'
+import { SeriesSwatch, SeriesTexturePattern } from './SeriesSwatch'
 
 // Área empilhada da divisão da recompensa, bloco a bloco. Especificação de
 // marca da skill de dataviz: preenchimento como "wash" (~25% de opacidade) com
@@ -33,14 +39,8 @@ interface RewardSplitChartProps {
   unit: SplitUnit
 }
 
-interface HoverState {
-  index: number
-  source: 'pointer' | 'keyboard'
-}
-
 export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
   const [containerRef, width] = useElementWidth<HTMLDivElement>()
-  const [hover, setHover] = useState<HoverState | null>(null)
   const patternBase = useId()
   const entranceClass = useChartEntrance()
 
@@ -81,6 +81,16 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
       ? 100
       : niceCeil(Math.max(...cumulativeTops[REWARD_SERIES.length - 1] ?? [1]), 4)
   const yTicks = unit === 'percent' ? [0, 25, 50, 75, 100] : axisTicks(0, yMax, 4)
+  const x = (blockIndex: number) =>
+    MARGINS.left + (blockIndex / (count - 1)) * plotWidth
+  const {
+    hover,
+    setHoverFromPointer,
+    onKeyDown,
+    clearPointerHover,
+    clearKeyboardHover,
+    tooltipLeft,
+  } = useChartHover({ count, width, tooltipMargin: 96, xForIndex: x })
 
   if (count < 2 || width === 0) {
     return (
@@ -94,8 +104,6 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
     )
   }
 
-  const x = (blockIndex: number) =>
-    MARGINS.left + (blockIndex / (count - 1)) * plotWidth
   const y = (value: number) =>
     MARGINS.top + plotHeight - (value / yMax) * plotHeight
 
@@ -149,35 +157,7 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
     ]
   })
 
-  const setHoverFromPointer = (event: PointerEvent<SVGRectElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect()
-    if (rect.width === 0) return
-    const ratio = (event.clientX - rect.left) / rect.width
-    const index = Math.min(count - 1, Math.max(0, Math.round(ratio * (count - 1))))
-    setHover({ index, source: 'pointer' })
-  }
-
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const current = hover?.index ?? count - 1
-    let next: number | null = null
-    if (event.key === 'ArrowLeft') next = Math.max(0, current - 1)
-    else if (event.key === 'ArrowRight') next = Math.min(count - 1, current + 1)
-    else if (event.key === 'Home') next = 0
-    else if (event.key === 'End') next = count - 1
-    else if (event.key === 'Escape') {
-      setHover(null)
-      return
-    }
-    if (next !== null) {
-      event.preventDefault()
-      setHover({ index: next, source: 'keyboard' })
-    }
-  }
-
   const hovered = hover ? slices[hover.index] : null
-  const tooltipLeft = hover
-    ? Math.min(Math.max(x(hover.index), 96), Math.max(width - 96, 96))
-    : 0
 
   const summary =
     `Stacked area chart of the reward split from blocks ${formatInteger(firstHeight)} to ` +
@@ -194,7 +174,7 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
       tabIndex={0}
       aria-label={`${summary} Use the arrow keys to inspect blocks one by one.`}
       onKeyDown={onKeyDown}
-      onBlur={() => hover?.source === 'keyboard' && setHover(null)}
+      onBlur={clearKeyboardHover}
     >
       <svg width={width} height={CHART_HEIGHT} role="img" aria-hidden>
         {/* Padrões de textura das séries ativas (line/circle apenas — ver
@@ -320,7 +300,7 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
           fill="transparent"
           className="cursor-crosshair"
           onPointerMove={setHoverFromPointer}
-          onPointerLeave={() => hover?.source === 'pointer' && setHover(null)}
+          onPointerLeave={clearPointerHover}
         />
       </svg>
 

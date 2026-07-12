@@ -356,3 +356,26 @@ pior caso em /nocors/1/summary). Camada pronta: `src/lib/api/xmrig.ts`.
 Ver NOTES.md pro detalhe completo dos testes de CORS/mixed-content da Fase 0. Resumo:
 Scanner API bloqueada (usa proxy), 2Miners e XMRig real liberados, hashrate/dificuldade
 não vêm do Scanner API (usar Explorer API acima).
+
+## Integração final — Prompt 5 (2026-07-12)
+
+- `README.md` descreve os 4 módulos prontos, os dois temas, a divisão de idioma
+  produto/repo e os runners de verificação.
+- `RouteErrorBoundary` envolve o `Outlet` na casca e reinicia por `pathname`:
+  throw de render fica contido na rota ativa e usa o `ErrorNotice` bloqueante,
+  sem apagar navegação/tema/rodapé.
+- `src/lib/poolPolling.ts` é o dono único da cadência de pool (60 s) e do gap
+  de histórico derivado (55 s), consumidos por Pools e Rig sem import cruzado.
+- `useFailingSources` agrega erros de polls paralelos; `countsForNoData: false`
+  preserva `dailyStats` do Network Pulse como fonte secundária. Network,
+  Rewards e o bloco de earnings do Rig usam o hook.
+- `useChartHover` é o motor comum de pointer/teclado/tooltip de
+  `ReserveRatioChart` e `RewardSplitChart`; as margens próprias (72/96) ficam
+  parametrizadas. A matriz E2E completa passou depois da extração.
+- A varredura de `order=desc` encontrou só o fallback intencional e comentado
+  de `getRecentBlockRewards`; não alterar nem remover essa degradação.
+- Os três motores de histórico local permanecem separados por decisão desta
+  rodada: mapa por pool, série plana de rede e mapa duplo do rig têm contratos,
+  chaves e cadências diferentes. Generalização fica no backlog de `NOTES.md`.
+- Edge 150 desta máquina precisa de `--no-sandbox` nos runners CDP headless;
+  a flag existe apenas nos quatro `*-e2e.mjs` de aceite, nunca no produto.

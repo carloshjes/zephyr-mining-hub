@@ -1,5 +1,6 @@
-import { useId, useState, type KeyboardEvent, type PointerEvent } from 'react'
+import { useId } from 'react'
 import { useChartEntrance } from '../../hooks/useChartEntrance'
+import { useChartHover } from '../../hooks/useChartHover'
 import { useElementWidth } from '../../hooks/useElementWidth'
 import { formatInteger, formatNumber } from '../../lib/format'
 import { axisTicks, niceStep, type ChartMargins } from './chartGeometry'
@@ -28,20 +29,23 @@ interface ReserveRatioChartProps {
   points: RatioPoint[]
 }
 
-interface HoverState {
-  index: number
-  source: 'pointer' | 'keyboard'
-}
-
 export function ReserveRatioChart({ points }: ReserveRatioChartProps) {
   const [containerRef, width] = useElementWidth<HTMLDivElement>()
-  const [hover, setHover] = useState<HoverState | null>(null)
   const clipId = useId()
   const entranceClass = useChartEntrance()
 
   const count = points.length
   const plotWidth = Math.max(width - MARGINS.left - MARGINS.right, 0)
   const plotHeight = CHART_HEIGHT - MARGINS.top - MARGINS.bottom
+  const x = (index: number) => MARGINS.left + (index / (count - 1)) * plotWidth
+  const {
+    hover,
+    setHoverFromPointer,
+    onKeyDown,
+    clearPointerHover,
+    clearKeyboardHover,
+    tooltipLeft,
+  } = useChartHover({ count, width, tooltipMargin: 72, xForIndex: x })
 
   if (count < 2 || width === 0) {
     return (
@@ -63,7 +67,6 @@ export function ReserveRatioChart({ points }: ReserveRatioChartProps) {
   const yMax = dataMax + pad
   const yTicks = axisTicks(yMin, yMax, 4)
 
-  const x = (index: number) => MARGINS.left + (index / (count - 1)) * plotWidth
   const y = (value: number) =>
     MARGINS.top + plotHeight - ((value - yMin) / (yMax - yMin)) * plotHeight
 
@@ -93,35 +96,7 @@ export function ReserveRatioChart({ points }: ReserveRatioChartProps) {
   // a região cobre o plot todo)
   const badClipTop = TARGET_FLOOR >= yMax ? MARGINS.top : y(TARGET_FLOOR)
 
-  const setHoverFromPointer = (event: PointerEvent<SVGRectElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect()
-    if (rect.width === 0) return
-    const ratio = (event.clientX - rect.left) / rect.width
-    const index = Math.min(count - 1, Math.max(0, Math.round(ratio * (count - 1))))
-    setHover({ index, source: 'pointer' })
-  }
-
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const currentIndex = hover?.index ?? count - 1
-    let next: number | null = null
-    if (event.key === 'ArrowLeft') next = Math.max(0, currentIndex - 1)
-    else if (event.key === 'ArrowRight') next = Math.min(count - 1, currentIndex + 1)
-    else if (event.key === 'Home') next = 0
-    else if (event.key === 'End') next = count - 1
-    else if (event.key === 'Escape') {
-      setHover(null)
-      return
-    }
-    if (next !== null) {
-      event.preventDefault()
-      setHover({ index: next, source: 'keyboard' })
-    }
-  }
-
   const hovered = hover ? points[hover.index] : null
-  const tooltipLeft = hover
-    ? Math.min(Math.max(x(hover.index), 72), Math.max(width - 72, 72))
-    : 0
 
   const summary =
     `Reserve ratio from blocks ${formatInteger(firstHeight)} to ${formatInteger(lastHeight)}: ` +
@@ -137,7 +112,7 @@ export function ReserveRatioChart({ points }: ReserveRatioChartProps) {
       tabIndex={0}
       aria-label={`${summary} Use the arrow keys to inspect blocks one by one.`}
       onKeyDown={onKeyDown}
-      onBlur={() => hover?.source === 'keyboard' && setHover(null)}
+      onBlur={clearKeyboardHover}
     >
       <svg width={width} height={CHART_HEIGHT} role="img" aria-hidden>
         <defs>
@@ -278,7 +253,7 @@ export function ReserveRatioChart({ points }: ReserveRatioChartProps) {
           fill="transparent"
           className="cursor-crosshair"
           onPointerMove={setHoverFromPointer}
-          onPointerLeave={() => hover?.source === 'pointer' && setHover(null)}
+          onPointerLeave={clearPointerHover}
         />
       </svg>
 

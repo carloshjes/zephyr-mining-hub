@@ -1,3 +1,5 @@
+import { POOL_HISTORY_MIN_READING_GAP_MS } from '../../lib/poolPolling'
+
 // Estado visual único do rig ("minerando normal" / "hashrate abaixo do
 // esperado" / "offline") + histórico de hashrate em localStorage que serve de
 // régua pro "esperado". Mesmo padrão do luckHistory da Bússola de Pools:
@@ -69,9 +71,6 @@ export interface HashrateReading {
 
 export const HASHRATE_HISTORY_LIMIT = 30
 
-// Polling da pool é 60 s; o gap evita duplicar leitura em reload/volta de aba
-const MIN_READING_GAP_MS = 55_000
-
 const STORAGE_KEY = 'zephyr-hub.rig.hashrate-history.v1'
 
 export function historyKey(poolId: string, wallet: string, source: 'pool' | 'xmrig'): string {
@@ -97,14 +96,22 @@ export function loadHashrateHistory(key: string): HashrateReading[] {
 
 /**
  * Anexa uma leitura ao histórico da fonte e devolve a lista nova (pronta pro
- * setState). Leituras a menos de MIN_READING_GAP_MS da anterior são ignoradas.
+ * setState). Leituras a menos de POOL_HISTORY_MIN_READING_GAP_MS da anterior
+ * são ignoradas.
  */
 export function appendHashrateReading(
   key: string,
   hashrate: number,
   now: number = Date.now(),
 ): HashrateReading[] {
-  return appendTo(STORAGE_KEY, key, { h: hashrate }, MIN_READING_GAP_MS, HASHRATE_HISTORY_LIMIT, now)
+  return appendTo(
+    STORAGE_KEY,
+    key,
+    { h: hashrate },
+    POOL_HISTORY_MIN_READING_GAP_MS,
+    HASHRATE_HISTORY_LIMIT,
+    now,
+  )
 }
 
 /** Média das leituras, ou undefined com menos de 3 (referência fraca demais). */

@@ -61,6 +61,8 @@ const edge = spawn(EDGE, [
   `--remote-debugging-port=${PORT}`,
   `--user-data-dir=${PROFILE_DIR}`,
   '--headless=new',
+  // Edge 150 encerra o CDP headless com 0x80000003 sem esta flag nesta máquina.
+  '--no-sandbox',
   '--window-size=1360,940',
   '--no-first-run',
   'about:blank',
