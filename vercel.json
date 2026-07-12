@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/zephyr-api/:path*", "destination": "https://zephyrprotocol.com/api/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

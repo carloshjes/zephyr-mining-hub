@@ -2163,3 +2163,65 @@ com a mesma matriz E2E antes/depois.
   `order=desc` passaram. A varredura sintática EN1 terminou com zero acentuação
   em strings/JSX/CSS fora de comentários; `contrast-check.mjs` e
   `git diff --check` também passaram.
+
+# NOTES — Deploy Vercel (D1)
+
+## Decisão dos rewrites
+
+O `vercel.json` usa somente `rewrites`; o preset Vite é autodetectado pelo
+`package.json`, portanto não há `buildCommand` nem `outputDirectory` manuais.
+As duas regras são deliberadamente ordenadas assim:
+
+1. `/zephyr-api/:path*` → `https://zephyrprotocol.com/api/:path*` reproduz em
+   produção a troca de prefixo do proxy de dev/preview. Por exemplo,
+   `/zephyr-api/v1/livestats` chega a
+   `https://zephyrprotocol.com/api/v1/livestats` sem expor o navegador ao CORS
+   bloqueado da Scanner API.
+2. `/(.*)` → `/index.html` serve o entry point do `BrowserRouter` em recarga e
+   acesso direto às rotas da SPA.
+
+A regra da API precisa vir primeiro: se o catch-all viesse antes, ele engoliria
+as chamadas a `/zephyr-api` e devolveria `index.html` no lugar do JSON. Não há
+função serverless, segredo ou backend com estado nessa solução.
+
+## Validação desta sessão
+
+- Leitura de código confirmou `BASE_URL = '/zephyr-api/v1'` somente em
+  `src/lib/api/zephyrScanner.ts`; o proxy de `vite.config.ts` troca exatamente
+  `/zephyr-api` por `/api`. Explorer, 2Miners e HeroMiners usam suas próprias
+  URLs com CORS liberado e não exigem outra regra.
+- `vercel.json` passou no parse de JSON; `npm run lint` terminou com zero
+  warnings e `npm run build` passou com typecheck + Vite.
+- O preview de `dist/` respondeu 200 em `/rede`, `/pools`, `/recompensa` e
+  `/meu-rig`, sempre com o app root e o bundle gerado. Pelo proxy do preview,
+  `/zephyr-api/v1/livestats` e `/zephyr-api/v1/blockrewards` devolveram dados
+  reais. Não havia navegador controlável disponível nesta sessão, então essa
+  checagem foi HTTP e não uma inspeção visual dos quatro módulos.
+- A Vercel CLI não estava instalada globalmente nem em `node_modules`; para não
+  instalar dependência ou abrir login interativo fora de escopo, `vercel dev`
+  não foi executado. A validação do rewrite pela runtime real da Vercel fica
+  pendente para Carlos junto do deploy público.
+
+## Checklist pós-deploy — Carlos
+
+Os itens abaixo exigem a URL pública real e permanecem pendentes nesta sessão:
+
+- [ ] **a.** Importar o repo em vercel.com (ou executar `vercel --prod`) e
+  confirmar **Framework Preset = Vite**.
+- [ ] **b.** Abrir a URL pública e confirmar dado real, não apenas skeleton ou
+  erro, nos quatro módulos. Conferir especialmente **Network Pulse** e
+  **Reward X-Ray**, que dependem do rewrite da Scanner API.
+- [ ] **c.** Recarregar com F5 ou abrir links diretos em `/pools`,
+  `/recompensa` e `/meu-rig`; nenhuma rota pode responder 404. Este é o teste
+  do fallback de SPA.
+- [ ] **d.** Com o XMRig real ou `scripts/xmrig-sim.mjs` rodando localmente com
+  `--http-enabled`, abrir a URL pública HTTPS da Vercel e configurar o Rig
+  Monitor para esse XMRig local. Registrar o resultado como **funcionou**,
+  **bloqueado** ou **bloqueado com aviso**. `https://localhost` → XMRig HTTP já
+  funcionou, mas um domínio público pertence a outro espaço de endereço para a
+  política de Local Network Access do Chrome; a UI já degrada graciosamente e
+  esse resultado não bloqueia o deploy.
+- [ ] **e.** No painel da Vercel e/ou na aba Network do navegador, confirmar que
+  o proxy não introduziu polling mais rápido que os 30 s de cache da Scanner
+  API. A cadência deve continuar sendo decidida pelo `usePolling` do app, não
+  pelo rewrite.

@@ -58,27 +58,24 @@ rewrite resolve isso sem backend próprio).
 | G1 (Fable) | Ganhos estimados no Monitor do Rig (1ª composição cross-module: hashrate do rig + da rede + recompensa + preço) | 🟡 rodou (`src/modules/rig/earnings.ts` existe, RigDashboard.tsx modificado), **AINDA SEM COMMIT** | — |
 | R6 (Fable) | 3 achados de screenshot: rótulo DARK/WHITE no botão de tema, largura do parágrafo da Bússola = largura da tabela, rodapé com coração pixelado + endereço de doação | 🟡 rodou (confirmado por screenshot), **AINDA SEM COMMIT** | — |
 | R7 (Fable) | Corrige alinhamento ícone/rótulo do ThemeToggle (translate-y-px, correção óptica medida), troca sol/lua pra técnica pixelada (grade 11×11, mesma família do PixelHeart), simplifica o rodapé (remove disclaimer, endereço completo sem truncar/sem botão, fonte e coração maiores) | ✅ feito, verificado, commitado e enviado | `39f3f6f` |
-| 5 (Fable) | Integração final | 📝 **prompt REESCRITO em 2026-07-12** (absorve `docs/AUDITORIA-ESTRUTURA-2026-07-12.md` + achados do code-audit-cleanup) — pronto pra colar, ver `docs/zephyr-mining-hub-prompts.md` | — |
-| EN1 | Tradução pro inglês (hardcode, sem i18n) | ✅ **RODOU** (confirmado: CLAUDE.md/NOTES.md já refletem a tabela PT→EN e o locale `en-US`) — **AINDA SEM COMMIT** | — |
-| — | Prompt de deploy no Vercel | ⬜ ainda não escrito | — |
+| 5 (Fable) | Integração final | ✅ feito, verificado e commitado | `804f088` |
+| EN1 | Tradução pro inglês (hardcode, sem i18n) | ✅ feito, verificado e commitado (junto com auditoria + code-audit-cleanup + reescrita do Prompt 5) | `fc27443` |
+| D1 (Fable) | Deploy em produção (Vercel) | 📝 **escrito em 2026-07-12** (chat Cowork) — pronto pra colar, ver `docs/zephyr-mining-hub-prompts.md` | — |
 | — | Skill `backend-structure-auditor` | ✅ **rodou 2026-07-12** — `docs/AUDITORIA-ESTRUTURA-2026-07-12.md`, 4 achados [Baixo]/[Médio], zero bug | — |
 | — | Skill `code-audit-cleanup` | 🟡 **rodou 2026-07-12, parcial** — aplicou só a consolidação de `ATOMS_PER_ZEPH`; os outros 3 achados viraram itens do Prompt 5 reescrito (exigiam decisão de arquitetura pequena ou e2e real pra verificar com confiança) | — |
 
-**Pendência de git ATIVA — a mais recente (2026-07-12, depois do R7 já commitado em
-`39f3f6f`):** o EN1 (tradução completa) + a auditoria de estrutura +
-`code-audit-cleanup` + a reescrita do Prompt 5/deste HANDOFF rodaram TODOS sem commit
-entre eles — `HEAD` segue em `39f3f6f`. `git status` mostra a lista inteira de
-arquivos tocados (quase todo `src/`, mais `CLAUDE.md`/`NOTES.md`/`docs/`) — alguns
-aparecem como "deleted" E "untracked" ao mesmo tempo (índice inconsistente do mount do
-sandbox, mesmo fenômeno das lições abaixo; conferido por `Read` direto em
-`RigDashboard.tsx`/`vite.config.ts`: os dois existem intactos, não é perda real).
-Recomendação: commitar tudo junto AGORA, antes de rodar o Prompt 5, numa PowerShell
-limpa fora de qualquer sessão `claude`:
-```
-git add -A
-git commit -m "prompt EN1: traducao pro ingles + auditoria de estrutura + code-audit-cleanup + prompt 5 reescrito"
-git push
-```
+**Pendência de git do EN1+auditoria+cleanup+Prompt5 (RESOLVIDA, confirmado por chat
+novo em 2026-07-12):** foi commitada em dois passos (`2d15e16`, depois `fc27443`
+juntando auditoria de estrutura + code-audit-cleanup + a reescrita do Prompt 5) — e o
+Prompt 5 em si RODOU logo em seguida na mesma leva de sessões e também já está
+commitado (`804f088`; relato completo em NOTES.md, seção "Prompt 5: integração final"
+— ErrorBoundary por rota, `useFailingSources`, `useChartHover`, `src/lib/
+poolPolling.ts`, os 2 warnings de lint históricos zerados). **Confirmado por `git log`
+real nesta sessão: `HEAD` = `origin/main` = `804f088`, working tree limpo.** Este
+documento estava desatualizado nesse ponto (a versão anterior tratava o Prompt 5 como
+pendente) — **se você é um chat novo lendo isto, NÃO repita o Prompt 5, ele já foi
+feito.** O próximo item não escrito da fila é o deploy (D1), ver seção "Próximos
+passos" e `docs/zephyr-mining-hub-prompts.md`.
 
 **Pendência de git — histórica, já resolvida (2026-07-12, N3 + G1 + R6):** rodaram em
 sequência sem commit entre sessões — `git status` confirma working tree com CLAUDE.md, NOTES.md,
@@ -342,22 +339,27 @@ uma linha no prompt antes de colar.
     Rotas continuam em português (`/rede`, `/pools`, etc. — decisão desta rodada,
     tradução de rota fica pra outro prompt se o Carlos quiser).
     **AINDA SEM COMMIT** — ver pendência de git no topo deste arquivo.
-11. ~~Prompt 5 (integração final) — REESCREVER antes de colar~~ — **feito
-    2026-07-12** (chat Cowork). A versão em `docs/zephyr-mining-hub-prompts.md`
-    remove os 3 itens já resolvidos (loading/erro, nav ativa, tema — agora 2
-    temas) e absorve: README.md desatualizado, ErrorBoundary por módulo (não
-    existe nenhum — erro de render vira tela branca), varredura order=desc, os 2
-    lint warnings herdados do N2, e os 3 achados da auditoria de estrutura que o
-    code-audit-cleanup não aplicou (constantes cross-module, hook
-    `useFailingSources`, hook de chart hover). Mantém o redirect `/` → `/rede`
-    (decisão do Carlos — sem página inicial nova). **Pronto pra colar** — só
-    falta commitar o que está pendente (ver topo deste arquivo) antes de abrir a
-    sessão do Fable.
-12. Escrever o prompt de deploy no Vercel — **ainda não existe**. Além do rewrite
-    do proxy (`/zephyr-api/(.*)` → `zephyrprotocol.com/api/$1`), precisa de
-    fallback de SPA (catch-all → index.html, DEPOIS do rewrite da API, senão
-    deep-link em /pools dá 404) e do teste pendente de Local Network Access
-    (página pública https → XMRig local). Detalhe na seção 3 da análise.
+11. ~~Prompt 5 (integração final) — REESCREVER antes de colar~~ — **feito, RODOU
+    e está commitado (`804f088`), confirmado 2026-07-12.** A versão reescrita
+    (chat Cowork) removeu os 3 itens já resolvidos (loading/erro, nav ativa,
+    tema — agora 2 temas) e absorveu: README.md desatualizado, ErrorBoundary por
+    módulo, varredura order=desc, os 2 lint warnings herdados do N2, e os 3
+    achados da auditoria de estrutura que o code-audit-cleanup não aplicou
+    (constantes cross-module → `src/lib/poolPolling.ts`, hook
+    `useFailingSources`, hook `useChartHover`). Mantém o redirect `/` → `/rede`.
+    Relato completo da execução em NOTES.md ("Prompt 5: integração final"),
+    incluindo um achado de infraestrutura (Edge 150 desta máquina precisa de
+    `--no-sandbox` nos runners e2e headless — só nos scripts, não no produto).
+12. ~~Escrever o prompt de deploy no Vercel~~ — **escrito em 2026-07-12** (chat
+    Cowork, Prompt D1). `vercel.json` com dois rewrites, na ordem correta
+    (zephyr-api ANTES do catch-all de SPA — confirmado contra a documentação
+    oficial da Vercel: filesystem/rewrites anteriores na lista têm precedência,
+    e arquivos estáticos reais são servidos antes de qualquer rewrite, então o
+    catch-all não quebra os assets do build) + checklist de verificação manual
+    pós-deploy (4 rotas por link direto/F5, teste de XMRig HTTPS→HTTP local —
+    só dá pra fazer com o deploy de verdade no ar, não de dentro da sessão do
+    Fable). **Pronto pra colar** — ver `docs/zephyr-mining-hub-prompts.md`,
+    Prompt D1.
 13. Pós-deploy (backlog mapeado em `docs/ANALISE-MELHORIAS-2026-07-11.md`):
     K1Pool via o mesmo rewrite (destravada pelo deploy), higiene de localStorage,
     CI mínimo (build+lint), Vitest pra lógica pura (emission/format/históricos).

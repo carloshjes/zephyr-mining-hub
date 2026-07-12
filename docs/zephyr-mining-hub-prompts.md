@@ -2926,3 +2926,169 @@ de Djed e as mensagens de erro/estado vazio.
   uma passada de direção visual mais autoral (o dashboard acima só pede "responsivo,
   legível", não define identidade visual). Pode rodar em paralelo aos módulos 2-4, se
   quiser já começar com uma linguagem visual definida, ou depois do Prompt 5, como polish.
+
+---
+
+## Prompt D1 — Fable: deploy em produção (Vercel)
+
+Escrito no chat Cowork em 2026-07-12, depois do Prompt 5 (integração final, commit
+`804f088`) já rodar, ser verificado e commitado — confirmado por `git log` real, não
+por memória (o `docs/HANDOFF.md` chegou a ficar desatualizado nesse ponto, tratando o
+Prompt 5 como pendente; já corrigido). É o próximo item não escrito da fila: o repo
+está pronto pra produção (4 módulos, EN1, tema escuro/claro, Prompt 5), mas ainda não
+existe `vercel.json` nem qualquer deploy.
+
+Duas regras do rewrite abaixo foram confirmadas contra a documentação oficial da
+Vercel nesta sessão (não assumidas): (1) arquivos estáticos reais do build são
+servidos ANTES de qualquer rewrite ser considerado, então o catch-all de SPA não
+quebra os assets JS/CSS do `dist/`; (2) rewrites com destino em URL externa (como o
+`https://zephyrprotocol.com/api/:path*` abaixo) proxeiam a requisição no servidor da
+Vercel — o navegador nunca faz a chamada cross-origin, então CORS deixa de ser
+problema, exatamente como o proxy do Vite já faz em dev. Fontes: [Rewrites on
+Vercel](https://vercel.com/docs/routing/rewrites) e [Can I use Vercel as a reverse
+proxy?](https://vercel.com/kb/guide/vercel-reverse-proxy-rewrites-external).
+
+````
+Aja como um engenheiro front-end sênior com experiência real de deploy de SPAs
+Vite/React na Vercel, incluindo rewrite de proxy para contornar CORS de APIs de
+terceiros.
+
+<contexto>
+O Zephyr Mining Hub está pronto pra produção: 4 módulos (Network Pulse, Pool
+Compass, Reward X-Ray, Rig Monitor), produto em inglês (EN1), tema escuro/claro
+(T1), integração final consolidada (Prompt 5, commit 804f088). O repo já existe
+no GitHub e ainda não tem deploy nenhum — não existe vercel.json no projeto.
+
+Duas descobertas da Fase 0 (Prompt 1, ver CLAUDE.md/NOTES.md) definem esta
+sessão: (1) a Zephyr Scanner API bloqueia CORS no navegador — em dev o Vite
+resolve com um proxy (`vite.config.ts`, `/zephyr-api` → `https://
+zephyrprotocol.com`, rewrite que troca o prefixo por `/api`); em produção
+precisa do rewrite equivalente da Vercel, senão o Network Pulse e o Reward
+X-Ray (que dependem de `/livestats`/`/blockrewards` via
+`src/lib/api/zephyrScanner.ts`, `BASE_URL = '/zephyr-api/v1'`) ficam sem dado.
+(2) O produto usa `BrowserRouter` (`src/main.tsx`) com rotas limpas (`/rede`,
+`/pools`, `/recompensa`, `/meu-rig`) — sem fallback de SPA, um F5 ou link
+direto em qualquer rota que não seja `/` dá 404 na Vercel (o servidor estático
+não sabe que `/pools` deve servir o mesmo `index.html`).
+</contexto>
+
+<tarefa>
+1. Crie `vercel.json` na raiz do repo com DOIS rewrites, NESTA ORDEM (a Vercel
+   aplica rewrites na ordem da lista, e o catch-all de SPA precisa vir DEPOIS
+   do rewrite da API, senão o catch-all engole a API primeiro):
+   ```json
+   {
+     "rewrites": [
+       { "source": "/zephyr-api/:path*", "destination": "https://zephyrprotocol.com/api/:path*" },
+       { "source": "/(.*)", "destination": "/index.html" }
+     ]
+   }
+   ```
+   Não adicione `buildCommand`/`outputDirectory` manual — a Vercel autodetecta
+   Vite (framework preset) a partir do `package.json`; só force esses campos
+   se você encontrar uma razão concreta pra isso (documente se acontecer).
+
+2. Confirme por leitura de código (não redigite nada) que o caminho do rewrite
+   bate com o que o app realmente chama: `src/lib/api/zephyrScanner.ts` usa
+   `BASE_URL = '/zephyr-api/v1'` e o proxy do Vite em `vite.config.ts` troca
+   `/zephyr-api` por `/api` — o rewrite da Vercel acima precisa reproduzir
+   EXATAMENTE essa troca de prefixo (`/zephyr-api/v1/livestats` →
+   `https://zephyrprotocol.com/api/v1/livestats`). Se algum outro arquivo em
+   `src/lib/api/` usar uma base diferente, ajuste o rewrite pra cobrir também
+   (não deveria haver — a Scanner API é a única bloqueada por CORS no
+   projeto — mas confirme por grep antes de assumir).
+
+3. Rode `npm run build` e sirva o `dist/` localmente (`npm run preview`, que já
+   tem o proxy configurado em `vite.config.ts` pra `/zephyr-api`) só pra
+   confirmar que o build de produção carrega os 4 módulos com dado real — isso
+   NÃO testa o `vercel.json` (o preview do Vite usa o proxy dele, não o
+   rewrite da Vercel), é só uma checagem de que nada quebrou no build.
+
+4. Se a Vercel CLI (`npx vercel`) estiver disponível e você já tiver uma conta
+   logada, `npx vercel dev` roda um servidor local que HONRA o `vercel.json`
+   de verdade (mais fiel que o preview do Vite) — use se for rápido, mas não
+   trave a sessão nisso: exige login interativo que pode não estar disponível
+   neste ambiente. Se não der, documente que ficou pendente pro teste manual
+   do Carlos (próximo item).
+
+5. Escreva em `NOTES.md` uma seção nova "# NOTES — Deploy Vercel (D1)" com: a
+   decisão do rewrite (as duas regras e a ordem, com o porquê), e um CHECKLIST
+   EXPLÍCITO endereçado ao Carlos pra rodar DEPOIS que o deploy estiver no ar
+   de verdade (isso não dá pra testar de dentro desta sessão):
+   a. Importar o repo em vercel.com (ou `vercel --prod` pela CLI) e confirmar
+      Framework Preset = Vite.
+   b. Abrir a URL pública e conferir que os 4 módulos carregam dado real (não
+      só skeleton/erro) — em especial Network Pulse e Reward X-Ray, que
+      dependem do rewrite da Scanner API.
+   c. Recarregar (F5) ou abrir link direto em `/pools`, `/recompensa` e
+      `/meu-rig` — nenhuma delas pode dar 404 (é o teste do fallback de SPA).
+   d. Com XMRig real (ou `scripts/xmrig-sim.mjs`) rodando local com
+      `--http-enabled`, abrir a URL PÚBLICA (https) da Vercel e configurar o
+      Rig Monitor apontando pro XMRig local — é o teste pendente desde o
+      Prompt 4 (mixed content https→http local já foi confirmado que FUNCIONA
+      em `https://localhost`, mas nunca foi testado a partir de um domínio
+      PÚBLICO de verdade, que é outro espaço de endereço pra política de Local
+      Network Access do Chrome). Registrar o resultado (funcionou / bloqueado
+      / bloqueado com aviso) — a UI já degrada graciosamente nos dois casos,
+      então não é bloqueante pro deploy, só uma lacuna de conhecimento real.
+   e. Conferir no painel da Vercel/aba de rede do navegador que o proxy não
+      introduziu polling mais rápido que os 30s de cache da Scanner API (a
+      cadência é decidida pelo `usePolling` do app, não pelo proxy — mas vale
+      confirmar visualmente).
+
+6. Atualize `CLAUDE.md`: mova a seção de deploy de "planejado" pra descrever o
+   `vercel.json` real (as duas regras, a ordem, e por que existe).
+</tarefa>
+
+<restricoes>
+- Zero mudança em `src/` — é uma sessão de infraestrutura de deploy, não de
+  produto. Se achar um bug real no caminho, documente em NOTES.md em vez de
+  corrigir nesta sessão (mesma regra do Prompt 5).
+- Não crie função serverless nem qualquer backend com estado — o projeto é
+  deliberadamente "sem backend", só a ponte de CORS via rewrite (ver
+  CLAUDE.md, seção Stack). Se `vercel.json` acabar precisando de algo além de
+  `rewrites`, pare e documente o motivo em vez de expandir escopo.
+- Não crie variável de ambiente/segredo — nenhuma API usada no projeto exige
+  chave.
+- Não reintroduza favicon (`<link rel="icon">`/`public/favicon.svg`) — foi
+  removido de propósito no R5 (decisão do Carlos, comentário explicativo já no
+  `index.html`); um ícone novo vem de um prompt futuro.
+- A ordem dos dois rewrites é crítica — não inverta, e não colapse os dois numa
+  regra só.
+- O teste de Local Network Access (item 5d) não pode ser marcado como feito
+  por você nesta sessão — só o Carlos, com o deploy real no ar, consegue
+  rodá-lo. Deixe o checklist pronto, não invente um resultado.
+</restricoes>
+
+<criterios_de_aceite>
+- `vercel.json` existe na raiz, é JSON válido, e tem os dois rewrites na ordem
+  documentada acima.
+- `npm run build` limpo (typecheck + Vite build).
+- `npm run lint` sem warning novo (os 0 atuais — o Prompt 5 já zerou os 2
+  históricos — continuam 0).
+- `npm run preview` carrega os 4 módulos com dado real (confirma que o build
+  de produção não quebrou nada; não substitui o teste real pós-deploy).
+- `NOTES.md` tem a seção nova com a decisão do rewrite + o checklist de 5
+  itens (a-e acima) endereçado ao Carlos, nenhum item marcado como testado
+  sem ter sido testado de verdade.
+- `CLAUDE.md` reflete o `vercel.json` real, não mais "rewrite planejado".
+- Nenhum arquivo em `src/` foi tocado.
+</criterios_de_aceite>
+````
+
+Antes de finalizar, releia o `vercel.json` como se você fosse a Vercel processando a
+primeira requisição depois do deploy: uma chamada pra `/zephyr-api/v1/livestats` bate
+no primeiro rewrite e vira `https://zephyrprotocol.com/api/v1/livestats` ANTES de
+chegar no catch-all? E um F5 em `/meu-rig` (sem bater em nenhum arquivo estático real)
+cai no segundo rewrite e serve `index.html`? Se qualquer uma das duas perguntas não for
+um "sim" óbvio lendo o arquivo, ajuste antes de dar como pronto.
+
+### Depois do D1
+
+Rodar o checklist manual da seção 5 do prompt (Carlos, fora de qualquer sessão
+`claude` — é navegação de verdade na URL pública, não comando de terminal). Registrar
+o resultado do teste de XMRig HTTPS→HTTP local em NOTES.md assim que rodar, mesmo que
+o resultado seja "bloqueado" — a lacuna de conhecimento fecha de qualquer jeito.
+Backlog pós-deploy mapeado em `docs/ANALISE-MELHORIAS-2026-07-11.md`: K1Pool via o
+mesmo rewrite, higiene de localStorage, CI mínimo (build+lint), Vitest pra lógica
+pura.

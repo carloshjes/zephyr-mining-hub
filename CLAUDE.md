@@ -6,10 +6,23 @@ RandomX, minerada via XMRig). Público: quem já minera ZEPH e/ou está decidind
 acompanhando recompensas de bloco. 4 módulos independentes, uma casca de navegação comum.
 
 ## Stack
-Vite + React + TypeScript + Tailwind CSS. Deploy no Vercel (conectado ao repo GitHub) —
-a Zephyr Scanner API bloqueia CORS no navegador (confirmado), então a v1 precisa do
-rewrite/proxy do Vercel em produção (mesma ideia do proxy do Vite dev server). Não é
-"backend" com estado — é só a ponte de CORS. Ver NOTES.md pro detalhe dos testes.
+Vite + React + TypeScript + Tailwind CSS. Deploy no Vercel conectado ao repo GitHub.
+O framework preset continua sendo o Vite autodetectado pelo `package.json`; não há
+`buildCommand` nem `outputDirectory` forçados.
+
+### Deploy de produção
+
+O `vercel.json` real contém dois rewrites, nesta ordem:
+
+1. `/zephyr-api/:path*` → `https://zephyrprotocol.com/api/:path*`: ponte de CORS
+   sem estado para a Zephyr Scanner API, equivalente ao proxy do Vite em dev/preview.
+2. `/(.*)` → `/index.html`: fallback do `BrowserRouter` para F5 e acesso direto às
+   rotas da SPA.
+
+A ordem é parte do contrato: a regra da API precisa vir antes do catch-all, senão o
+fallback da SPA devolve `index.html` para as chamadas da Scanner API. Isso não cria um
+backend próprio; é apenas o rewrite/proxy necessário pelo bloqueio de CORS confirmado.
+Ver NOTES.md para os testes e o checklist pós-deploy.
 
 ## Convenções
 - Nomes de variável/função/componente em inglês. Comentários em português.
