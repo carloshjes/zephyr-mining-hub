@@ -134,7 +134,7 @@ export const POOLS: PoolDefinition[] = [
     id: '2miners',
     name: '2Miners',
     website: 'https://zeph.2miners.com',
-    luckNote: 'luck reportado pela API da pool',
+    luckNote: 'luck as reported by the pool API',
     fetchSnapshot: fetchTwoMiners,
   },
   {
@@ -142,7 +142,7 @@ export const POOLS: PoolDefinition[] = [
     id: 'herominers',
     name: 'HeroMiners',
     website: 'https://zephyr.herominers.com',
-    luckNote: 'effort médio das últimas 24 h (effort_1d × 100)',
+    luckNote: 'average effort over the last 24 hours (effort_1d × 100)',
     fetchSnapshot: fetchHeroMiners,
   },
   // TODO(K1Pool): https://k1pool.com/api/stats/zeph responde JSON válido
@@ -155,7 +155,7 @@ export const POOLS: PoolDefinition[] = [
     id: 'k1pool',
     name: 'K1Pool',
     website: 'https://k1pool.com/pool/zeph',
-    reason: 'API sem CORS — precisa do proxy (ver TODO em pools.ts)',
+    reason: 'API blocks browser requests (CORS) — proxy integration required',
   },
   // TODO(MiningOcean): zephyr.miningocean.org não expõe REST JSON — o front
   // deles usa protobuf sobre server-sent events (visto no bundle
@@ -166,7 +166,7 @@ export const POOLS: PoolDefinition[] = [
     id: 'miningocean',
     name: 'MiningOcean',
     website: 'https://zephyr.miningocean.org',
-    reason: 'sem API REST pública confirmada',
+    reason: 'no confirmed public REST API',
   },
   // TODO(RavenMiner): zeph.ravenminer.com/api/stats respondeu
   // {"error":"method not found"} e em seguida o host parou de resolver (DNS
@@ -176,7 +176,7 @@ export const POOLS: PoolDefinition[] = [
     id: 'ravenminer',
     name: 'RavenMiner',
     website: 'https://www.ravenminer.com',
-    reason: 'endpoint de stats não confirmado',
+    reason: 'stats endpoint not confirmed',
   },
 ]
 

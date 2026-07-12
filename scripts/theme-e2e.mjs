@@ -133,7 +133,7 @@ let state = await evaluate(STATE)
 check('default: sem data-theme', state.attr === null)
 check('default: fundo escuro computado (ink-950 #141414)', state.bg === 'rgb(20, 20, 20)', state.bg)
 check('default: glifo presente + rótulo [ DARK ] (estado atual)', state.icon && state.text === '[ DARK ]', `icon=${state.icon} text=${JSON.stringify(state.text)}`)
-check('default: aria-label oferece a ação do estado atual (escuro→claro)', state.action === 'Mudar pro tema claro', state.action)
+check('default: aria-label oferece a ação do estado atual (escuro→claro)', state.action === 'Switch to light theme', state.action)
 
 // 2. clique → claro
 await evaluate(`document.querySelector('aside [data-testid="theme-toggle"]').click(); true`)
@@ -143,7 +143,7 @@ check('clique: aplica data-theme=light', state.attr === 'light')
 check('clique: tokens fluem (fundo #f7f7f7)', state.bg === 'rgb(247, 247, 247)', state.bg)
 check('clique: persiste light no localStorage', state.stored === 'light')
 check('clique: rótulo vira [ WHITE ] (grafia exata, não LIGHT)', state.text === '[ WHITE ]', state.text)
-check('clique: aria-label vira a ação inversa (claro→escuro)', state.action === 'Mudar pro tema escuro', state.action)
+check('clique: aria-label vira a ação inversa (claro→escuro)', state.action === 'Switch to dark theme', state.action)
 
 // 3. reload → persiste; o atributo tem que estar lá JÁ no primeiro poll
 //    (anti-flash: o inline script roda antes do React montar)

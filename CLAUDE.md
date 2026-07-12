@@ -17,6 +17,23 @@ rewrite/proxy do Vercel em produção (mesma ideia do proxy do Vite dev server).
 - Campo ausente na resposta da API vira "—" na tela. Nunca inventar/mockar valor.
 - Loading e erro usam um componente compartilhado (não reinventar por módulo).
 
+## Idioma do produto (2026-07-12)
+- O produto é hardcoded em INGLÊS, sem biblioteca de i18n: todo texto visível ou
+  audível pelo visitante (incluindo aria-label/title/placeholder/alt) fica em inglês.
+  As rotas continuam `/rede`, `/pools`, `/recompensa` e `/meu-rig`.
+- Formatação numérica/data/hora e ordenação textual usam `DISPLAY_LOCALE = 'en-US'`
+  em `src/lib/format.ts`; nunca voltar a locale implícito nem espalhar literal de locale
+  por componente.
+- CLAUDE.md, NOTES.md, README.md, docs/ e comentários de código seguem em português —
+  esta é a língua de trabalho do projeto, não a língua da interface.
+
+| Referência antiga (PT) | Nome final do módulo (EN) |
+|---|---|
+| Pulso da Rede | Network Pulse |
+| Bússola de Pools | Pool Compass |
+| Raio-X da Recompensa | Reward X-Ray |
+| Monitor do Rig | Rig Monitor |
+
 ## Direção visual — "Sinal Técnico" (R1 2026-07-09 · v2 2026-07-10 · v3, R4 e R5 2026-07-11 · 2º tema 2026-07-12, ver NOTES.md)
 Tokens centralizados no `@theme` de `src/index.css` — NUNCA hex solto em componente
 (utilitário Tailwind ou `var(--color-*)`; em SVG data-driven, via `style`, não atributo).
@@ -56,7 +73,7 @@ classe por causa do tema. Contraste MEDIDO com `scripts/contrast-check.mjs`
   canal não-cor entre eles é o TEXTO POR EXTENSO e o halo (exclusivo do normal);
   offline é a ÚNICA superfície (caixa sólida bad) — superfície significa "pior
   estado", e nunca por matiz. Destaque COMPARATIVO
-  (chips [ maior hashrate ]/[ menor fee ]) não é estado → v3: fundo sólido zeph-300
+  (chips [ highest hashrate ]/[ lowest fee ]) não é estado → v3: fundo sólido zeph-300
   com texto ink-950 (vivacidade por peso, não matiz novo); R5: os chips formam uma
   COLUNA À DIREITA do nome — o 1º na mesma linha do nome, o 2º abaixo do 1º; com um
   chip só, ele fica ao lado do nome (nunca flex-wrap; o empilhado-abaixo-do-nome do
@@ -84,7 +101,7 @@ classe por causa do tema. Contraste MEDIDO com `scripts/contrast-check.mjs`
   desenhadas pelo `TrendSparkline` compartilhado (ui/) — a UI sempre declara a
   procedência do dado, e desde a 2ª leva do R5 o canal é NÃO-VISUAL: title +
   aria-label no container do instrumento (role="group"), não texto na tela — os
-  rótulos são só [ TENDÊNCIA ] e [ TENDÊNCIA 24 H ], sem legenda visível (não
+  rótulos são só [ TREND ] e [ 24H TREND ], sem legenda visível (não
   reintroduza a frase da coleta como texto). R4: o TrendSparkline tem `variant`
   line (default — rede, pools) e bars (SÓ o rig). R5: os DOIS instrumentos usam
   largura MEDIDA do container (useElementWidth num componente FILHO — o observer
@@ -182,7 +199,7 @@ classe por causa do tema. Contraste MEDIDO com `scripts/contrast-check.mjs`
   botão ganhou um ícone lua/sol no lugar do antigo rótulo mono
   `[ TEMA · ESCURO/CLARO ]` — na zona meta o rótulo por extenso pesava como
   item de nav. O GLIFO declara o estado ATUAL (mesma regra do rótulo: diz o
-  que É, não o destino); a AÇÃO segue no aria-label ("Mudar pro tema …"), então
+  que É, não o destino); a AÇÃO segue no aria-label ("Switch to … theme"), então
   o canal de acessibilidade NÃO mudou.
   N4 (2026-07-12): o ícone-SÓ ficou ambíguo em uso real (sem hover/sem leitor
   de tela não dá pra saber o que faz) e ganhou de VOLTA um rótulo mono AO LADO
@@ -218,12 +235,12 @@ classe por causa do tema. Contraste MEDIDO com `scripts/contrast-check.mjs`
   não fluindo sozinho. e2e continuam com espelhos do DARK — não precisam mudar.
 
 ## Módulos (rotas)
-- /rede — Pulso da Rede: hashrate/dificuldade de rede, halving, saúde do reserve ratio.
+- /rede — Network Pulse: hashrate/dificuldade de rede, halving, saúde do reserve ratio.
   Público, sem configuração do visitante.
-- /pools — Bússola de Pools: comparador das pools ZEPH ativas. Público, sem configuração.
-- /recompensa — Raio-X da Recompensa: como o prêmio de bloco se divide entre
+- /pools — Pool Compass: comparador das pools ZEPH ativas. Público, sem configuração.
+- /recompensa — Reward X-Ray: como o prêmio de bloco se divide entre
   minerador/reserva/yield. Público, sem configuração.
-- /meu-rig — Monitor do Rig: cada visitante configura a própria carteira/pool/XMRig local,
+- /meu-rig — Rig Monitor: cada visitante configura a própria carteira/pool/XMRig local,
   salvo em localStorage do navegador dele. Ganho estimado (2026-07-12 — a PRIMEIRA
   composição cross-module do produto): o vão da coluna dominante sob o StatusBadge
   mostra `(signalHashrate / hash_rate da rede) × miner_reward ×
@@ -269,7 +286,7 @@ que já passa pelo proxy (Vite dev / rewrite do Vercel em produção).
 ## Zephyr Explorer API
 Hashrate e dificuldade de rede NÃO existem no Scanner API (confirmado, campo a campo) —
 use esta fonte: GET https://explorer.zephyrprotocol.com/api/networkinfo — CORS aberto,
-sem proxy necessário. Já usado pelo módulo Pulso da Rede; consulte o código existente
+sem proxy necessário. Já usado pelo módulo Network Pulse; consulte o código existente
 antes de reimplementar.
 
 ## APIs de Pool
@@ -314,7 +331,7 @@ Pools ZEPH conhecidas SEM integração ainda — motivo confirmado, TODOs em
 - MiningOcean — sem REST JSON público (front usa protobuf sobre SSE).
 - RavenMiner — endpoint de stats não confirmado (method not found + DNS instável).
 
-O dropdown de pool do módulo Monitor do Rig usa só 2Miners e HeroMiners — as
+O dropdown de pool do módulo Rig Monitor usa só 2Miners e HeroMiners — as
 outras 3 não estão prontas.
 
 Lista completa e atualizada de pools: https://miningpoolstats.stream/zephyr

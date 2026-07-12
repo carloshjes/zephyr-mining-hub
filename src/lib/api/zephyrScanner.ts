@@ -166,7 +166,7 @@ async function getAnchorHeight(_signal?: AbortSignal): Promise<number> {
     const promise = getNetworkInfo().then((info) => {
       if (info.height === undefined) {
         throw new ApiError(
-          'Explorer não devolveu a altura atual da rede',
+          'Explorer did not return the current network height',
           `${BASE_URL}/blockrewards`,
         )
       }

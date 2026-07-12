@@ -63,7 +63,7 @@ export function TrendSparkline({
   if (values.length < 2) {
     return (
       <span className="font-mono text-caption text-mist-400">
-        coletando… ({values.length}/2)
+        collecting… ({values.length}/2)
       </span>
     )
   }

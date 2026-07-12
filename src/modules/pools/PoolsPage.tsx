@@ -7,6 +7,7 @@ import {
   type PoolSnapshot,
 } from '../../lib/api/pools'
 import {
+  DISPLAY_LOCALE,
   formatHashrate,
   formatInteger,
   formatNumber,
@@ -69,7 +70,7 @@ function compareRows(a: PoolRow, b: PoolRow, sort: SortState): number {
   if (bValue === undefined) return -1
   const direction = sort.dir === 'asc' ? 1 : -1
   if (typeof aValue === 'string' && typeof bValue === 'string') {
-    return aValue.localeCompare(bValue, 'pt-BR') * direction
+    return aValue.localeCompare(bValue, DISPLAY_LOCALE) * direction
   }
   return (Number(aValue) - Number(bValue)) * direction
 }
@@ -180,38 +181,38 @@ export function PoolsPage() {
       {/* R5 2ª leva: a linha "Atualização automática … · última: HH:MM" saiu
           (decisão do Carlos — o polling continua o mesmo por baixo) */}
       <header>
-        <h1 className="text-data-md font-semibold tracking-tight">Bússola de Pools</h1>
+        <h1 className="text-data-md font-semibold tracking-tight">Pool Compass</h1>
         <p className="mt-1 text-body text-mist-400">
-          Comparador das pools ZEPH ativas — clique num cabeçalho pra ordenar.
+          Compare active ZEPH pools — click a column header to sort.
         </p>
       </header>
 
       {allIntegratedDown && (
         <ErrorNotice
           variant="blocking"
-          title="Nenhuma pool respondeu no momento — tentando de novo automaticamente."
-          detail="As linhas abaixo mostram o estado individual de cada pool."
+          title="No pool is responding right now — retrying automatically."
+          detail="The rows below show the current status of each pool."
         />
       )}
 
       <div className="scrollbar-themed overflow-x-auto border-y border-hairline">
         <table className="w-full min-w-[920px] text-body">
           <caption className="sr-only">
-            Comparação das pools de mineração de Zephyr: fee, hashrate, mineradores, pagamento
-            mínimo, luck e altura de bloco reportada
+            Comparison of Zephyr mining pools: fee, hashrate, miners, minimum payout, luck,
+            luck trend, and reported block height
           </caption>
           <thead>
             <tr className="border-b border-hairline font-mono text-caption">
               <SortableHeader label="Pool" sortKey="name" sort={sort} onSort={handleSort} align="left" />
               <SortableHeader label="Fee" sortKey="fee" sort={sort} onSort={handleSort} />
               <SortableHeader label="Hashrate" sortKey="hashrate" sort={sort} onSort={handleSort} />
-              <SortableHeader label="Mineradores" sortKey="miners" sort={sort} onSort={handleSort} />
-              <SortableHeader label="Pagto. mínimo" sortKey="minPayout" sort={sort} onSort={handleSort} />
+              <SortableHeader label="Miners" sortKey="miners" sort={sort} onSort={handleSort} />
+              <SortableHeader label="Min. payout" sortKey="minPayout" sort={sort} onSort={handleSort} />
               <SortableHeader label="Luck" sortKey="luck" sort={sort} onSort={handleSort} />
               <th scope="col" className="px-3 py-2.5 text-left font-medium text-mist-400">
-                Tendência do luck
+                Luck trend
               </th>
-              <SortableHeader label="Altura" sortKey="height" sort={sort} onSort={handleSort} />
+              <SortableHeader label="Height" sortKey="height" sort={sort} onSort={handleSort} />
             </tr>
           </thead>
           <tbody className="divide-y divide-hairline">
@@ -239,8 +240,8 @@ export function PoolsPage() {
                       </a>
                       {(isTopHashrate || isLowestFee) && (
                         <span className="flex flex-col items-start gap-1 pt-0.5">
-                          {isTopHashrate && highlightChip('maior hashrate')}
-                          {isLowestFee && highlightChip('menor fee')}
+                          {isTopHashrate && highlightChip('highest hashrate')}
+                          {isLowestFee && highlightChip('lowest fee')}
                         </span>
                       )}
                     </div>
@@ -250,7 +251,7 @@ export function PoolsPage() {
                     // Pool conhecida mas ainda sem integração viável do navegador
                     // (CORS/API) — motivo visível, detalhe nos TODOs de pools.ts
                     <td colSpan={7} className="px-3 py-3 text-label text-mist-400">
-                      sem integração — {def.reason}
+                      not integrated — {def.reason}
                     </td>
                   ) : poll.isLoading ? (
                     <td colSpan={7} className="px-3 py-3">
@@ -260,7 +261,7 @@ export function PoolsPage() {
                     // Falha só desta pool: a linha avisa e as demais seguem de pé
                     <td colSpan={7} className="px-3 py-3 text-label text-bad" title={errorMessage}>
                       <span aria-hidden className="mr-1 font-mono text-caption">[ ! ]</span>
-                      indisponível agora — tentando de novo automaticamente
+                      currently unavailable — retrying automatically
                     </td>
                   ) : (
                     <>
@@ -310,12 +311,12 @@ export function PoolsPage() {
           sobrava faixa vazia à direita no desktop; agora acompanha a largura
           da coluna (a mesma que a <table> w-full ocupa no mesmo breakpoint). */}
       <p className="text-label leading-relaxed text-mist-400">
-        Luck/effort: 100% = neutro; abaixo de 100% = blocos achados com menos trabalho que o
-        esperado. A medição varia por pool (passe o mouse sobre o valor pra ver a fonte) —
-        compare a tendência (últimas {LUCK_HISTORY_LIMIT} leituras coletadas por este navegador,
-        1 por minuto com a página aberta; a linha fina marca os 100%), não o número exato entre
-        pools. “—” = campo que a API da pool não expõe; fees e pagamentos podem mudar, confirme
-        no site da pool.
+        Luck/effort: 100% is neutral; below 100% means the pool found blocks with less work than
+        statistically expected. Measurement windows vary by pool (hover over a value to see its
+        source), so compare the trend — not exact values across pools. Trends include the latest{' '}
+        {LUCK_HISTORY_LIMIT} readings collected by this browser, one per minute while the page is
+        open; the thin line marks 100%. “—” means the pool API does not expose that field. Fees and
+        payout thresholds can change; confirm them on the pool website.
       </p>
     </div>
   )

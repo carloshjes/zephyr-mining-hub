@@ -1970,3 +1970,57 @@ desktop, endereço completo fica em uma linha (836×18px). Capturas finais:
   `r6-final-toggle-{rail,mobile}-{dark,light}.png` (lupa 5×),
   `r6-final-toggle-context-*`, régua `r6-final-glyph-{18,22,24}-*` em ×1/×5 e
   os quatro rodapés citados acima.
+
+# Produto em inglês e locale `en-US` — 2026-07-12
+
+## Decisão e alcance
+
+O produto passou a usar inglês hardcoded, sem biblioteca de i18n. Todo texto
+voltado ao visitante — conteúdo visível, mensagens de erro e estado vazio,
+placeholders, `title`, `aria-label`, `alt`, resumos de gráficos e metadados do
+`index.html` — foi traduzido. As rotas `/rede`, `/pools`, `/recompensa` e
+`/meu-rig` permanecem inalteradas.
+
+O produto fica em inglês; `CLAUDE.md`, `NOTES.md`, `README.md`, `docs/` e os
+comentários do código seguem em português como língua de trabalho do projeto.
+
+| Nome anterior (PT) | Nome do produto (EN) |
+| --- | --- |
+| Pulso da Rede | Network Pulse |
+| Bússola de Pools | Pool Compass |
+| Raio-X da Recompensa | Reward X-Ray |
+| Monitor do Rig | Rig Monitor |
+
+## Investigação e decisão de locale
+
+A camada central `src/lib/format.ts` continha quatro usos explícitos de
+`pt-BR` (`Intl.NumberFormat`, números compactos, data e hora). Não havia locale
+implícito nesses formatadores. Fora dela, a única escolha adicional era o
+`localeCompare(..., 'pt-BR')` da ordenação de pools.
+
+O locale de apresentação agora é uma única constante exportada,
+`DISPLAY_LOCALE = 'en-US'`, consumida pelos formatadores centrais e pela
+ordenação. Números, percentuais, datas e horas ficam determinísticos e seguem
+a convenção do produto em inglês; por exemplo, `65.0%` e `817,867`. A moeda
+usa `$` e o tempo relativo usa formas inglesas como `now` e `… ago`, sem locale
+solto em componentes. O documento passou a declarar `<html lang="en">`; título
+e meta description também estão em inglês.
+
+## Contratos e verificação
+
+- A varredura sintática de `src/` por caracteres acentuados em strings e JSX,
+  excluindo comentários, terminou com **zero ocorrências**.
+- `npm run build`: limpo.
+- `npm run lint`: somente os dois warnings preexistentes em
+  `scripts/logo-shots.mjs` e `src/modules/rewards/SeriesSwatch.tsx`; nenhum novo.
+- E2E de pools (`normal` + `broken2miners`), recompensa (`normal` + `lowratio`
+  + `brokenrewards`), rig (`normal` + `notfound`) e tema: **todos PASS**. Os
+  contratos de texto, acessibilidade e parsing numérico foram atualizados para
+  inglês/`en-US`; os contratos de comportamento permaneceram iguais.
+- `scripts/design-shots.mjs`: 24/24 capturas regeneradas (4 telas × 3
+  breakpoints × 2 temas) e revisadas visualmente. Não há português visível,
+  a notação numérica é `en-US` e não apareceu regressão de composição.
+- `scripts/rig-https-mixed.mjs`, `scripts/xmrig-sim.mjs` e
+  `scripts/shell-detail-shots.mjs` também tiveram seus contratos de texto de
+  produto atualizados. O primeiro não foi reexecutado nesta máquina porque
+  OpenSSL não está disponível; isso não integra a suíte de aceite desta sessão.

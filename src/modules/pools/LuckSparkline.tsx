@@ -18,7 +18,7 @@ export function LuckSparkline({ readings, poolName }: LuckSparklineProps) {
   const summary =
     values.length < 2
       ? ''
-      : `Tendência do luck da ${poolName}: ${readings.length} leituras, atual ${formatNumber(values[values.length - 1], 1)}%, mínima ${formatNumber(Math.min(...values), 1)}%, máxima ${formatNumber(Math.max(...values), 1)}%`
+      : `Luck trend for ${poolName}: ${readings.length} readings, current ${formatNumber(values[values.length - 1], 1)}%, minimum ${formatNumber(Math.min(...values), 1)}%, maximum ${formatNumber(Math.max(...values), 1)}%`
 
   return <TrendSparkline values={values} summary={summary} referenceValue={100} />
 }

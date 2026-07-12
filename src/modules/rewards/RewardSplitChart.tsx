@@ -87,7 +87,7 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
       <div ref={containerRef} className="h-72">
         {count < 2 && width > 0 && (
           <p className="pt-8 text-center text-body text-mist-400">
-            Sem blocos suficientes pra desenhar a série.
+            Not enough blocks to draw the series.
           </p>
         )}
       </div>
@@ -180,19 +180,19 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
     : 0
 
   const summary =
-    `Área empilhada da divisão da recompensa nos blocos ${formatInteger(firstHeight)} a ` +
-    `${formatInteger(lastHeight)}. No bloco mais recente: ` +
+    `Stacked area chart of the reward split from blocks ${formatInteger(firstHeight)} to ` +
+    `${formatInteger(lastHeight)}. Latest block: ` +
     REWARD_SERIES.map(
       (def) => `${def.label.toLowerCase()} ${formatNumber(sharePercent(lastBlock, def.key), 1, 1)}%`,
     ).join(', ') +
-    '. Valores completos na tabela abaixo.'
+    '. Full values are available in the table below.'
 
   return (
     <div
       ref={containerRef}
       className="relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zeph-300"
       tabIndex={0}
-      aria-label={`${summary} Use as setas do teclado pra inspecionar bloco a bloco.`}
+      aria-label={`${summary} Use the arrow keys to inspect blocks one by one.`}
       onKeyDown={onKeyDown}
       onBlur={() => hover?.source === 'keyboard' && setHover(null)}
     >
@@ -233,7 +233,7 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
           </g>
         ))}
         <text x={4} y={MARGINS.top - 4} className="fill-mist-400 font-mono text-caption">
-          {unit === 'percent' ? '% do bloco' : 'ZEPH'}
+          {unit === 'percent' ? '% of block' : 'ZEPH'}
         </text>
 
         {/* Faixas: wash + textura + borda superior sólida na cor da série (a
@@ -330,7 +330,7 @@ export function RewardSplitChart({ slices, unit }: RewardSplitChartProps) {
           style={{ left: tooltipLeft }}
         >
           <p className="mb-1 font-mono text-caption text-mist-400">
-            [ BLOCO {formatInteger(hovered.height)} ]
+            [ BLOCK {formatInteger(hovered.height)} ]
           </p>
           {REWARD_SERIES.map((def) => (
             <p key={def.key} className="flex items-center gap-2 leading-5">

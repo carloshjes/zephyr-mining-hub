@@ -26,10 +26,10 @@ export function MyRigPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-data-md font-semibold tracking-tight">Monitor do Rig</h1>
+          <h1 className="text-data-md font-semibold tracking-tight">Rig Monitor</h1>
           <p className="mt-1 text-body text-mist-400">
-            Acompanhe seu rig na pool e, opcionalmente, o XMRig local em tempo real — a
-            configuração fica salva só neste navegador.
+            Track your rig at the pool and, optionally, your local XMRig in real time —
+            configuration is stored only in this browser.
           </p>
         </div>
         {config && !isEditing && (
@@ -38,7 +38,7 @@ export function MyRigPage() {
             onClick={() => setIsEditing(true)}
             className="border border-hairline px-3 py-1.5 font-mono text-label text-mist-300 transition-colors hover:border-mist-400 hover:text-mist-100"
           >
-            Editar configuração
+            Edit configuration
           </button>
         )}
       </header>

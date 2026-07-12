@@ -48,7 +48,7 @@ export function ReserveRatioChart({ points }: ReserveRatioChartProps) {
       <div ref={containerRef} className="h-48">
         {count < 2 && width > 0 && (
           <p className="pt-8 text-center text-body text-mist-400">
-            Sem pontos suficientes pra desenhar a série.
+            Not enough points to draw the series.
           </p>
         )}
       </div>
@@ -124,18 +124,18 @@ export function ReserveRatioChart({ points }: ReserveRatioChartProps) {
     : 0
 
   const summary =
-    `Reserve ratio nos blocos ${formatInteger(firstHeight)} a ${formatInteger(lastHeight)}: ` +
-    `mínimo ${formatNumber(dataMin, 2, 2)}, máximo ${formatNumber(dataMax, 2, 2)}, ` +
-    `mais recente ${formatNumber(current.ratio, 2, 2)}` +
-    (anyBelowFloor ? ` — a série cruza o piso da faixa alvo (${formatNumber(TARGET_FLOOR, 1, 1)}).` : '.') +
-    ' Valores completos na tabela abaixo.'
+    `Reserve ratio from blocks ${formatInteger(firstHeight)} to ${formatInteger(lastHeight)}: ` +
+    `minimum ${formatNumber(dataMin, 2, 2)}, maximum ${formatNumber(dataMax, 2, 2)}, ` +
+    `latest ${formatNumber(current.ratio, 2, 2)}` +
+    (anyBelowFloor ? ` — the series crosses below the target range floor (${formatNumber(TARGET_FLOOR, 1, 1)}).` : '.') +
+    ' Full values are available in the table below.'
 
   return (
     <div
       ref={containerRef}
       className="relative focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zeph-300"
       tabIndex={0}
-      aria-label={`${summary} Use as setas do teclado pra inspecionar bloco a bloco.`}
+      aria-label={`${summary} Use the arrow keys to inspect blocks one by one.`}
       onKeyDown={onKeyDown}
       onBlur={() => hover?.source === 'keyboard' && setHover(null)}
     >
@@ -288,7 +288,7 @@ export function ReserveRatioChart({ points }: ReserveRatioChartProps) {
           style={{ left: tooltipLeft }}
         >
           <p className="font-mono text-caption text-mist-400">
-            [ BLOCO {formatInteger(hovered.height)} ]
+            [ BLOCK {formatInteger(hovered.height)} ]
           </p>
           <p className="leading-5">
             <span className="font-mono font-semibold text-mist-100">
@@ -297,7 +297,7 @@ export function ReserveRatioChart({ points }: ReserveRatioChartProps) {
             <span className="text-mist-400">reserve ratio</span>
           </p>
           {hovered.ratio < TARGET_FLOOR && (
-            <p className="font-mono text-caption text-bad">[ ABAIXO DO PISO 4,0 ]</p>
+            <p className="font-mono text-caption text-bad">[ BELOW FLOOR · 4.0 ]</p>
           )}
         </div>
       )}

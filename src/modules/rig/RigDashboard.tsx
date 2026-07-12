@@ -82,12 +82,12 @@ const STATUS_PRESENTATION: Record<
   { label: string; className: string; dot: string }
 > = {
   normal: {
-    label: 'Minerando normal',
+    label: 'Mining normally',
     className: 'text-good',
     dot: 'bg-good',
   },
   below: {
-    label: 'Hashrate abaixo do esperado',
+    label: 'Hashrate below expected',
     className: 'text-bad',
     dot: 'bg-bad',
   },
@@ -128,9 +128,9 @@ function StatusBadge({ status, detail }: { status: RigStatusKind; detail: string
 // container do instrumento. A convenção do projeto segue de pé: a UI
 // declara a procedência, só mudou o canal.
 const DAILY_TREND_PROVENANCE =
-  'Tendência de 24 h do hashrate da carteira na pool, coletada neste ' +
-  'navegador com a página aberta — 1 leitura a cada ~5 min, até 288; ' +
-  'nenhuma pool integrada expõe série histórica pública.'
+  '24-hour pool hashrate trend for this wallet, collected by this ' +
+  'browser while the page is open — one reading about every 5 minutes, up to 288; ' +
+  'no integrated pool exposes a public historical series.'
 
 // Tendência de 24 h em componente próprio: o useElementWidth ata o
 // ResizeObserver no mount, e este bloco nasce dentro do branch pós-loading —
@@ -179,14 +179,14 @@ function WorkersTable({ snapshot }: { snapshot: MinerSnapshot }) {
   return (
     <div className="scrollbar-themed overflow-x-auto border-y border-hairline">
       <table className="w-full min-w-[560px] text-body">
-        <caption className="sr-only">Workers desta carteira na pool</caption>
+        <caption className="sr-only">Workers for this wallet at the pool</caption>
         <thead>
           <tr className="border-b border-hairline font-mono text-caption text-mist-400">
             <th scope="col" className="px-3 py-2.5 text-left font-medium">Worker</th>
             <th scope="col" className="px-3 py-2.5 text-right font-medium">Hashrate</th>
-            <th scope="col" className="px-3 py-2.5 text-right font-medium">Shares válidas</th>
-            <th scope="col" className="px-3 py-2.5 text-right font-medium">Inválidas</th>
-            <th scope="col" className="px-3 py-2.5 text-right font-medium">Último sinal</th>
+            <th scope="col" className="px-3 py-2.5 text-right font-medium">Valid shares</th>
+            <th scope="col" className="px-3 py-2.5 text-right font-medium">Invalid</th>
+            <th scope="col" className="px-3 py-2.5 text-right font-medium">Last signal</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-hairline font-mono text-label">
@@ -224,7 +224,7 @@ export function RigDashboard({ config }: RigDashboardProps) {
 
   const poolFetcher = useCallback(
     (signal: AbortSignal) => {
-      if (!pool) throw new Error(`Pool desconhecida: ${config.poolId}`)
+      if (!pool) throw new Error(`Unknown pool: ${config.poolId}`)
       return pool.fetchMinerStats(wallet, signal)
     },
     [pool, wallet, config.poolId],
@@ -287,9 +287,9 @@ export function RigDashboard({ config }: RigDashboardProps) {
     const values = dailyHistory.map((reading) => reading.h)
     if (values.length < 2) return ''
     return (
-      `Tendência de 24 h do hashrate desta carteira na pool: ${values.length} leituras, ` +
-      `atual ${formatHashrate(values[values.length - 1])}, mínima ${formatHashrate(Math.min(...values))}, ` +
-      `máxima ${formatHashrate(Math.max(...values))}`
+      `24-hour pool hashrate trend for this wallet: ${values.length} readings, ` +
+      `current ${formatHashrate(values[values.length - 1])}, minimum ${formatHashrate(Math.min(...values))}, ` +
+      `maximum ${formatHashrate(Math.max(...values))}`
     )
   }, [dailyHistory])
 
@@ -313,10 +313,10 @@ export function RigDashboard({ config }: RigDashboardProps) {
   })
   const statusReady = !poolPoll.isLoading || xmrig !== undefined
   const statusDetail = [
-    `fonte: ${statusSource === 'xmrig' ? 'XMRig local (tempo real)' : `hashrate na ${pool?.name ?? 'pool'}`}`,
+    `source: ${statusSource === 'xmrig' ? 'Local XMRig (real-time)' : `pool hashrate at ${pool?.name ?? 'pool'}`}`,
     reference !== undefined
-      ? `média das últimas ${histories[statusSource].length} leituras: ${formatHashrate(reference)}`
-      : 'coletando leituras de referência',
+      ? `average of last ${histories[statusSource].length} readings: ${formatHashrate(reference)}`
+      : 'collecting baseline readings',
   ]
     .filter((part) => part !== undefined)
     .join(' · ')
@@ -336,9 +336,9 @@ export function RigDashboard({ config }: RigDashboardProps) {
   // Falha visível por fonte (convenção: erro nunca silencioso), no escopo do
   // bloco — o restante da tela tem seus próprios avisos
   const earningsFailingSources = [
-    networkInfoPoll.error && 'Explorer (hashrate da rede)',
-    blockRewardPoll.error && 'Scanner (recompensa)',
-    liveStatsPoll.error && 'Scanner (preço)',
+    networkInfoPoll.error && 'Explorer (network hashrate)',
+    blockRewardPoll.error && 'Scanner (reward)',
+    liveStatsPoll.error && 'Scanner (price)',
   ].filter((source): source is string => Boolean(source))
 
   const notFound = poolPoll.error instanceof MinerNotFoundError
@@ -349,13 +349,13 @@ export function RigDashboard({ config }: RigDashboardProps) {
       {notFound && poolPoll.data === undefined ? (
         <ErrorNotice
           variant="blocking"
-          title="Endereço ainda não visto nesta pool."
-          detail={`${poolPoll.error?.message} A busca continua automática — assim que a pool registrar o primeiro share, os dados aparecem aqui.`}
+          title="Wallet address not yet seen at this pool."
+          detail={`${poolPoll.error?.message} Automatic checks will continue. Data will appear here as soon as the pool records the first share.`}
         />
       ) : poolPoll.error !== undefined && poolPoll.data === undefined ? (
         <ErrorNotice
           variant="blocking"
-          title={`Sem resposta da ${pool?.name ?? 'pool'} no momento — tentando de novo automaticamente.`}
+          title={`No response from ${pool?.name ?? 'the pool'} right now — retrying automatically.`}
           detail={poolPoll.error.message}
         />
       ) : (
@@ -365,7 +365,7 @@ export function RigDashboard({ config }: RigDashboardProps) {
       {/* ------- região dominante: o sinal do rig + rail com a pool ------- */}
       <section className="lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
-          <p className="font-mono text-caption tracking-wide text-mist-400">[ SINAL DO RIG ]</p>
+          <p className="font-mono text-caption tracking-wide text-mist-400">[ RIG SIGNAL ]</p>
           {statusReady ? (
             <>
               <p
@@ -387,7 +387,7 @@ export function RigDashboard({ config }: RigDashboardProps) {
                   Pulso da Rede: caption mono + mt-10, sem moldura nova. */}
               <div className="mt-10">
                 <p className="font-mono text-caption tracking-wide text-mist-400">
-                  [ GANHO ESTIMADO ]
+                  [ ESTIMATED EARNINGS ]
                 </p>
                 {earningsLoading ? (
                   <div className="mt-2 space-y-2">
@@ -397,16 +397,16 @@ export function RigDashboard({ config }: RigDashboardProps) {
                 ) : (
                   <>
                     <p className="mt-1 font-mono text-data-lg font-medium text-mist-100">
-                      {orDash(earnings.zephPerDay, (value) => `${formatZeph(value, 4)}/dia`)}
+                      {orDash(earnings.zephPerDay, (value) => `${formatZeph(value, 4)}/day`)}
                     </p>
                     <p className="mt-1 text-body text-mist-300">
                       {orDash(earnings.usdPerDay, (value) => `≈ ${formatUsd(value)}`)}{' '}
-                      <span className="text-mist-400">em USD/dia</span>
+                      <span className="text-mist-400">per day</span>
                     </p>
                     {earningsFailingSources.length > 0 && (
                       <p className="mt-2 font-mono text-caption text-bad">
-                        [ fonte com falha: {earningsFailingSources.join(' · ')} — tentando de
-                        novo automaticamente ]
+                        [ failed source: {earningsFailingSources.join(' · ')} — retrying
+                        automatically ]
                       </p>
                     )}
                   </>
@@ -427,7 +427,7 @@ export function RigDashboard({ config }: RigDashboardProps) {
               o polling continua o mesmo por baixo) */}
           <header className="pb-3">
             <h2 className="text-lede font-medium text-mist-100">
-              Na pool{' '}
+              At{' '}
               <a
                 href={pool?.website}
                 target="_blank"
@@ -440,11 +440,11 @@ export function RigDashboard({ config }: RigDashboardProps) {
           </header>
           <div className="space-y-4">
             <StatCard
-              label="Hashrate na pool"
+              label="Pool hashrate"
               value={orDash(poolPoll.data?.currentHashrate, formatHashrate)}
               sub={
                 poolPoll.data?.averageHashrate !== undefined
-                  ? `média longa: ${formatHashrate(poolPoll.data.averageHashrate)} · ${pool?.hashrateNote ?? ''}`
+                  ? `long-term average: ${formatHashrate(poolPoll.data.averageHashrate)} · ${pool?.hashrateNote ?? ''}`
                   : pool?.hashrateNote
               }
               isLoading={poolPoll.isLoading}
@@ -458,20 +458,20 @@ export function RigDashboard({ config }: RigDashboardProps) {
               }
               sub={
                 poolPoll.data?.workersOnline !== undefined
-                  ? 'online / total registrados na pool'
-                  : 'workers vistos pela pool'
+                  ? 'online / total reported by the pool'
+                  : 'workers reported by the pool'
               }
               isLoading={poolPoll.isLoading}
             />
             <StatCard
-              label="Shares da rodada"
+              label="Round shares"
               value={orDash(poolPoll.data?.sharesValid, formatInteger)}
               sub={[
                 poolPoll.data?.sharesInvalid !== undefined
-                  ? `inválidas: ${formatInteger(poolPoll.data.sharesInvalid)}`
+                  ? `invalid: ${formatInteger(poolPoll.data.sharesInvalid)}`
                   : undefined,
                 poolPoll.data?.lastShareAt !== undefined
-                  ? `último share: ${formatAgo(poolPoll.data.lastShareAt)}`
+                  ? `last share: ${formatAgo(poolPoll.data.lastShareAt)}`
                   : undefined,
               ]
                 .filter((part) => part !== undefined)
@@ -479,11 +479,11 @@ export function RigDashboard({ config }: RigDashboardProps) {
               isLoading={poolPoll.isLoading}
             />
             <StatCard
-              label="Saldo pendente"
+              label="Pending balance"
               value={orDash(poolPoll.data?.pendingBalance, (value) => formatZeph(value, 4))}
               sub={
                 poolPoll.data?.totalPaid !== undefined
-                  ? `pago no total: ${formatZeph(poolPoll.data.totalPaid, 2)}`
+                  ? `total paid: ${formatZeph(poolPoll.data.totalPaid, 2)}`
                   : undefined
               }
               isLoading={poolPoll.isLoading}
@@ -506,7 +506,7 @@ export function RigDashboard({ config }: RigDashboardProps) {
       {statusReady && (
         <section role="group" aria-label={DAILY_TREND_PROVENANCE} title={DAILY_TREND_PROVENANCE}>
           <p className="font-mono text-caption tracking-wide text-mist-400">
-            [ TENDÊNCIA 24 H ]
+            [ 24H TREND ]
           </p>
           <DailyTrend history={dailyHistory} summary={dailySummary} />
         </section>
@@ -519,16 +519,16 @@ export function RigDashboard({ config }: RigDashboardProps) {
       {xmrigAddress !== undefined && (
         <section className="space-y-4">
           <header className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-lede font-medium text-mist-100">XMRig local</h2>
+            <h2 className="text-lede font-medium text-mist-100">Local XMRig</h2>
             <p className="font-mono text-caption text-mist-400">
-              http://{xmrigAddress} · a cada {XMRIG_POLL_MS / 1_000} s
+              http://{xmrigAddress} · every {XMRIG_POLL_MS / 1_000} s
             </p>
           </header>
 
           {xmrig !== undefined ? (
             <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
               <StatCard
-                label="Hashrate local (60 s)"
+                label="Local hashrate (60 s)"
                 value={orDash(xmrig.hashrate60s ?? xmrig.hashrate10s, formatHashrate)}
                 sub={[
                   xmrig.hashrate10s !== undefined ? `10 s: ${formatHashrate(xmrig.hashrate10s)}` : undefined,
@@ -538,16 +538,16 @@ export function RigDashboard({ config }: RigDashboardProps) {
                   .join(' · ') || undefined}
               />
               <StatCard
-                label="Shares aceitas"
+                label="Accepted shares"
                 value={orDash(xmrig.sharesGood, formatInteger)}
                 sub={
                   xmrig.sharesTotal !== undefined && xmrig.sharesGood !== undefined
-                    ? `rejeitadas: ${formatInteger(xmrig.sharesTotal - xmrig.sharesGood)} de ${formatInteger(xmrig.sharesTotal)} enviadas`
+                    ? `rejected: ${formatInteger(xmrig.sharesTotal - xmrig.sharesGood)} of ${formatInteger(xmrig.sharesTotal)} submitted`
                     : undefined
                 }
               />
               <StatCard
-                label="Uptime do XMRig"
+                label="XMRig uptime"
                 value={orDash(xmrig.uptimeSeconds, formatDuration)}
                 sub={[
                   xmrig.version !== undefined ? `v${xmrig.version}` : undefined,
@@ -564,13 +564,14 @@ export function RigDashboard({ config }: RigDashboardProps) {
             // dados da pool acima continuam de pé (requisito do módulo)
             <div className="border-l-2 border-hairline py-1 pl-3 text-body text-mist-300">
               <span aria-hidden className="mr-2 font-mono text-caption text-mist-400">
-                [ SEM SINAL LOCAL ]
+                [ NO LOCAL SIGNAL ]
               </span>
-              XMRig local não alcançável em http://{xmrigAddress} — mostrando só os dados da pool.
+              Local XMRig is unreachable at http://{xmrigAddress} — showing pool data only.
               <span className="mt-1 block text-label text-mist-400">
-                Confira se o XMRig está rodando com <code className="font-mono">--http-enabled --http-port {xmrigAddress.split(':')[1] ?? ''}</code>{' '}
-                nesta máquina. Alguns navegadores (Safari, por exemplo) bloqueiam página https
-                acessando serviço local em http.
+                Check that XMRig is running on this machine with{' '}
+                <code className="font-mono">--http-enabled --http-port {xmrigAddress.split(':')[1] ?? ''}</code>.
+                Some browsers (Safari, for example) block HTTPS pages from accessing local HTTP
+                services.
               </span>
             </div>
           )}

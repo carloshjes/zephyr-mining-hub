@@ -22,7 +22,7 @@ const ATOMS_PER_ZEPH = 1e12
 export class MinerNotFoundError extends Error {
   constructor(poolName: string) {
     super(
-      `Endereço não encontrado na ${poolName} — confira se está correto e se o rig já enviou o primeiro share pra essa pool.`,
+      `Wallet address not found at ${poolName} — check that it is correct and that your rig has submitted its first share to this pool.`,
     )
     this.name = 'MinerNotFoundError'
   }
@@ -242,14 +242,14 @@ export const MINER_POOLS: MinerPool[] = [
     id: '2miners',
     name: '2Miners',
     website: 'https://zeph.2miners.com',
-    hashrateNote: 'janela curta (recente) e longa (média de horas) da própria pool',
+    hashrateNote: 'short (recent) and long (multi-hour average) windows reported by the pool',
     fetchMinerStats: fetchTwoMinersAccount,
   },
   {
     id: 'herominers',
     name: 'HeroMiners',
     website: 'https://zephyr.herominers.com',
-    hashrateNote: 'hashrate atual e média de 1 h reportados pela pool',
+    hashrateNote: 'current hashrate and 1-hour average reported by the pool',
     fetchMinerStats: fetchHeroMinersAccount,
   },
 ]

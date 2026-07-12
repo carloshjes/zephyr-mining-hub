@@ -38,15 +38,15 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
     const nextErrors: FieldErrors = {}
 
     if (trimmedWallet === '') {
-      nextErrors.wallet = 'Informe o endereço público da sua carteira ZEPH.'
+      nextErrors.wallet = 'Enter your public ZEPH wallet address.'
     } else if (!isPlausibleZephAddress(trimmedWallet)) {
       nextErrors.wallet =
-        'Isso não parece um endereço ZEPH — ele começa com "ZEPH" e tem ~99–101 caracteres.'
+        'This does not look like a ZEPH address — it should start with "ZEPH" and be about 99–101 characters long.'
     }
 
     const normalizedXmrig = trimmedXmrig === '' ? undefined : normalizeXmrigAddress(trimmedXmrig)
     if (trimmedXmrig !== '' && normalizedXmrig === undefined) {
-      nextErrors.xmrig = 'Use o formato host:porta (ex.: 127.0.0.1:16000) ou só a porta.'
+      nextErrors.xmrig = 'Use host:port (for example, 127.0.0.1:16000) or enter only the port.'
     }
 
     setErrors(nextErrors)
@@ -58,11 +58,11 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
     <form onSubmit={handleSubmit} className="space-y-5 border border-hairline p-6">
       <div className="space-y-1">
         <h2 className="text-lede font-semibold tracking-tight">
-          {initial ? 'Editar configuração' : 'Configure seu rig'}
+          {initial ? 'Edit configuration' : 'Configure your rig'}
         </h2>
         <p className="text-body text-mist-400">
-          Tudo fica salvo <strong className="font-medium text-mist-300">só neste navegador</strong>{' '}
-          (localStorage) — sem conta e sem enviar nada pra servidor nosso.
+          Everything is stored <strong className="font-medium text-mist-300">only in this browser</strong>{' '}
+          (localStorage) — no account is required, and nothing is sent to a server we operate.
         </p>
       </div>
 
@@ -81,14 +81,14 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
             ))}
           </select>
           <span className="mt-1 block text-label text-mist-400">
-            Só as pools com API por minerador acessível do navegador — as demais entram quando a
-            integração for confirmada.
+            Only pools with a browser-accessible per-miner API are listed. Others will appear
+            after their integration is confirmed.
           </span>
         </label>
 
         <label className="block text-body">
           <span className="mb-1 block font-mono text-caption tracking-wide text-mist-400">
-            API local do XMRig <span className="text-mist-600">(opcional)</span>
+            Local XMRig API <span className="text-mist-600">(optional)</span>
           </span>
           <input
             type="text"
@@ -99,8 +99,8 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
             className={INPUT_CLASS}
           />
           <span className="mt-1 block text-label text-mist-400">
-            host:porta do XMRig rodando com <code className="font-mono text-mist-300">--http-enabled</code>{' '}
-            — mostra hashrate local em tempo real.
+            XMRig host:port running with <code className="font-mono text-mist-300">--http-enabled</code>{' '}
+            — shows local hashrate in real time.
           </span>
           {errors.xmrig && <span role="alert" className="mt-1 block text-label text-bad">{errors.xmrig}</span>}
         </label>
@@ -108,7 +108,7 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
 
       <label className="block text-body">
         <span className="mb-1 block font-mono text-caption tracking-wide text-mist-400">
-          Endereço da carteira ZEPH
+          ZEPH wallet address
         </span>
         <input
           type="text"
@@ -120,8 +120,8 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
           className={`${INPUT_CLASS} font-mono text-label`}
         />
         <span className="mt-1 block text-label text-mist-400">
-          Só o endereço <strong className="font-medium text-mist-300">público</strong> — é tudo
-          que a pool precisa. Nunca cole chave privada nem seed em site nenhum.
+          Only the <strong className="font-medium text-mist-300">public</strong> address is needed
+          by the pool. Never paste a private key or seed phrase into any website.
         </span>
         {errors.wallet && <span role="alert" className="mt-1 block text-label text-bad">{errors.wallet}</span>}
       </label>
@@ -131,7 +131,7 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
           type="submit"
           className="bg-zeph-300 px-4 py-2 text-body font-medium text-ink-950 transition-colors hover:bg-mist-100"
         >
-          Salvar e acompanhar
+          Save and monitor
         </button>
         {onCancel && (
           <button
@@ -139,7 +139,7 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
             onClick={onCancel}
             className="border border-hairline px-4 py-2 text-body text-mist-300 transition-colors hover:border-mist-400"
           >
-            Cancelar
+            Cancel
           </button>
         )}
         {onClear && (
@@ -148,7 +148,7 @@ export function RigConfigForm({ initial, onSave, onCancel, onClear }: RigConfigF
             onClick={onClear}
             className="ml-auto text-label text-mist-400 underline underline-offset-4 transition-colors hover:text-bad"
           >
-            Apagar configuração deste navegador
+            Remove configuration from this browser
           </button>
         )}
       </div>

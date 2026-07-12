@@ -209,7 +209,7 @@ async function readFooterMetrics() {
         text: address.textContent.trim(),
       } : null,
       hasCopyButton: !!footer.querySelector('button'),
-      hasDisclaimer: footer.innerText.includes('afiliação'),
+      hasDisclaimer: footer.innerText.includes('affiliation'),
       pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     }
   })()`)

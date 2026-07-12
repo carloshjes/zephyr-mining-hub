@@ -18,8 +18,8 @@ export function ErrorNotice({ variant = 'stale', title, detail }: ErrorNoticePro
     return (
       <div role="alert" className="border border-bad/60 bg-bad/10 px-4 py-3 text-body">
         <p className="font-medium text-mist-100">
-          <span aria-hidden className="mr-2 font-mono text-caption text-bad">[ FALHA ]</span>
-          {title ?? 'Dado indisponível no momento — tentando de novo automaticamente.'}
+          <span aria-hidden className="mr-2 font-mono text-caption text-bad">[ FAILED ]</span>
+          {title ?? 'Data is unavailable right now — retrying automatically.'}
         </p>
         {detail && <p className="mt-1 text-mist-300">{detail}</p>}
       </div>
@@ -29,7 +29,7 @@ export function ErrorNotice({ variant = 'stale', title, detail }: ErrorNoticePro
   return (
     <div role="alert" className="border-l-2 border-bad py-1 pl-3 text-body text-mist-300">
       <span aria-hidden className="mr-2 font-mono text-caption text-bad">[ ! ]</span>
-      {title ?? 'Dado indisponível — mostrando o último valor conhecido e tentando de novo.'}
+      {title ?? 'Data is unavailable — showing the last known value and retrying.'}
       {detail && <span className="text-mist-400"> {detail}</span>}
     </div>
   )

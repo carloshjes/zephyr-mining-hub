@@ -191,8 +191,8 @@ async function screenshot(name) {
   console.log(`shot  .e2e-out/${name}`)
 }
 
-// Números pt-BR da UI ("6,722" / "815.548") → Number
-const ptNumber = (text) => Number(text.replaceAll('.', '').replace(',', '.'))
+// Números en-US da UI ("6.722" / "815,548") → Number
+const enUsNumber = (text) => Number(text.replaceAll(',', ''))
 
 // Helpers de consulta por cor COMPUTADA (as séries usam var(--color-*))
 const bandCount = (fill) =>
@@ -216,12 +216,12 @@ await send('Page.navigate', { url: APP_URL })
 
 if (MODE === 'brokenrewards') {
   await waitFor(
-    `document.body.innerText.includes('blockrewards') && document.body.innerText.includes('Fontes com falha')`,
+    `document.body.innerText.includes('blockrewards') && document.body.innerText.includes('Failed sources')`,
     30_000, 'aviso de fonte com falha',
   )
   check('aviso de erro cita a fonte quebrada', true)
   check('manchete degrada com mensagem visível',
-    await evaluate(`document.body.innerText.includes('Sem dado de recompensa no momento')`))
+    await evaluate(`document.body.innerText.includes('Reward data is unavailable right now')`))
   // O gráfico de reserve ratio não depende de /blockrewards — segue de pé
   await waitFor(`${ratioLineCount} >= 1`, 30_000, 'linha do reserve ratio mesmo sem blockrewards')
   check('reserve ratio segue de pé', true)
@@ -235,7 +235,7 @@ if (MODE === 'brokenrewards') {
   )
   check('banner [ ALERTA ] visível quando ratio < 4,0', true)
   check('banner diz o valor e o piso',
-    await evaluate(`document.querySelector('[data-testid="ratio-floor-alert"]').innerText.includes('3,42')`))
+    await evaluate(`document.querySelector('[data-testid="ratio-floor-alert"]').innerText.includes('3.42')`))
   await waitFor(
     `document.querySelector('[data-testid="ratio-alert-segment"]') !== null`,
     30_000, 'trecho da linha abaixo do piso',
@@ -248,47 +248,47 @@ if (MODE === 'brokenrewards') {
   // eixo Y e no texto "alvo: 4,0–8,0". O check antigo exigia o rótulo
   // presente; agora exige AUSENTE + linha do piso de pé.
   check('rótulo textual do piso AUSENTE (removido de vez)',
-    await evaluate(`!Array.from(document.querySelectorAll('svg text')).some((t) => t.textContent.includes('piso da faixa alvo'))`))
+    await evaluate(`!Array.from(document.querySelectorAll('svg text')).some((t) => t.textContent.includes('target range floor'))`))
   check('linha tracejada do piso presente',
     await evaluate(`Array.from(document.querySelectorAll('svg line')).some((l) => l.getAttribute('stroke-dasharray') === '4 3')`))
   await screenshot('rewards-lowratio.png')
 } else {
   // --- manchete com dado real ---
   await waitFor(
-    `document.body.innerText.includes('Agora, de cada bloco de')`,
+    `document.body.innerText.includes('block reward currently sends')`,
     30_000, 'manchete com o bloco mais recente',
   )
   const headline = await evaluate(`document.body.innerText`)
   const sentence = headline.match(
-    /Agora, de cada bloco de ([\d.,]+) ZEPH, ([\d.,]+)% vai pro minerador, ([\d.,]+)% pra reserva e ([\d.,]+)% pro yield/,
+    /Each ([\d.,]+) ZEPH block reward currently sends ([\d.,]+)% to miners, ([\d.,]+)% to the reserve, and ([\d.,]+)% to yield/,
   )
   check('manchete no formato pedido', Boolean(sentence), sentence?.[0])
-  const heightMatch = headline.match(/MEDIDO NO BLOCO ([\d.]+)/)
+  const heightMatch = headline.match(/MEASURED AT BLOCK ([\d,]+)/)
   check('manchete diz de qual bloco veio', Boolean(heightMatch), heightMatch?.[1])
 
   // Confere a MATEMÁTICA contra a API: busca o mesmo bloco por altura e
   // recalcula. Tolerâncias = metade do último dígito exibido.
   if (sentence && heightMatch) {
-    const height = ptNumber(heightMatch[1])
+    const height = enUsNumber(heightMatch[1])
     const api = await fetch(`${SCANNER}/blockrewards?from=${height}&to=${height}`).then((r) => r.json())
     const block = api.results?.[0]
     check('bloco da manchete existe na API', block?.height === height)
     if (block) {
       const total = block.miner_reward + block.governance_reward + block.reserve_reward + block.yield_reward
-      const near = (uiText, expected, tolerance) => Math.abs(ptNumber(uiText) - expected) <= tolerance
+      const near = (uiText, expected, tolerance) => Math.abs(enUsNumber(uiText) - expected) <= tolerance
       check('total do bloco bate', near(sentence[1], total, 0.0006), `ui=${sentence[1]} api=${total.toFixed(4)}`)
       check('% minerador bate', near(sentence[2], (block.miner_reward / total) * 100, 0.06),
         `ui=${sentence[2]} api=${((block.miner_reward / total) * 100).toFixed(2)}`)
       check('% reserva bate', near(sentence[3], (block.reserve_reward / total) * 100, 0.06))
       check('% yield bate', near(sentence[4], (block.yield_reward / total) * 100, 0.06))
-      const shareSum = [2, 3, 4].reduce((sum, i) => sum + ptNumber(sentence[i]), 0)
+      const shareSum = [2, 3, 4].reduce((sum, i) => sum + enUsNumber(sentence[i]), 0)
       check('percentuais somam ~100', Math.abs(shareSum - 100) <= 0.15, shareSum.toFixed(1))
     }
   }
 
   // --- manchete gigante da direção: presente e no roxo primário ---
   check('manchete numérica gigante em roxo de marca',
-    await evaluate(`Array.from(document.querySelectorAll('p[aria-hidden="true"] span')).some((s) => /^\\d+,\\d%$/.test(s.textContent) && getComputedStyle(s).color === '${FILL_MINER}' && parseFloat(getComputedStyle(s).fontSize) >= 64)`))
+    await evaluate(`Array.from(document.querySelectorAll('p[aria-hidden="true"] span')).some((s) => /^\\d+\\.\\d%$/.test(s.textContent) && getComputedStyle(s).color === '${FILL_MINER}' && parseFloat(getComputedStyle(s).fontSize) >= 64)`))
 
   // --- área empilhada com dado real (não mock) ---
   await waitFor(`${bandCount(FILL_MINER)} === 1`, 30_000, 'faixa do minerador')
@@ -297,11 +297,11 @@ if (MODE === 'brokenrewards') {
   check('governança zerada NÃO vira faixa fantasma',
     await evaluate(`${bandCount(FILL_GOVERNANCE)} === 0`))
   check('legenda avisa governança zerada',
-    await evaluate(`document.body.innerText.includes('0 na janela')`))
+    await evaluate(`document.body.innerText.includes('0 in window')`))
   check('rótulos diretos de % na borda direita',
-    await evaluate(`Array.from(document.querySelectorAll('svg text')).filter((t) => /^\\d+,\\d%$/.test(t.textContent)).length >= 2`))
+    await evaluate(`Array.from(document.querySelectorAll('svg text')).filter((t) => /^\\d+\\.\\d%$/.test(t.textContent)).length >= 2`))
   check('eixo x com alturas de bloco',
-    await evaluate(`Array.from(document.querySelectorAll('svg text')).some((t) => /^\\d{3}\\.\\d{3}$/.test(t.textContent))`))
+    await evaluate(`Array.from(document.querySelectorAll('svg text')).some((t) => /^\\d{1,3}(?:,\\d{3})+$/.test(t.textContent))`))
 
   // --- reserve ratio na mesma janela ---
   // waitFor generoso: a cadeia do ratio depende do explorer, que às vezes
@@ -310,9 +310,9 @@ if (MODE === 'brokenrewards') {
   await waitFor(`${ratioLineCount} === 1`, 60_000, 'linha do reserve ratio')
   check('linha do reserve ratio', true)
   check('conector [ MESMA JANELA DE BLOCOS ] entre os dois gráficos',
-    await evaluate(`document.body.innerText.includes('MESMA JANELA DE BLOCOS')`))
+    await evaluate(`document.body.innerText.includes('SAME BLOCK WINDOW')`))
   check('nota de observação (não causalidade) visível',
-    await evaluate(`document.body.innerText.includes('não como') && document.body.innerText.includes('observação')`))
+    await evaluate(`document.body.innerText.includes('as an observation') && document.body.innerText.includes('not as proof')`))
 
   // --- tooltip: mouse e teclado ---
   // pointermove é evento CONTÍNUO no React: a atualização de estado é adiada,
@@ -332,9 +332,9 @@ if (MODE === 'brokenrewards') {
       return tip ? tip.innerText : ''
     })()
   `)
-  check('tooltip por mouse lista bloco + total', /BLOCO [\d.]+/.test(hoverTooltip) && hoverTooltip.includes('Total'), hoverTooltip.split('\n')[0])
+  check('tooltip por mouse lista bloco + total', /BLOCK [\d,]+/.test(hoverTooltip) && hoverTooltip.includes('Total'), hoverTooltip.split('\n')[0])
   check('tooltip lista as 4 séries',
-    ['minerador', 'reserva', 'yield', 'governança'].every((s) => hoverTooltip.includes(s)))
+    ['miner', 'reserve', 'yield', 'governance'].every((s) => hoverTooltip.includes(s)))
   const keyboardTooltip = await evaluate(`
     (() => {
       const wrapper = Array.from(document.querySelectorAll('div[tabindex="0"]')).find((d) =>
@@ -345,10 +345,10 @@ if (MODE === 'brokenrewards') {
       return tip ? tip.innerText : ''
     })()
   `)
-  check('tooltip por teclado (setas)', /BLOCO [\d.]+/.test(keyboardTooltip))
+  check('tooltip por teclado (setas)', /BLOCK [\d,]+/.test(keyboardTooltip))
 
   // --- toggle de escala ---
-  await evaluate(`Array.from(document.querySelectorAll('button')).find((b) => b.innerText === '% do bloco').click(); true`)
+  await evaluate(`Array.from(document.querySelectorAll('button')).find((b) => b.innerText === '% of block').click(); true`)
   await waitFor(
     `Array.from(document.querySelectorAll('svg text')).some((t) => t.textContent === '100%')`,
     10_000, 'eixo y em % após toggle',
@@ -359,9 +359,9 @@ if (MODE === 'brokenrewards') {
   // --- troca de janela refaz a busca ---
   // 95-100: o indexador do Scanner pode estar 1-2 blocos atrás da âncora do
   // explorer no instante da busca — não é falha do app
-  await evaluate(`Array.from(document.querySelectorAll('button')).find((b) => b.innerText.includes('100 blocos')).click(); true`)
+  await evaluate(`Array.from(document.querySelectorAll('button')).find((b) => b.innerText.includes('100 blocks')).click(); true`)
   await waitFor(
-    `/em tabela \\((9[5-9]|100) blocos\\)/.test(document.body.innerText)`,
+    `/View data table \\((9[5-9]|100) blocks\\)/.test(document.body.innerText)`,
     30_000, 'janela de 100 blocos aplicada',
   )
   check('janela de 100 blocos aplicada', true)
@@ -374,7 +374,7 @@ if (MODE === 'brokenrewards') {
   // até a maioria das 10 primeiras linhas ter ratio numérico
   await waitFor(
     `Array.from(document.querySelectorAll('tbody tr')).slice(0, 10)
-      .filter((r) => /\\d,\\d{2}\\s*$/.test(r.innerText.trim())).length >= 8`,
+      .filter((r) => /\\d\\.\\d{2}\\s*$/.test(r.innerText.trim())).length >= 8`,
     60_000, 'coluna de reserve ratio preenchida',
   )
   const tableProbe = await evaluate(`
@@ -386,7 +386,7 @@ if (MODE === 'brokenrewards') {
   `)
   check('tabela com ~100 linhas', tableProbe.count >= 95 && tableProbe.count <= 100, String(tableProbe.count))
   check('linha da tabela junta recompensa e reserve ratio',
-    (tableProbe.first.match(/\d,\d{3}/g) ?? []).length >= 4,
+    (tableProbe.first.match(/\d\.\d{3}/g) ?? []).length >= 4,
     tableProbe.first.replaceAll('\t', ' | '))
 
   await screenshot('rewards-desktop.png')

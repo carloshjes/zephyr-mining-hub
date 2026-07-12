@@ -2639,6 +2639,163 @@ entregou, a partir de screenshot real do Carlos em 2026-07-12. Três achados:
 
 ---
 
+## Prompt EN1 — Fable: tradução do produto pro inglês (hardcode, sem i18n)
+
+Sessão nova, roda depois do R7 (já commitado). Escrito no chat Cowork em
+2026-07-12, pronto pra colar sem alteração. Escopo: SÓ texto voltado ao
+visitante (o produto publicado) — CLAUDE.md, NOTES.md, README.md, docs/ e
+comentários de código CONTINUAM em português (são a língua de trabalho do
+projeto, não o produto). Decisão de arquitetura já tomada (ver
+`docs/HANDOFF.md`): inglês hardcoded em cada string, sem biblioteca de i18n —
+o produto é uma dashboard técnica pra público cripto global, não precisa
+alternar idioma em runtime, e uma lib de i18n adicionaria dependência e
+indireção que o projeto (bundle único, sem dependência além de
+react/react-dom/react-router-dom) não precisa.
+
+```
+Aja como um engenheiro front-end sênior fazendo uma varredura de localização
+completa (hardcode, não i18n) — trocar TODO texto voltado ao visitante de
+português pra inglês, incluindo formatação numérica, sem deixar nenhum
+contrato de e2e quebrado sem atualização correspondente.
+
+<contexto>
+Leia CLAUDE.md e NOTES.md antes de começar. O Zephyr Mining Hub está com os 4
+módulos prontos (Pulso da Rede, Bússola de Pools, Raio-X da Recompensa,
+Monitor do Rig) e o design system "Sinal Técnico" estável — esta sessão NÃO
+muda composição, cor, token ou lógica, só o idioma do texto que o VISITANTE do
+site vê ou ouve (leitor de tela incluso). O público de um dashboard de
+mineração cripto é global e majoritariamente inglês; o produto vira inglês
+hardcoded, sem biblioteca de i18n (decisão já tomada, porquê abaixo).
+
+IMPORTANTE — o que NÃO muda: CLAUDE.md, NOTES.md, README.md e os arquivos de
+docs/ continuam em português (língua de trabalho do projeto, não o produto).
+Comentários no código CONTINUAM em português (convenção existente do
+CLAUDE.md, não está sendo revogada). Nomes de variável/função/componente já
+estão em inglês desde o Prompt 1 — não é esse o gap; é o literal de texto
+renderizado e string de atributo (aria-label, title, alt, placeholder).
+</contexto>
+
+<decisoes_ja_tomadas>
+1. Sem biblioteca de i18n: strings hardcoded em inglês substituindo as em
+   português. Motivo: produto sem alternância de idioma em runtime, público
+   majoritariamente anglófono, e uma lib (react-i18next ou similar)
+   adicionaria dependência + indireção que este projeto não precisa.
+2. Rotas continuam em português (/rede, /pools, /recompensa, /meu-rig) NESTA
+   sessão. Traduzir URL é decisão separada (afeta link já compartilhado e
+   TODOS os scripts de e2e navegam por essas rotas) — fica pra outro prompt
+   se o Carlos quiser. Não troque nenhuma rota aqui.
+3. README.md, ErrorBoundary por módulo e a varredura de `order=desc` seguem
+   fora do escopo — são do Prompt 5 (integração final, ainda por reescrever),
+   não desta sessão.
+4. Nomes dos 4 módulos (aparecem em nav, header de página, `<title>`,
+   aria-label) — sugestão de tradução abaixo; ajuste se soar melhor em
+   inglês natural, mas registre a versão final numa tabela PT→EN em NOTES.md
+   pra sessões futuras cruzarem referência:
+   - Pulso da Rede → Network Pulse
+   - Bússola de Pools → Pool Compass
+   - Raio-X da Recompensa → Reward X-Ray
+   - Monitor do Rig → Rig Monitor
+5. Formatação numérica: o produto hoje exibe número/porcentagem em convenção
+   pt-BR (vírgula decimal — ex. "65,0%", "92,73 MH/s"). Investigue a camada
+   de formatação (grep por `toLocaleString`/`Intl.NumberFormat`/um `format.ts`
+   central) e CONFIRME se o locale é hardcoded ou implícito (segue o locale
+   do navegador/SO de quem acessa). De qualquer forma, deixe `en-US` EXPLÍCITO
+   nessa sessão — produto em inglês com vírgula decimal (ou pior, formato
+   dependente do dispositivo do visitante) lê como quebrado. Mesma decisão
+   vale pra qualquer data/hora formatada, se houver.
+</decisoes_ja_tomadas>
+
+<tarefa>
+1. Levantamento primeiro, edição depois: grep sistemático em src/ por
+   caracteres acentuados (áéíóúâêôãõçÁÉÍÓÚÂÊÔÃÕÇ) FORA de comentário (// e
+   /* */) pra montar a lista real de todo texto em português ainda visível —
+   string JSX, atributo (aria-label, title, alt, placeholder), array de opção
+   (dropdown de pool, SegmentedControl), mensagem de erro/estado vazio,
+   `<title>`/meta do index.html, `lang="pt-BR"` do `<html>` (vira
+   `lang="en"`). Trate esse grep como o checklist da sessão, não confie só em
+   revisar tela por tela de olho.
+2. Traduza módulo por módulo, na mesma ordem de sempre (rede → pools →
+   recompensa → meu-rig), depois a casca (AppShell: nav, ThemeToggle —
+   `[ DARK ]`/`[ WHITE ]` JÁ estão em inglês, não mexe — e DonationFooter) e
+   por fim os componentes compartilhados (ui/: loading, erro, StatCard,
+   TrendSparkline e o texto do `summary`/aria-label que ele gera). Rótulos
+   mono entre colchetes mantêm a convenção `[ Rótulo ]` — só o texto de
+   dentro troca de idioma. Exemplos pra ancorar o padrão: `[ PRÓXIMO HALVING ]`
+   → `[ NEXT HALVING ]` (`[ RESERVE RATIO ]` já é termo em inglês, mantém o
+   rótulo — só os 4 estados do selo mudam: `[ ✓ NA FAIXA ALVO ]` →
+   `[ ✓ IN TARGET RANGE ]`, `[ ! ABAIXO DO PISO ]` → `[ ! BELOW FLOOR ]`,
+   `[ ↑ ACIMA DA FAIXA ]` → `[ ↑ ABOVE RANGE ]`, `[ AGUARDANDO SÉRIE ]` →
+   `[ AWAITING SERIES ]`, `[ SEM DADO ]` → `[ NO DATA ]`), `[ ALERTA · RESERVA
+   ABAIXO DO PISO ]` → `[ ALERT · RESERVE BELOW FLOOR ]`, `[ Minerando normal
+   ]` → `[ Mining normally ]`, `[ Hashrate abaixo do esperado ]` →
+   `[ Hashrate below expected ]`, `[ maior hashrate ]`/`[ menor fee ]` →
+   `[ highest hashrate ]`/`[ lowest fee ]`, `[ TENDÊNCIA ]`/`[ TENDÊNCIA 24 H
+   ]` → `[ TREND ]`/`[ 24H TREND ]`, `[ GANHO ESTIMADO ]` →
+   `[ ESTIMATED EARNINGS ]`, `[ FALHA ]` → `[ FAILED ]`. As 2-3 frases fixas
+   do Raio-X explicando a mecânica de Djed pra quem só conhece mineração de
+   Monero — traduza o SENTIDO com a mesma clareza pro equivalente anglófono
+   (alguém que minera Monero mas nunca ouviu falar de "reserve ratio"), não
+   palavra por palavra.
+3. Formatação numérica/data: aplique a decisão 5 acima (locale explícito
+   en-US) no(s) ponto(s) central(is) de formatação — não espalhe locale solto
+   por componente.
+4. Atualize TODOS os scripts de e2e que passam por texto (waitFor de texto,
+   innerText comparado com `===`/regex, aria-label esperado, parsing de
+   número — ex. o cálculo do rewards-e2e que recalcula % a partir da API e
+   compara com o texto da manchete pode quebrar se o parser esperar vírgula
+   decimal): `pools-e2e.mjs`, `rewards-e2e.mjs`, `rig-e2e.mjs`,
+   `theme-e2e.mjs`. Rode a suíte inteira só depois de todo o texto trocado,
+   não módulo a módulo (evita retrabalho: texto compartilhado por dois
+   scripts só precisa mudar uma vez).
+5. Regenere `design-shots.mjs` (24 capturas, 4 telas × 3 breakpoints × 2
+   temas) e revise visualmente — nenhum texto em português deve sobrar em
+   nenhuma captura, nos dois temas.
+6. Atualize CLAUDE.md e NOTES.md: registre a decisão de locale (o que a
+   investigação do item 5 das decisões achou, e o que ficou), a tabela PT→EN
+   dos 4 nomes de módulo, e uma linha confirmando "produto em inglês;
+   CLAUDE.md/NOTES.md/README.md/comentários seguem em português".
+</tarefa>
+
+<restricoes>
+- Zero mudança de composição, token, cor, lógica de negócio, cálculo ou
+  chamada de API — troca só texto/atributo/formatação numérica. Bug real
+  encontrado no caminho (não relacionado a idioma): documente em NOTES.md
+  antes de decidir corrigir ali ou deixar pra outro prompt — não corrija
+  calado, mas também não expanda o escopo desta sessão sem necessidade.
+- Comentários de código continuam em português — não traduza comentário.
+- CLAUDE.md, NOTES.md, README.md e docs/ continuam em português.
+- Rotas (/rede, /pools, /recompensa, /meu-rig) NÃO mudam nesta sessão.
+- `[ DARK ]`/`[ WHITE ]` do ThemeToggle já estão em inglês — não mexe.
+- Nenhum texto novo de disclaimer/aviso — é tradução, não é hora de reabrir
+  decisão de copy (ex. o rodapé de doação já teve a frase de não-afiliação
+  removida por decisão explícita do Carlos no R7; não reintroduza, nem em
+  inglês).
+</restricoes>
+
+<criterios_de_aceite>
+- Grep por acentuação em src/ (fora de comentário) retorna zero ocorrências.
+- `npm run build` limpo; `npm run lint` só com os 2 warnings pré-existentes.
+- Suíte e2e completa — pools (normal + broken2miners), rewards (normal +
+  lowratio + brokenrewards), rig (normal + notfound), theme — TUDO PASSOU,
+  com os scripts atualizados pro texto novo (não "sem alteração de contrato"
+  desta vez — o contrato de TEXTO muda de propósito; o de COMPORTAMENTO não).
+- 24 capturas do design-shots revisadas: zero português visível, número em
+  formato en-US (ex. "65.0%", não "65,0%").
+- `<html lang="en">`, `<title>` e meta description (se existir) em inglês.
+- CLAUDE.md/NOTES.md atualizados com a decisão de locale e a tabela PT→EN dos
+  módulos.
+</criterios_de_aceite>
+
+Antes de finalizar, leia a UI resultante como se você fosse um visitante
+anglófono que nunca viu a versão em português — o texto lê como inglês
+natural (frase escrita por alguém que pensa em inglês) ou como tradução
+literal (frase em inglês com estrutura de português por baixo)? Ajuste o
+segundo caso antes de dar como pronto — em especial as 2-3 frases da mecânica
+de Djed e as mensagens de erro/estado vazio.
+```
+
+---
+
 ## Depois dos 5 prompts
 
 - Rode a skill **backend-structure-auditor** pra mapear qualquer deriva de padrão que

@@ -1,12 +1,13 @@
-// Formatação de valores pra exibição (locale pt-BR).
+// Formatação de valores pra exibição (locale en-US explícito).
 // Convenção do projeto: valor ausente vira "—" na tela, nunca 0 nem mock.
 
 export const DASH = '—'
+export const DISPLAY_LOCALE = 'en-US'
 
 const HASHRATE_UNITS = ['H/s', 'kH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s']
 
 export function formatNumber(value: number, maxDigits = 2, minDigits = 0): string {
-  return value.toLocaleString('pt-BR', {
+  return value.toLocaleString(DISPLAY_LOCALE, {
     maximumFractionDigits: maxDigits,
     minimumFractionDigits: minDigits,
   })
@@ -17,7 +18,7 @@ export function formatInteger(value: number): string {
 }
 
 export function formatUsd(value: number, digits = 4): string {
-  return `US$ ${formatNumber(value, digits, digits)}`
+  return `$${formatNumber(value, digits, digits)}`
 }
 
 export function formatZeph(value: number, digits = 3): string {
@@ -36,15 +37,15 @@ export function formatHashrate(hashesPerSecond: number): string {
 
 // Dificuldade em notação compacta ("8,56 bi") — o valor exato vai no title/sub
 export function formatCompact(value: number): string {
-  return value.toLocaleString('pt-BR', { notation: 'compact', maximumFractionDigits: 2 })
+  return value.toLocaleString(DISPLAY_LOCALE, { notation: 'compact', maximumFractionDigits: 2 })
 }
 
 export function formatDateTime(date: Date): string {
-  return date.toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })
+  return date.toLocaleString(DISPLAY_LOCALE, { dateStyle: 'long', timeStyle: 'short' })
 }
 
 export function formatTime(date: Date): string {
-  return date.toLocaleTimeString('pt-BR')
+  return date.toLocaleTimeString(DISPLAY_LOCALE)
 }
 
 /** Duração compacta em duas unidades: "2 d 3 h", "3 h 12 min", "45 s". */
@@ -62,8 +63,8 @@ export function formatDuration(totalSeconds: number): string {
 /** Tempo relativo curto pra "último share": "agora", "há 3 min", "há 2 h". */
 export function formatAgo(unixSeconds: number, nowMs: number = Date.now()): string {
   const elapsedSeconds = Math.max(0, Math.floor(nowMs / 1_000 - unixSeconds))
-  if (elapsedSeconds < 60) return 'agora'
-  return `há ${formatDuration(elapsedSeconds)}`
+  if (elapsedSeconds < 60) return 'now'
+  return `${formatDuration(elapsedSeconds)} ago`
 }
 
 /** Aplica o formatador só se o valor existir; senão devolve "—". */

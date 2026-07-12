@@ -57,9 +57,9 @@ rewrite resolve isso sem backend próprio).
 | N3 (Fable) | Ícone (sol/lua traço mono) no botão de troca de tema, substituindo o texto `[ TEMA · ... ]` | 🟡 rodou (confirmado por screenshot), **AINDA SEM COMMIT** | — |
 | G1 (Fable) | Ganhos estimados no Monitor do Rig (1ª composição cross-module: hashrate do rig + da rede + recompensa + preço) | 🟡 rodou (`src/modules/rig/earnings.ts` existe, RigDashboard.tsx modificado), **AINDA SEM COMMIT** | — |
 | R6 (Fable) | 3 achados de screenshot: rótulo DARK/WHITE no botão de tema, largura do parágrafo da Bússola = largura da tabela, rodapé com coração pixelado + endereço de doação | 🟡 rodou (confirmado por screenshot), **AINDA SEM COMMIT** | — |
-| R7 (Fable) | Corrige alinhamento ícone/rótulo do ThemeToggle (translate-y-px, correção óptica medida), troca sol/lua pra técnica pixelada (grade 11×11, mesma família do PixelHeart), simplifica o rodapé (remove disclaimer, endereço completo sem truncar/sem botão, fonte e coração maiores) | 🟡 rodou (verificado por `Read` direto no código — bem executado), **AINDA SEM COMMIT** | — |
+| R7 (Fable) | Corrige alinhamento ícone/rótulo do ThemeToggle (translate-y-px, correção óptica medida), troca sol/lua pra técnica pixelada (grade 11×11, mesma família do PixelHeart), simplifica o rodapé (remove disclaimer, endereço completo sem truncar/sem botão, fonte e coração maiores) | ✅ feito, verificado, commitado e enviado | `39f3f6f` |
 | 5 (Fable) | Integração final | ⬜ não iniciado — entra depois da tradução pro inglês | — |
-| — | Tradução pro inglês | ⬜ sessão separada, depois do R2 (não escrita ainda) | — |
+| EN1 | Tradução pro inglês (hardcode, sem i18n) | 📝 **prompt escrito em 2026-07-12, pronto pra colar** (`docs/zephyr-mining-hub-prompts.md`) — não rodado ainda | — |
 | — | Prompt de deploy no Vercel | ⬜ ainda não escrito | — |
 | — | Skills (auditoria/limpeza/visual) | ⬜ não rodadas | — |
 
@@ -152,6 +152,16 @@ Efeito colateral em aberto: o fix de `git show HEAD:<path> > <path>` rodado na
 sessão anterior deste chat (index.html, RigDashboard.tsx, prompts.md) pode ter sido
 um no-op inofensivo (sobrescreveu HEAD com o próprio HEAD) — não tem como confirmar
 retroativamente, mas não há indício de que algo tenha sido perdido de verdade.
+
+**Confirmação da lição de 2026-07-09 (índice inconsistente), reproduzida em
+2026-07-12 logo após o commit do R7 (`39f3f6f`):** `git status` mostrou ~14
+arquivos (vite.config.ts, tsconfig*.json, todo o módulo rig/, parte do rewards/)
+como "deleted" (staged, coluna D) E "untracked" (??) AO MESMO TEMPO, mais uma
+linha `AD ./` sem sentido. Conferido por `Read` direto (vite.config.ts,
+RigDashboard.tsx): conteúdo intacto e correto nos dois. Mesmo diagnóstico de
+antes — índice temporariamente inconsistente, provavelmente por escrita
+concorrente (sessão `claude` ainda aberta) — SEM perda real. Não precisa de ação
+além de fechar sessões `claude` abertas antes do próximo commit.
 
 ## Lições da sessão de 2026-07-09 (git + sessão do Fable concorrente)
 
@@ -307,8 +317,13 @@ uma linha no prompt antes de colar.
    tool do chat Cowork, não via Claude Code. Subiu pra ANTES da tradução de
    propósito: os achados alimentam a reescrita do Prompt 5 e auditar antes de
    traduzir evita retrabalho em texto que muda. Roda depois do T1 (UI estável).
-10. Tradução pro inglês — sessão separada, prompt ainda não escrito. Decisão
-    recomendada: inglês hardcode (sem i18n), registrar no CLAUDE.md.
+10. Tradução pro inglês — **prompt EN1 escrito em 2026-07-12** (chat Cowork),
+    pronto pra colar em sessão nova, seção "Prompt EN1" de
+    `docs/zephyr-mining-hub-prompts.md`. Decisão registrada: inglês hardcode
+    (sem i18n), rotas continuam em português nesta rodada, CLAUDE.md/NOTES.md/
+    README.md/docs/ e comentários de código seguem em português (só o produto
+    visível muda de idioma). Ainda depende do item 9 (auditorias) rodar antes,
+    pela mesma lógica de evitar retrabalho em texto que muda.
 11. Prompt 5 (integração final) — **REESCREVER antes de colar**: foi escrito antes
     do R1–R3 e metade dos itens já foi feita (loading/erro compartilhado, navegação
     com rota ativa, tema único). A reescrita absorve: README.md desatualizado,

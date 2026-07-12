@@ -56,9 +56,9 @@ interface RatiosWindow {
 // Frases fixas (não geradas por load) — escritas pra quem só conhece
 // mineração de Monero e nunca ouviu falar de reserve ratio.
 const EXPLAINER_SENTENCES = [
-  'Além do ZEPH que você minera, a rede Zephyr mantém uma segunda moeda, o ZSD, feita pra valer sempre perto de 1 dólar — e o que garante esse valor é um cofre coletivo cheio de ZEPH.',
-  'Por isso o prêmio de cada bloco não vai inteiro pro minerador, como acontece em Monero: uma fatia é depositada automaticamente nesse cofre (a “reserva”) e outra, menor, vira rendimento pra quem deixa dinheiro aplicado no protocolo (o “yield”).',
-  'O reserve ratio, no gráfico desta página, mede quão cheio esse cofre está em relação ao que ele precisa garantir — quanto maior o número, mais folgada a garantia.',
+  'Alongside the ZEPH you mine, the Zephyr network maintains ZSD, a stable-value asset designed to stay near $1. It is backed by a shared reserve of ZEPH held by the protocol.',
+  'That is why, unlike Monero, the entire block reward does not go to miners: one share is deposited automatically into the reserve, while a smaller share funds yield for people who deposit assets in the protocol.',
+  'The reserve ratio shown here compares the value of the reserve with the amount it must back. A higher ratio means a larger safety margin.',
 ]
 
 interface SegmentedOption<T extends string | number> {
@@ -126,17 +126,17 @@ function RatioHealthTag({ ratio, isLoading }: { ratio: number | undefined; isLoa
   if (ratio === undefined) {
     return (
       <span className="font-mono text-caption text-mist-400">
-        [ {isLoading ? 'AGUARDANDO SÉRIE' : 'SEM DADO'} ]
+        [ {isLoading ? 'AWAITING SERIES' : 'NO DATA'} ]
       </span>
     )
   }
   if (ratio < TARGET_FLOOR) {
-    return <span className="font-mono text-caption text-bad">[ ! ABAIXO DO PISO ]</span>
+    return <span className="font-mono text-caption text-bad">[ ! BELOW FLOOR ]</span>
   }
   if (ratio > TARGET_CEILING) {
-    return <span className="font-mono text-caption text-mist-300">[ ↑ ACIMA DA FAIXA ]</span>
+    return <span className="font-mono text-caption text-mist-300">[ ↑ ABOVE RANGE ]</span>
   }
-  return <span className="font-mono text-caption text-good">[ ✓ NA FAIXA ALVO ]</span>
+  return <span className="font-mono text-caption text-good">[ ✓ IN TARGET RANGE ]</span>
 }
 
 // Classe do pulso de "dado novo" — sempre em par com motion-reduce
@@ -241,21 +241,21 @@ export function RewardsPage() {
       {/* R5 2ª leva: a linha "Atualização automática … · última: HH:MM" saiu
           (decisão do Carlos — o polling continua o mesmo por baixo) */}
       <header>
-        <h1 className="text-data-md font-semibold tracking-tight">Raio-X da Recompensa</h1>
+        <h1 className="text-data-md font-semibold tracking-tight">Reward X-Ray</h1>
         <p className="mt-1 text-body text-mist-400">
-          Como o prêmio de cada bloco se divide entre minerador, reserva e yield — e por quê.
+          How each block reward is split among miners, the reserve, and yield — and why.
         </p>
       </header>
 
       {noDataAtAll ? (
         <ErrorNotice
           variant="blocking"
-          title="Nenhuma fonte de dados respondeu ainda — tentando de novo automaticamente."
-          detail={`Fontes com falha: ${failingSources.join(', ')}.`}
+          title="No data source has responded yet — retrying automatically."
+          detail={`Failed sources: ${failingSources.join(', ')}.`}
         />
       ) : (
         failingSources.length > 0 && (
-          <ErrorNotice detail={`Fontes com falha: ${failingSources.join(', ')}.`} />
+          <ErrorNotice detail={`Failed sources: ${failingSources.join(', ')}.`} />
         )
       )}
 
@@ -273,8 +273,8 @@ export function RewardsPage() {
           ) : latest ? (
             <>
               <p className="font-mono text-caption tracking-wide text-mist-400">
-                [ MEDIDO NO BLOCO {formatInteger(latest.height)} · O MAIS RECENTE COM DADO DE
-                RECOMPENSA ]
+                [ MEASURED AT BLOCK {formatInteger(latest.height)} · LATEST BLOCK WITH REWARD
+                DATA ]
               </p>
               <p
                 aria-hidden
@@ -285,35 +285,35 @@ export function RewardsPage() {
                 </span>
                 <span className="hidden text-display-sub text-mist-600 md:inline">
                   {' '}
-                  pro minerador
+                  to miners
                 </span>
               </p>
               <p className="mt-4 max-w-3xl text-body leading-relaxed text-mist-300 sm:text-lede">
-                Agora, de cada bloco de{' '}
+                Each{' '}
                 <strong className="font-semibold text-mist-100">
                   {formatZeph(latest.total, 3)}
                 </strong>
-                ,{' '}
+                {' '}block reward currently sends{' '}
                 <strong className="font-semibold text-mist-100">
                   {formatNumber(sharePercent(latest, 'miner'), 1, 1)}%
                 </strong>{' '}
-                vai pro minerador,{' '}
+                to miners,{' '}
                 <strong className="font-semibold text-mist-100">
                   {formatNumber(sharePercent(latest, 'reserve'), 1, 1)}%
                 </strong>{' '}
-                pra reserva e{' '}
+                to the reserve, and{' '}
                 <strong className="font-semibold text-mist-100">
                   {formatNumber(sharePercent(latest, 'yield'), 1, 1)}%
                 </strong>{' '}
-                pro yield
+                to yield
                 {latest.values.governance > 0 && (
                   <>
                     {' '}
-                    (e{' '}
+                    (plus{' '}
                     <strong className="font-semibold text-mist-100">
                       {formatNumber(sharePercent(latest, 'governance'), 1, 1)}%
                     </strong>{' '}
-                    pra governança)
+                    to governance)
                   </>
                 )}
                 .
@@ -337,7 +337,7 @@ export function RewardsPage() {
               </div>
             </>
           ) : (
-            <p className="text-body text-mist-400">Sem dado de recompensa no momento.</p>
+            <p className="text-body text-mist-400">Reward data is unavailable right now.</p>
           )}
         </div>
       </section>
@@ -349,17 +349,17 @@ export function RewardsPage() {
           {/* Filtros — uma linha só, valendo pros dois gráficos e pra tabela */}
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <SegmentedControl
-              label="Janela"
+              label="Window"
               options={WINDOW_PRESETS.map((preset) => ({
                 value: preset,
                 // " blocos" só em md+ — a 390px o rótulo cheio quebrava em 2
                 // linhas (o botão dobrava de altura); a unidade segue na
                 // frase "≈ N h de rede" ao lado e no nome acessível estável
-                ariaLabel: `${formatInteger(preset)} blocos`,
+                ariaLabel: `${formatInteger(preset)} blocks`,
                 label: (
                   <>
                     {formatInteger(preset)}
-                    <span className="hidden md:inline"> blocos</span>
+                    <span className="hidden md:inline"> blocks</span>
                   </>
                 ),
               }))}
@@ -367,16 +367,16 @@ export function RewardsPage() {
               onChange={setBlockCount}
             />
             <SegmentedControl
-              label="Escala"
+              label="Scale"
               options={[
                 { value: 'zeph', label: 'ZEPH' },
-                { value: 'percent', label: '% do bloco' },
+                { value: 'percent', label: '% of block' },
               ]}
               value={unit}
               onChange={setUnit}
             />
             <span className="font-mono text-caption text-mist-400">
-              ≈ {formatNumber(windowHours, 1)} h de rede (um bloco a cada ~120 s)
+              ≈ {formatNumber(windowHours, 1)} h of network time (one block every ~120 s)
             </span>
           </div>
 
@@ -384,14 +384,14 @@ export function RewardsPage() {
           <section className={`transition-opacity ${rewardsOutdated ? 'opacity-60' : ''}`}>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-lede font-medium text-mist-100">
-                Divisão da recompensa, bloco a bloco
+                Reward split, block by block
               </h2>
               {rewardsOutdated ? (
-                <span className="font-mono text-caption text-mist-400">[ ATUALIZANDO JANELA… ]</span>
+                <span className="font-mono text-caption text-mist-400">[ UPDATING WINDOW… ]</span>
               ) : (
                 slices.length > 0 && (
                   <span className="font-mono text-caption text-mist-400">
-                    [ BLOCOS {formatInteger(slices[0].height)} – {formatInteger(latest!.height)} ]
+                    [ BLOCKS {formatInteger(slices[0].height)} – {formatInteger(latest!.height)} ]
                   </span>
                 )
               )}
@@ -408,7 +408,7 @@ export function RewardsPage() {
                   >
                     <SeriesSwatch def={def} muted={inactive} />
                     {def.label}
-                    {inactive && ' · 0 na janela'}
+                    {inactive && ' · 0 in window'}
                   </span>
                 )
               })}
@@ -421,15 +421,15 @@ export function RewardsPage() {
               ) : (
                 <p className="py-10 text-center text-body text-mist-400">
                   {rewardsPoll.error
-                    ? 'Sem dado de recompensa no momento — tentando de novo automaticamente.'
-                    : 'A API não devolveu blocos pra esta janela.'}
+                    ? 'Reward data is unavailable right now — retrying automatically.'
+                    : 'The API returned no blocks for this window.'}
                 </p>
               )}
             </div>
             {rewardsData !== undefined && rewardsData.incompleteCount > 0 && (
               <p className="mt-2 text-label text-mist-400">
-                {formatInteger(rewardsData.incompleteCount)} bloco(s) vieram sem todas as fatias na
-                resposta da API e ficaram fora do gráfico.
+                Blocks excluded from the chart because the API response was missing one or more
+                reward slices: {formatInteger(rewardsData.incompleteCount)}.
               </p>
             )}
           </section>
@@ -443,7 +443,7 @@ export function RewardsPage() {
               className="absolute top-2 -left-8 hidden w-8 border-t border-dashed border-zeph-500 lg:block"
             />
             <p className="font-mono text-caption tracking-wide text-zeph-300">
-              [ MESMA JANELA DE BLOCOS ]
+              [ SAME BLOCK WINDOW ]
             </p>
           </div>
 
@@ -473,7 +473,7 @@ export function RewardsPage() {
               <span className="font-mono text-data-lg font-medium">
                 {orDash(currentRatio, (v) => formatNumber(v, 2, 2))}
               </span>
-              <span className="font-mono text-caption text-mist-400">agora · alvo: 4,0–8,0</span>
+              <span className="font-mono text-caption text-mist-400">now · target: 4.0–8.0</span>
             </div>
 
             {ratioBelowFloor && (
@@ -483,11 +483,11 @@ export function RewardsPage() {
                 className="mx-3 mt-3 border border-bad/60 bg-bad/10 px-3 py-2"
               >
                 <p className="font-mono text-caption tracking-wide text-bad">
-                  [ ALERTA · RESERVA ABAIXO DO PISO ]
+                  [ ALERT · RESERVE BELOW FLOOR ]
                 </p>
                 <p className="mt-1 text-body text-mist-100">
-                  Reserve ratio em {formatNumber(currentRatio!, 2, 2)} — abaixo do piso de 4,0 da
-                  faixa alvo do protocolo.
+                  Reserve ratio is {formatNumber(currentRatio!, 2, 2)} — below the 4.0 floor of
+                  the protocol target range.
                 </p>
               </div>
             )}
@@ -500,23 +500,23 @@ export function RewardsPage() {
               ) : (
                 <p className="py-10 text-center text-body text-mist-400">
                   {ratiosPoll.error
-                    ? 'Sem série de reserve ratio no momento — tentando de novo automaticamente.'
-                    : 'A API não devolveu a série de reserve ratio pra esta janela.'}
+                    ? 'Reserve ratio data is unavailable right now — retrying automatically.'
+                    : 'The API returned no reserve ratio series for this window.'}
                 </p>
               )}
             </div>
           </section>
 
           <p className="mt-3 text-label leading-relaxed text-mist-400">
-            Pelo desenho do protocolo, o tamanho da fatia do minerador está ligado à saúde dessa
-            reserva — mas a fórmula exata da divisão não vem nesses dados: o que os gráficos
-            mostram é o resultado bloco a bloco. Compare as duas curvas como uma observação, não
-            como garantia de que uma determina a outra.
+            Protocol rules link the miner share to the health of the reserve, but this API does
+            not expose the exact split formula. The charts show the observed result block by
+            block, so compare the two trends as an observation — not as proof that one directly
+            determines the other.
           </p>
 
           {/* O "porquê" da mecânica — texto fixo, sem jargão de DeFi */}
           <section className="mt-6 border-t border-hairline pt-4">
-            <h2 className="text-body font-medium text-mist-300">Por que o prêmio é fatiado?</h2>
+            <h2 className="text-body font-medium text-mist-300">Why is the reward split?</h2>
             <div className="mt-2 space-y-2 text-body leading-relaxed text-mist-400">
               {EXPLAINER_SENTENCES.map((sentence) => (
                 <p key={sentence.slice(0, 24)}>{sentence}</p>
@@ -536,24 +536,24 @@ export function RewardsPage() {
             <span aria-hidden className="text-zeph-300">
               [ {tableOpen ? '−' : '+'} ]
             </span>
-            Ver os dados em tabela ({formatInteger(slices.length)} blocos)
+            View data table ({formatInteger(slices.length)} blocks)
           </summary>
           {tableOpen && (
             <div className="scrollbar-themed max-h-96 overflow-auto border-t border-hairline">
               <table className="w-full min-w-[760px] text-label">
                 <caption className="sr-only">
-                  Divisão da recompensa e reserve ratio por bloco, do mais recente pro mais antigo
+                  Block-by-block reward split and reserve ratio, newest first
                 </caption>
                 <thead className="sticky top-0 bg-ink-950">
                   <tr className="border-b border-hairline font-mono text-caption text-mist-400">
-                    <th scope="col" className="px-3 py-2 text-left font-medium">Bloco</th>
+                    <th scope="col" className="px-3 py-2 text-left font-medium">Block</th>
                     <th scope="col" className="px-3 py-2 text-right font-medium">Total (ZEPH)</th>
                     {REWARD_SERIES.map((def) => (
                       <th key={def.key} scope="col" className="px-3 py-2 text-right font-medium">
                         {def.label}
                       </th>
                     ))}
-                    <th scope="col" className="px-3 py-2 text-right font-medium">% minerador</th>
+                    <th scope="col" className="px-3 py-2 text-right font-medium">Miner %</th>
                     <th scope="col" className="px-3 py-2 text-right font-medium">Reserve ratio</th>
                   </tr>
                 </thead>
@@ -590,13 +590,13 @@ export function RewardsPage() {
       <div className="space-y-1 text-label text-mist-400">
         {governanceIsZero && (
           <p>
-            A fatia de governança existe no protocolo, mas está zerada nos blocos da janela — por
-            isso ela não aparece como faixa no gráfico.
+            The governance share exists in the protocol but is zero throughout this window, so
+            it does not appear as a band in the chart.
           </p>
         )}
         <p>
-          Fontes: Scanner API (/blockrewards e /stats por bloco, via proxy) e /livestats. Janela
-          ancorada na altura atual reportada pelo explorer.
+          Sources: Scanner API (/blockrewards and block-scale /stats, via proxy) and /livestats.
+          The window is anchored to the current height reported by the explorer.
         </p>
       </div>
     </div>

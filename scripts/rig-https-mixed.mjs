@@ -188,9 +188,9 @@ await evaluate(`
   }));
   location.reload(); true
 `)
-await waitFor(`document.body.innerText.includes('Uptime do XMRig')`, 25_000, 'seção do XMRig com dado')
+await waitFor(`document.body.innerText.includes('XMRig uptime')`, 25_000, 'seção do XMRig com dado')
 check('módulo mostra hashrate local na página HTTPS',
-  await evaluate(`document.body.innerText.includes('1,23 kH/s')`))
+  await evaluate(`document.body.innerText.includes('1.23 kH/s')`))
 // A pool responde depois do XMRig local — espera as linhas da tabela
 await waitFor(`document.querySelectorAll('tbody tr').length > 0`, 30_000, 'dados da pool na página HTTPS')
 check('dados da pool também carregam (CORS remoto ok em HTTPS)', true)

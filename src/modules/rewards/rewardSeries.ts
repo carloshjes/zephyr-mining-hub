@@ -37,10 +37,10 @@ export interface RewardSeriesDef {
 // Texturas: dominante fica lisa (calma), reserva = hachura diagonal,
 // yield = pontilhado — legíveis na legenda a distância de leitura normal.
 export const REWARD_SERIES: readonly RewardSeriesDef[] = [
-  { key: 'miner', label: 'Minerador', color: 'var(--color-zeph-300)', washOpacity: 0.28 },
+  { key: 'miner', label: 'Miner', color: 'var(--color-zeph-300)', washOpacity: 0.28 },
   {
     key: 'reserve',
-    label: 'Reserva',
+    label: 'Reserve',
     color: 'var(--color-zeph-500)',
     washOpacity: 0.22,
     texture: 'hatch',
@@ -54,7 +54,7 @@ export const REWARD_SERIES: readonly RewardSeriesDef[] = [
   },
   {
     key: 'governance',
-    label: 'Governança',
+    label: 'Governance',
     color: 'var(--color-mist-400)',
     washOpacity: 0.25,
     dashedEdge: true,

@@ -28,9 +28,9 @@ const WALLET_2MINERS =
   'ZEPHYR2DdQMSaghsPgZrE3UGqL2mUsADoPcuJiWRAx4aDi7Q7fwcCRCQ3Ntgeo1fuN4KwPyNNVjY57B91jCHuhjPRnAb6gkdBwy1t'
 
 const ROUTES = [
-  { path: '/rede', name: 'rede', ready: `document.body.innerText.includes('H/s') && document.body.innerText.includes('blocos até a recompensa base')` },
+  { path: '/rede', name: 'rede', ready: `document.body.innerText.includes('H/s') && document.body.innerText.includes('blocks remain until the base reward')` },
   { path: '/pools', name: 'pools', ready: `Array.from(document.querySelectorAll('tbody td')).some((td) => td.innerText.includes('H/s'))` },
-  { path: '/recompensa', name: 'recompensa', ready: `document.body.innerText.includes('Agora, de cada bloco de')` },
+  { path: '/recompensa', name: 'recompensa', ready: `document.body.innerText.includes('block reward currently sends')` },
   { path: '/meu-rig', name: 'meu-rig', ready: `document.querySelectorAll('tbody tr').length > 0` },
 ]
 const BREAKPOINTS = [

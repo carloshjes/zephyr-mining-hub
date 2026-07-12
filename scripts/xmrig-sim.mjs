@@ -16,7 +16,7 @@ function summary() {
   return JSON.stringify({
     id: 'sim-xmrig',
     version: '6.22.0-sim',
-    worker_id: 'rig-simulado',
+    worker_id: 'simulated-rig',
     hashrate: { total: [1234.5, 1230.1, 1228.9] },
     results: { shares_good: 42, shares_total: 43 },
     uptime: 3600 + Math.floor((Date.now() - startedAt) / 1000),

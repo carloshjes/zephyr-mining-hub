@@ -136,7 +136,7 @@ const FILL_HELPERS = `
   const walletInput = () => document.querySelector('input[placeholder="ZEPHYR…"]');
   const xmrigInput = () => document.querySelector('input[placeholder="127.0.0.1:16000"]');
   const poolSelect = () => document.querySelector('select');
-  const submitButton = () => Array.from(document.querySelectorAll('button')).find((b) => b.innerText.includes('Salvar'));
+  const submitButton = () => Array.from(document.querySelectorAll('button')).find((b) => b.innerText.includes('Save and monitor'));
 `
 function withHelpers(body) {
   return `(() => { ${FILL_HELPERS} ${body} })()`
@@ -160,7 +160,7 @@ if (MODE === 'normal') {
   await evaluate(withHelpers('submitButton().click(); return true'))
   await new Promise((r) => setTimeout(r, 300))
   check('validação: submit vazio mostra erro e não salva',
-    await evaluate(`document.body.innerText.includes('Informe o endereço') && localStorage.getItem('zephyr-hub.rig.config.v1') === null`))
+    await evaluate(`document.body.innerText.includes('Enter your public ZEPH wallet address') && localStorage.getItem('zephyr-hub.rig.config.v1') === null`))
 
   // -------------------------------------------------------------------------
   // Passo 2 — preenche o formulário (2Miners + carteira real + XMRig sim)
@@ -184,32 +184,32 @@ if (MODE === 'normal') {
     await evaluate(`document.querySelectorAll('tbody tr').length`) > 0,
     `${await evaluate(`document.querySelectorAll('tbody tr').length`)} workers`)
   check('passo 3: saldo pendente em ZEPH ou "—"',
-    await evaluate(`document.body.innerText.includes('Saldo pendente')`))
+    await evaluate(`document.body.innerText.includes('Pending balance')`))
 
-  await waitFor(`document.body.innerText.includes('Uptime do XMRig')`, 15_000, 'seção do XMRig')
-  check('passo 3: hashrate local do XMRig sim (1,23 kH/s)',
-    await evaluate(`document.body.innerText.includes('1,23 kH/s')`))
+  await waitFor(`document.body.innerText.includes('XMRig uptime')`, 15_000, 'seção do XMRig')
+  check('passo 3: hashrate local do XMRig sim (1.23 kH/s)',
+    await evaluate(`document.body.innerText.includes('1.23 kH/s')`))
   check('passo 3: shares aceitas 42, 1 rejeitada de 43',
-    await evaluate(`document.body.innerText.includes('rejeitadas: 1 de 43 enviadas')`))
+    await evaluate(`document.body.innerText.includes('rejected: 1 of 43 submitted')`))
   check('passo 3: estado visual presente (fonte XMRig)',
-    await evaluate(STATUS) !== undefined && await evaluate(`document.body.innerText.includes('XMRig local (tempo real)')`),
+    await evaluate(STATUS) !== undefined && await evaluate(`document.body.innerText.includes('Local XMRig (real-time)')`),
     `status=${await evaluate(STATUS)}`)
 
   // -------------------------------------------------------------------------
   // Passo 4 — refresh: config sobrevive, dado volta sem preencher nada
   await send('Page.navigate', { url: APP_URL })
-  await waitFor(`document.body.innerText.includes('Na pool')`, 20_000, 'dashboard direto após refresh')
+  await waitFor(`document.body.innerText.includes('At 2Miners')`, 20_000, 'dashboard direto após refresh')
   check('passo 4: refresh NÃO volta pro formulário',
     await evaluate(`document.querySelector('input[placeholder="ZEPHYR…"]') === null`))
   await waitFor(`document.body.innerText.includes('H/s')`, 30_000, 'dados de novo após refresh')
   check('passo 4: dado da pool reaparece sem reconfigurar', true)
 
   // Campos pré-preenchidos ao abrir a edição (config veio do localStorage)
-  await evaluate(`Array.from(document.querySelectorAll('button')).find((b) => b.innerText.includes('Editar configuração')).click(); true`)
+  await evaluate(`Array.from(document.querySelectorAll('button')).find((b) => b.innerText.includes('Edit configuration')).click(); true`)
   await new Promise((r) => setTimeout(r, 300))
   check('passo 4: formulário de edição pré-preenchido',
     await evaluate(withHelpers(`return walletInput().value === '${WALLET_2MINERS}' && xmrigInput().value === '${XMRIG_ADDR}' && poolSelect().value === '2miners'`)))
-  await evaluate(`Array.from(document.querySelectorAll('button')).find((b) => b.innerText.trim() === 'Cancelar').click(); true`)
+  await evaluate(`Array.from(document.querySelectorAll('button')).find((b) => b.innerText.trim() === 'Cancel').click(); true`)
 
   // Cancelar remonta o dashboard (polling do zero) — espera o dado voltar
   // pro screenshot sair com os cards preenchidos
@@ -230,21 +230,21 @@ if (MODE === 'normal') {
   `)
   await waitFor(`${STATUS} === 'below'`, 25_000, 'estado "abaixo do esperado"')
   check('estado: hashrate abaixo do esperado com histórico alto',
-    await evaluate(`document.body.innerText.includes('Hashrate abaixo do esperado')`))
+    await evaluate(`document.body.innerText.includes('Hashrate below expected')`))
   await screenshot('rig-below.png')
 
   // -------------------------------------------------------------------------
   // XMRig derrubado no meio do voo: degradação graciosa, pool continua de pé
   xmrigSim.kill()
   xmrigSim = undefined
-  await waitFor(`document.body.innerText.includes('não alcançável')`, 30_000, 'aviso de XMRig fora do ar')
+  await waitFor(`document.body.innerText.includes('unreachable')`, 30_000, 'aviso de XMRig fora do ar')
   check('degradação: aviso de XMRig não alcançável', true)
   check('degradação: dados da pool continuam na tela',
-    await evaluate(`document.body.innerText.includes('Na pool') && document.body.innerText.includes('H/s')`))
+    await evaluate(`document.body.innerText.includes('At 2Miners') && document.body.innerText.includes('H/s')`))
   check('degradação: estado passa pra fonte pool',
-    await evaluate(`document.body.innerText.includes('hashrate na 2Miners')`))
+    await evaluate(`document.body.innerText.includes('pool hashrate at 2Miners')`))
   check('degradação: tela NÃO quebrou (título presente)',
-    await evaluate(`document.body.innerText.includes('Monitor do Rig')`))
+    await evaluate(`document.body.innerText.includes('Rig Monitor')`))
   await screenshot('rig-xmrig-down.png')
 }
 
@@ -256,14 +256,14 @@ if (MODE === 'notfound') {
     setReactInput(walletInput(), '${WALLET_2MINERS}');
     submitButton().click(); return true
   `))
-  await waitFor(`document.body.innerText.includes('não visto nesta pool')`, 30_000, 'aviso de endereço não encontrado')
+  await waitFor(`document.body.innerText.includes('Wallet address not yet seen at this pool')`, 30_000, 'aviso de endereço não encontrado')
   check('notfound: aviso claro de endereço não visto na pool', true)
   check('notfound: menciona que a busca continua automática',
-    await evaluate(`document.body.innerText.includes('primeiro share')`))
+    await evaluate(`document.body.innerText.includes('first share')`))
   await waitFor(`${STATUS} === 'offline'`, 10_000, 'estado offline')
   check('notfound: estado Offline (sem hashrate nem share)',
     await evaluate(`document.body.innerText.includes('Offline')`))
-  check('notfound: tela NÃO quebrou', await evaluate(`document.body.innerText.includes('Monitor do Rig')`))
+  check('notfound: tela NÃO quebrou', await evaluate(`document.body.innerText.includes('Rig Monitor')`))
   await screenshot('rig-notfound.png')
 }
 

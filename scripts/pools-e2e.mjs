@@ -132,13 +132,13 @@ if (MODE === 'normal') {
   `)
   // ...e só então os dados de verdade (nunca ler a tabela ainda em skeleton)
   await waitFor(
-    `document.querySelectorAll('tbody tr').length >= 5 && !document.body.innerText.includes('indisponível agora') && Array.from(document.querySelectorAll('tbody td')).some((td) => td.innerText.includes('H/s'))`,
+    `document.querySelectorAll('tbody tr').length >= 5 && !document.body.innerText.includes('currently unavailable') && Array.from(document.querySelectorAll('tbody td')).some((td) => td.innerText.includes('H/s'))`,
     25_000, 'dados reais das pools na tabela',
   )
 }
 if (MODE === 'broken2miners') {
   await waitFor(
-    `document.body.innerText.includes('indisponível agora') && Array.from(document.querySelectorAll('tbody td')).some((td) => td.innerText.includes('H/s'))`,
+    `document.body.innerText.includes('currently unavailable') && Array.from(document.querySelectorAll('tbody td')).some((td) => td.innerText.includes('H/s'))`,
     30_000, 'linha indisponível + dados das demais',
   )
 }
@@ -160,13 +160,13 @@ if (MODE === 'normal') {
   check('HeroMiners com pagto. mínimo em ZEPH', /ZEPH/.test(hero?.cells[4] ?? ''), hero?.cells[4])
   check('HeroMiners com altura de bloco', /\d/.test(hero?.cells[7] ?? ''), hero?.cells[7])
   for (const name of ['K1Pool', 'MiningOcean', 'RavenMiner']) {
-    check(`${name} marcada "sem integração"`, (row(name)?.cells[1] ?? '').includes('sem integração'), row(name)?.cells[1])
+    check(`${name} marcada "sem integração"`, (row(name)?.cells[1] ?? '').includes('not integrated'), row(name)?.cells[1])
   }
 
   // --- destaques ---
-  check('chip "maior hashrate" presente', rows.some((r) => r.chips.some((c) => c.includes('maior hashrate'))),
-    rows.filter((r) => r.chips.some((c) => c.includes('maior hashrate'))).map((r) => r.name).join(','))
-  check('chip "menor fee" na HeroMiners (única com fee)', (hero?.chips ?? []).some((c) => c.includes('menor fee')))
+  check('chip "maior hashrate" presente', rows.some((r) => r.chips.some((c) => c.includes('highest hashrate'))),
+    rows.filter((r) => r.chips.some((c) => c.includes('highest hashrate'))).map((r) => r.name).join(','))
+  check('chip "menor fee" na HeroMiners (única com fee)', (hero?.chips ?? []).some((c) => c.includes('lowest fee')))
 
   // --- dois chips na MESMA pool: arranjo R5 (mudança DELIBERADA de contrato,
   // 2026-07-11) — os 3 checks do R4 verificavam o empilhado antigo (ambos
@@ -180,12 +180,12 @@ if (MODE === 'normal') {
   const twoChipGeom = await evaluate(`(() => {
     const tr = Array.from(document.querySelectorAll('tbody tr')).find((tr) => {
       const t = Array.from(tr.querySelectorAll('td:first-child span')).map((s) => s.innerText)
-      return t.some((c) => c.includes('maior hashrate')) && t.some((c) => c.includes('menor fee'))
+      return t.some((c) => c.includes('highest hashrate')) && t.some((c) => c.includes('lowest fee'))
     })
     if (!tr) return null
     const name = tr.querySelector('a').getBoundingClientRect()
     const chips = Array.from(tr.querySelectorAll('td:first-child span'))
-      .filter((s) => s.childElementCount === 0 && /maior hashrate|menor fee/.test(s.innerText))
+      .filter((s) => s.childElementCount === 0 && /highest hashrate|lowest fee/.test(s.innerText))
       .map((s) => s.getBoundingClientRect())
     if (chips.length !== 2) return { count: chips.length }
     return {
@@ -221,7 +221,7 @@ if (MODE === 'normal') {
   await clickHeader('Fee')
   check('ordenar por Fee: HeroMiners primeiro', names()[0] === 'HeroMiners', names().join(', '))
   // Coluna 2: Mineradores (desc)
-  await clickHeader('Mineradores')
+  await clickHeader('Miners')
   check('ordenar por Mineradores desc: HeroMiners primeiro', names()[0] === 'HeroMiners' && names()[1] === '2Miners', names().join(', '))
   // Coluna 3: Pool (asc alfabético, inclui as não integradas)
   await clickHeader('Pool')
@@ -253,14 +253,14 @@ if (MODE === 'normal') {
 
 if (MODE === 'broken2miners') {
   const twoMiners = row('2Miners'); const hero = row('HeroMiners')
-  check('linha da 2Miners mostra indisponível', (twoMiners?.cells[1] ?? '').includes('indisponível agora'), twoMiners?.cells[1])
+  check('linha da 2Miners mostra indisponível', (twoMiners?.cells[1] ?? '').includes('currently unavailable'), twoMiners?.cells[1])
   check('HeroMiners continua de pé com dados', /H\/s/.test(hero?.cells[2] ?? ''), hero?.cells[2])
-  check('HeroMiners vira "maior hashrate" (única com dado)', (hero?.chips ?? []).some((c) => c.includes('maior hashrate')))
+  check('HeroMiners vira "maior hashrate" (única com dado)', (hero?.chips ?? []).some((c) => c.includes('highest hashrate')))
   check('pool caída vai pro fim das linhas com valor (hashrate desc)', names()[0] === 'HeroMiners', names().join(', '))
   for (const name of ['K1Pool', 'MiningOcean', 'RavenMiner']) {
-    check(`${name} segue "sem integração"`, (row(name)?.cells[1] ?? '').includes('sem integração'))
+    check(`${name} segue "sem integração"`, (row(name)?.cells[1] ?? '').includes('not integrated'))
   }
-  check('tela NÃO quebrou (título presente)', await evaluate(`document.body.innerText.includes('Bússola de Pools')`))
+  check('tela NÃO quebrou (título presente)', await evaluate(`document.body.innerText.includes('Pool Compass')`))
   const shot = await send('Page.captureScreenshot', { format: 'png' })
   const shotPath = path.join(OUT_DIR, 'pools-broken.png')
   writeFileSync(shotPath, Buffer.from(shot.data, 'base64'))

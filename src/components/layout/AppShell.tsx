@@ -14,10 +14,10 @@ import { applyTheme, currentTheme, type Theme } from '../../lib/theme'
 // mono entre colchetes, roxo de marca. Os colchetes existem (transparentes)
 // também no estado inativo pra troca de rota não deslocar o layout.
 const NAV_ITEMS = [
-  { to: '/rede', label: 'Pulso da Rede' },
-  { to: '/pools', label: 'Bússola de Pools' },
-  { to: '/recompensa', label: 'Raio-X da Recompensa' },
-  { to: '/meu-rig', label: 'Monitor do Rig' },
+  { to: '/rede', label: 'Network Pulse' },
+  { to: '/pools', label: 'Pool Compass' },
+  { to: '/recompensa', label: 'Reward X-Ray' },
+  { to: '/meu-rig', label: 'Rig Monitor' },
 ]
 
 // Mesmos links nos dois arranjos (rail vertical / barra horizontal) — só o
@@ -131,7 +131,7 @@ function ThemeToggle({ theme, onToggle }: { theme: Theme; onToggle: () => void }
       type="button"
       data-testid="theme-toggle"
       onClick={onToggle}
-      aria-label={theme === 'dark' ? 'Mudar pro tema claro' : 'Mudar pro tema escuro'}
+      aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
       className="relative inline-flex items-center gap-2 font-mono text-caption tracking-wide text-mist-400 transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:text-mist-100 motion-reduce:transition-none"
     >
       {theme === 'dark' ? <MoonGlyph /> : <SunGlyph />}
@@ -187,7 +187,7 @@ function DonationFooter() {
       <div className="flex w-full max-w-4xl items-center justify-center gap-3">
         <PixelHeart size={18} />
         <div className="min-w-0 flex-1 text-center">
-          <span className="font-mono text-label tracking-wide text-mist-400">apoie o projeto</span>
+          <span className="font-mono text-label tracking-wide text-mist-400">support the project</span>
           <p
             data-testid="donation-address"
             className="mt-1 break-all font-mono text-label text-mist-300"

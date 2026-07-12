@@ -65,7 +65,7 @@ function deltaVsYesterday(
 ): StatDelta | undefined {
   if (current === undefined || reference === undefined) return undefined
   const percent = percentChange(current, reference)
-  return percent === undefined ? undefined : { percent, label: 'vs. ontem' }
+  return percent === undefined ? undefined : { percent, label: 'vs. yesterday' }
 }
 
 // Faixa de saúde do reserve ratio do protocolo (Djed): alvo entre 4,0 e 8,0.
@@ -77,9 +77,9 @@ function deltaVsYesterday(
 // container do instrumento. A convenção do projeto segue de pé: a UI
 // declara a procedência, só mudou o canal.
 const NETWORK_TREND_PROVENANCE =
-  'Tendência coletada neste navegador com a página aberta — 1 leitura por ' +
-  'bloco (~2 min), últimas 360; não há série histórica pública de hashrate ' +
-  'pra buscar pronta.'
+  'Trend collected by this browser while the page is open — one reading per ' +
+  'block (~2 min), up to 360 readings; no public historical network hashrate ' +
+  'series is available.'
 
 // Instrumento da tendência local em componente próprio: o useElementWidth
 // ata o ResizeObserver no mount, e este bloco nasce dentro do branch
@@ -128,9 +128,9 @@ function reserveRatioBadge(ratio: number | undefined) {
   const chip = (text: string, className: string) => (
     <span className={`font-mono text-caption whitespace-nowrap ${className}`}>[ {text} ]</span>
   )
-  if (ratio < 4) return chip('⚠ abaixo da faixa', 'text-bad')
-  if (ratio > 8) return chip('↑ acima da faixa', 'text-mist-300')
-  return chip('✓ saudável', 'text-good')
+  if (ratio < 4) return chip('⚠ below target range', 'text-bad')
+  if (ratio > 8) return chip('↑ above target range', 'text-mist-300')
+  return chip('✓ healthy', 'text-good')
 }
 
 export function NetworkPulsePage() {
@@ -173,9 +173,9 @@ export function NetworkPulsePage() {
     const values = hashrateHistory.map((reading) => reading.h)
     if (values.length < 2) return ''
     return (
-      `Tendência do hashrate da rede coletada neste navegador: ${values.length} leituras, ` +
-      `atual ${formatHashrate(values[values.length - 1])}, mínima ${formatHashrate(Math.min(...values))}, ` +
-      `máxima ${formatHashrate(Math.max(...values))}`
+      `Network hashrate trend collected by this browser: ${values.length} readings, ` +
+      `current ${formatHashrate(values[values.length - 1])}, minimum ${formatHashrate(Math.min(...values))}, ` +
+      `maximum ${formatHashrate(Math.max(...values))}`
     )
   }, [hashrateHistory])
 
@@ -197,21 +197,21 @@ export function NetworkPulsePage() {
           (decisão do Carlos — metadado de mecânica, não de mineração; o
           polling continua o mesmo por baixo) */}
       <header>
-        <h1 className="text-data-md font-semibold tracking-tight">Pulso da Rede</h1>
+        <h1 className="text-data-md font-semibold tracking-tight">Network Pulse</h1>
         <p className="mt-1 text-body text-mist-400">
-          Saúde da rede Zephyr em tempo quase-real, direto das APIs públicas.
+          Near-real-time health of the Zephyr network, straight from public APIs.
         </p>
       </header>
 
       {noDataAtAll ? (
         <ErrorNotice
           variant="blocking"
-          title="Nenhuma fonte de dados respondeu ainda — tentando de novo automaticamente."
-          detail={`Fontes com falha: ${failingSources.join(', ')}.`}
+          title="No data source has responded yet — retrying automatically."
+          detail={`Failed sources: ${failingSources.join(', ')}.`}
         />
       ) : (
         failingSources.length > 0 && (
-          <ErrorNotice detail={`Fontes com falha: ${failingSources.join(', ')}.`} />
+          <ErrorNotice detail={`Failed sources: ${failingSources.join(', ')}.`} />
         )
       )}
 
@@ -219,7 +219,7 @@ export function NetworkPulsePage() {
       <section className="lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="min-w-0">
           <p className="font-mono text-caption tracking-wide text-mist-400">
-            [ HASHRATE DA REDE ]
+            [ NETWORK HASHRATE ]
           </p>
           {networkInfo.isLoading ? (
             <div className="mt-2">
@@ -244,7 +244,7 @@ export function NetworkPulsePage() {
                 title={NETWORK_TREND_PROVENANCE}
               >
                 <p className="font-mono text-caption tracking-wide text-mist-400">
-                  [ TENDÊNCIA ]
+                  [ TREND ]
                 </p>
                 <NetworkTrend readings={hashrateHistory} summary={trendSummary} />
               </div>
@@ -258,8 +258,8 @@ export function NetworkPulsePage() {
             value={orDash(liveStats.data?.reserve_ratio, (v) => formatNumber(v, 2, 2))}
             sub={
               liveStats.data?.reserve_ratio_ma !== undefined
-                ? `média móvel: ${formatNumber(liveStats.data.reserve_ratio_ma, 2, 2)} · faixa alvo: 4,0–8,0`
-                : 'faixa alvo do protocolo: 4,0–8,0'
+                ? `moving average: ${formatNumber(liveStats.data.reserve_ratio_ma, 2, 2)} · target range: 4.0–8.0`
+                : 'protocol target range: 4.0–8.0'
             }
             delta={deltaVsYesterday(
               liveStats.data?.reserve_ratio,
@@ -269,18 +269,18 @@ export function NetworkPulsePage() {
             isLoading={liveStats.isLoading}
           />
           <StatCard
-            label="Preço ZEPH"
+            label="ZEPH price"
             value={orDash(liveStats.data?.zeph_price, formatUsd)}
             delta={deltaVsYesterday(liveStats.data?.zeph_price, yesterday?.data.zeph_price_close)}
             isLoading={liveStats.isLoading}
           />
           <StatCard
-            label="Recompensa do minerador"
+            label="Miner reward"
             value={orDash(blockReward.data?.miner_reward, (v) => formatZeph(v))}
             sub={
               blockReward.data?.base_reward_atoms
-                ? `recompensa base: ${formatZeph(Number(blockReward.data.base_reward_atoms) / 1e12)} · split 65/30/5`
-                : `split 65% minerador / 30% reserva / 5% yield ${DASH} aguardando dado`
+                ? `base reward: ${formatZeph(Number(blockReward.data.base_reward_atoms) / 1e12)} · 65/30/5 split`
+                : `65% miner / 30% reserve / 5% yield ${DASH} awaiting data`
             }
             isLoading={blockReward.isLoading}
           />

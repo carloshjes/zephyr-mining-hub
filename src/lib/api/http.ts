@@ -57,14 +57,14 @@ async function attemptFetch<T>(
       headers: { Accept: 'application/json' },
     })
     if (!response.ok) {
-      throw new ApiError(`HTTP ${response.status} em ${url}`, url, response.status)
+      throw new ApiError(`HTTP ${response.status} at ${url}`, url, response.status)
     }
     return (await response.json()) as T
   } catch (err) {
     if (err instanceof ApiError) throw err
     if (outerSignal?.aborted) throw err // cancelamento pedido por quem chamou
     throw new ApiError(
-      `Falha de rede/timeout ao consultar ${url}: ${err instanceof Error ? err.message : String(err)}`,
+      `Network request to ${url} failed or timed out: ${err instanceof Error ? err.message : String(err)}`,
       url,
     )
   } finally {

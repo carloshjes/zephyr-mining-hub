@@ -55,7 +55,7 @@ function ReadoutFrame({ children }: { children: ReactNode }) {
     <section className="border border-hairline bg-ink-900">
       <header className="border-b border-hairline px-4 py-2">
         <h2 className="font-mono text-caption tracking-wide text-mist-300">
-          [ PRÓXIMO HALVING ]
+          [ NEXT HALVING ]
         </h2>
       </header>
       <div className="px-4 py-5 sm:px-6">{children}</div>
@@ -89,10 +89,10 @@ export function HalvingCountdown({ baseRewardAtoms, isLoading }: HalvingCountdow
   if (projection.isTailEmission) {
     return (
       <ReadoutFrame>
-        <p className="text-data-md font-semibold">Emissão de cauda ativa</p>
+        <p className="text-data-md font-semibold">Tail emission active</p>
         <p className="mt-2 text-body text-mist-400">
-          A recompensa base chegou ao piso de {formatZeph(projection.nextThresholdZeph, 1)}{' '}
-          por bloco e não cai mais — não há próximos halvings.
+          The base reward has reached its floor of {formatZeph(projection.nextThresholdZeph, 1)}{' '}
+          per block and will not fall any further — there are no more halvings.
         </p>
       </ReadoutFrame>
     )
@@ -105,24 +105,24 @@ export function HalvingCountdown({ baseRewardAtoms, isLoading }: HalvingCountdow
     <ReadoutFrame>
       <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-4">
         <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
-          <CountdownSegment value={days} unit="dias" />
-          <CountdownSegment value={hours} unit="horas" />
+          <CountdownSegment value={days} unit="days" />
+          <CountdownSegment value={hours} unit="hours" />
           <CountdownSegment value={minutes} unit="min" />
-          <CountdownSegment value={seconds} unit="seg" />
+          <CountdownSegment value={seconds} unit="sec" />
         </div>
         <div className="max-w-xl">
           <p className="text-body text-mist-300">
-            Faltam <strong className="font-mono text-mist-100">{formatInteger(projection.blocksRemaining)}</strong>{' '}
-            blocos até a recompensa base cruzar{' '}
+            <strong className="font-mono text-mist-100">{formatInteger(projection.blocksRemaining)}</strong>{' '}
+            blocks remain until the base reward falls below{' '}
             <strong className="font-mono text-mist-100">{formatZeph(projection.nextThresholdZeph)}</strong>{' '}
-            (hoje: {formatZeph(projection.baseRewardZeph)}) — por volta de{' '}
+            (currently {formatZeph(projection.baseRewardZeph)}) — estimated around{' '}
             <strong className="text-mist-100">{formatDateTime(projection.estimatedAt)}</strong>.
           </p>
           <p className="mt-2 text-label text-mist-400">
-            A emissão do Zephyr é suave (estilo Monero): a recompensa cai um pouco a cada
-            bloco, sem corte abrupto. O “halving” é o marco em que ela atinge metade do
-            patamar anterior. Estimativa assume blocos de 120 s (a recompensa cai
-            ~0,000095% por bloco).
+            Zephyr uses a smooth emission curve, like Monero: the reward decreases slightly
+            with every block instead of dropping at fixed intervals. Here, “halving” marks
+            the point where it reaches half the previous reward level. This estimate assumes
+            120-second blocks (the reward falls by ~0.000095% per block).
           </p>
         </div>
       </div>

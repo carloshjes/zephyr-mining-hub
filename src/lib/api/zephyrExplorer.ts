@@ -32,7 +32,7 @@ export async function getNetworkInfo(signal?: AbortSignal): Promise<NetworkInfo>
     { signal },
   )
   if (response.status !== 'success' || !response.data) {
-    throw new ApiError(`Explorer respondeu status="${response.status}"`, `${BASE_URL}/networkinfo`)
+    throw new ApiError(`Explorer returned status="${response.status}"`, `${BASE_URL}/networkinfo`)
   }
   return response.data
 }
