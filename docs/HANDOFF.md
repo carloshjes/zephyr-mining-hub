@@ -57,7 +57,7 @@ rewrite resolve isso sem backend próprio).
 | N3 (Fable) | Ícone (sol/lua traço mono) no botão de troca de tema, substituindo o texto `[ TEMA · ... ]` | 🟡 rodou (confirmado por screenshot), **AINDA SEM COMMIT** | — |
 | G1 (Fable) | Ganhos estimados no Monitor do Rig (1ª composição cross-module: hashrate do rig + da rede + recompensa + preço) | 🟡 rodou (`src/modules/rig/earnings.ts` existe, RigDashboard.tsx modificado), **AINDA SEM COMMIT** | — |
 | R6 (Fable) | 3 achados de screenshot: rótulo DARK/WHITE no botão de tema, largura do parágrafo da Bússola = largura da tabela, rodapé com coração pixelado + endereço de doação | 🟡 rodou (confirmado por screenshot), **AINDA SEM COMMIT** | — |
-| R7 (Fable) | Corrige alinhamento ícone/rótulo do ThemeToggle, troca sol/lua pra técnica pixelada (consistência com o PixelHeart), simplifica o rodapé (remove disclaimer, endereço completo sem truncar/sem botão, fonte e coração maiores) | ⬜ prompt escrito em `docs/zephyr-mining-hub-prompts.md`, pronto pra colar | — |
+| R7 (Fable) | Corrige alinhamento ícone/rótulo do ThemeToggle (translate-y-px, correção óptica medida), troca sol/lua pra técnica pixelada (grade 11×11, mesma família do PixelHeart), simplifica o rodapé (remove disclaimer, endereço completo sem truncar/sem botão, fonte e coração maiores) | 🟡 rodou (verificado por `Read` direto no código — bem executado), **AINDA SEM COMMIT** | — |
 | 5 (Fable) | Integração final | ⬜ não iniciado — entra depois da tradução pro inglês | — |
 | — | Tradução pro inglês | ⬜ sessão separada, depois do R2 (não escrita ainda) | — |
 | — | Prompt de deploy no Vercel | ⬜ ainda não escrito | — |
@@ -132,6 +132,26 @@ não permite o padrão unlink+rename que `git checkout` usa. **Fix que funcionou
 restaurou os 3 arquivos byte a byte iguais ao HEAD, confirmado por `git status` limpo
 depois. Regra pro futuro: se `git checkout`/`git restore` falhar com "unable to unlink"
 neste sandbox, use `git show HEAD:<path> > <path>` em vez de insistir no checkout.
+
+**CORREÇÃO IMPORTANTE (2026-07-12, mesmo dia, achado ao revisar o R7):** o
+diagnóstico acima ("3 arquivos truncados de verdade") provavelmente estava ERRADO
+na causa, não no sintoma. Reproduzido ao vivo: depois do R7 rodar, `wc -l`/`tail -c`/
+`git diff` via `mcp__workspace__bash` mostraram `docs/HANDOFF.md`, `docs/zephyr-mining-hub-prompts.md`
+e `src/components/layout/AppShell.tsx` cortados no meio de palavra — mesmíssimo
+sintoma de antes. Mas o `Read` (ferramenta de arquivo, caminho Windows) nos MESMOS
+arquivos, no mesmo instante, mostrou os três **completos e corretos**. Ou seja: o
+mount Linux que o `mcp__workspace__bash` enxerga pode ficar com uma view DEFASADA
+(cache de leitura atrás do disco real), e ISSO produz o padrão exato de "arquivo
+cortado no meio" — não é o arquivo real que está truncado, é a LEITURA pelo bash
+que está atrasada. Isso inclui `git diff`/`git status` rodados via bash: eles também
+leem por esse mesmo mount, então também podem "ver" truncamento que não existe.
+**Regra corrigida: NUNCA conclua truncamento/corrupção só por `mcp__workspace__bash`
+(tail/wc/git diff/git status). Confirme sempre com a ferramenta `Read` (ou `Write`)
+antes de tratar algo como corrompido ou de "restaurar" via `git show HEAD:... >`.**
+Efeito colateral em aberto: o fix de `git show HEAD:<path> > <path>` rodado na
+sessão anterior deste chat (index.html, RigDashboard.tsx, prompts.md) pode ter sido
+um no-op inofensivo (sobrescreveu HEAD com o próprio HEAD) — não tem como confirmar
+retroativamente, mas não há indício de que algo tenha sido perdido de verdade.
 
 ## Lições da sessão de 2026-07-09 (git + sessão do Fable concorrente)
 

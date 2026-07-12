@@ -145,15 +145,17 @@ classe por causa do tema. Contraste MEDIDO com `scripts/contrast-check.mjs`
   do antigo w-screen — main agora centra na COLUNA à direita do rail, não na viewport,
   e w-screen cru desalinharia (conta em NOTES.md). Footer vive dentro da coluna
   (full-width real começaria escondido embaixo do rail fixo). main mantém max-w-6xl.
-  Rodapé de DOAÇÃO (N4 + simplificação R6, 2026-07-12): a linha de créditos de
-  API SAIU; o endereço ZEPH vive na const `DONATION_ADDRESS` hardcoded e EXATA
-  em AppShell.tsx. R6 removeu truncamento, clipboard/botão de copiar e a frase
-  de não-afiliação por decisão explícita do Carlos: o endereço COMPLETO rende
-  como texto simples em font-mono text-label com `break-all` (3 linhas e zero
-  overflow em 390px). Rótulo também em text-label; os dois subiram um degrau de
-  caption. O endereço segue ladeado pelo `PixelHeart` — `<rect>` num grid 7×6,
-  lado 0,82, cor por token via style; nunca emoji/ícone de lib/Unicode ♥ — no
-  token zeph-300, agora com 18px (era 15px).
+  Rodapé de DOAÇÃO (N4 2026-07-12): a linha de créditos de API SAIU; entra o
+  endereço ZEPH de doação (const `DONATION_ADDRESS` hardcoded e EXATO em
+  AppShell.tsx — só a apresentação trunca, cabeça 12 + … + cauda 8; valor
+  completo via clipboard e title) copiável (navigator.clipboard, confirmação
+  `[ copiar ]`→`[ copiado! ]` + status aria-live), ladeado por um coração
+  PIXELADO (`PixelHeart`: MESMA técnica de grade de pontos do LogoMark —
+  `<rect>` num grid 7×6, cor por token via style; nunca emoji/ícone de
+  lib/Unicode ♥) no token zeph-300. A frase "projeto comunitário, sem afiliação
+  oficial" FICA logo abaixo — com o site usando cor/logo de marca da Zephyr, é a
+  ÚNICA linha que evita confusão de afiliação (não é estilo, é aviso). Em 390px
+  não estoura (o desenhado tem ~21 chars).
 - Marca integrada (2026-07-10 · rampa R4): o rail usa `LogoMark` em 176px; o bloco
   de topo (<xl) usa 128px (tamanhos R4 — a variação tonal por ponto lê a olho nu nos
   dois, crops em NOTES.md), o que também habilita a cintilância nos DOIS arranjos.
@@ -179,30 +181,23 @@ classe por causa do tema. Contraste MEDIDO com `scripts/contrast-check.mjs`
   papel só-textura). Da paleta planejada, zeph-300/good/bad FALHARAM piso e foram
   recalibrados descendo claridade com matiz preservado (contrast-check, seção TEMA
   CLARO — não edite valores sem re-rodar). Troca (glifo desde 2026-07-12): o
-  botão ganhou um ícone lua/sol no lugar do antigo rótulo mono
-  `[ TEMA · ESCURO/CLARO ]` — na zona meta o rótulo por extenso pesava como
-  item de nav. O GLIFO declara o estado ATUAL (mesma regra do rótulo: diz o
-  que É, não o destino); a AÇÃO segue no aria-label ("Mudar pro tema …"), então
-  o canal de acessibilidade NÃO mudou.
+  botão virou um ÍCONE de traço fino desenhado à mão (lua = escuro / sol =
+  claro) no lugar do antigo rótulo mono `[ TEMA · ESCURO/CLARO ]` — na zona
+  meta o rótulo por extenso pesava como item de nav. O GLIFO declara o estado
+  ATUAL (mesma regra do rótulo: diz o que É, não o destino); a AÇÃO segue no
+  aria-label ("Mudar pro tema …"), então o canal de acessibilidade NÃO mudou.
   N4 (2026-07-12): o ícone-SÓ ficou ambíguo em uso real (sem hover/sem leitor
   de tela não dá pra saber o que faz) e ganhou de VOLTA um rótulo mono AO LADO
   do glifo — `[ DARK ]` (escuro ativo) / `[ WHITE ]` (claro ativo; grafia EXATA
   em inglês pedida pelo Carlos, é WHITE e não LIGHT). O rótulo declara o estado,
   a ação segue SÓ no aria-label, min-w-[9ch] reserva a largura do mais longo
-  ("[ WHITE ]") pra a troca não deslocar layout. R6 (2026-07-12): o traço fino
-  do N3 SAIU; sol/lua agora são PIXELADOS na mesma técnica do PixelHeart — SVG
-  inline, grid grosso 11×11 de `<rect>`, lado 0,82 com vão, um tom via
-  `style={{ fill: 'var(--color-mist-400)' }}`. A comparação real 18/22/24px
-  confirmou a pesquisa de `docs/logo-exploracao.md`: 18 funde os vãos, 24
-  pesa demais ao lado do caption, 22 dá pitch exato de 2px e preserva a grade.
-  Sol e lua ocupam a MESMA caixa 22px (zero deslocamento na troca); sem lib de
-  ícones. Contraste do papel segue o medido pro interativo NÃO-texto (5,0:1
-  escuro / 5,3:1 claro na célula, piso 3:1). Alvo de toque ≥24px pela extensão
-  invisível `before:-inset-1.5`. Alinhamento R6: `items-center` já centralizava
-  as caixas e o SVG computava `display:block`, mas a tinta da fonte mono ficava
-  0,92px acima do centro; `translate-y-px` no rótulo é compensação óptica
-  medida (centros de tinta ficam a ~0,3px na captura 5×), não ajuste chutado.
-  Fica na BASE do rail
+  ("[ WHITE ]") pra a troca não deslocar layout; o glifo sol/lua é o mesmo do
+  N3. Sem lib de ícones (SVG inline
+  como o LogoMark, fill none + stroke currentColor); cor no token mist-400
+  (interativo NÃO-texto ≥3:1: 5,0:1 escuro / 5,3:1 claro na célula, bloco GLIFO
+  DE TEMA do contrast-check). Glifo 18px em viewBox 24 (traço 2 → 1,5px
+  rendido); sol e lua na MESMA caixa (zero deslocamento na troca) e alvo de
+  toque ≥24px por extensão invisível `before:-inset-1.5`. Fica na BASE do rail
   e em linha própria sob a nav mobile; persistência em `zephyr-hub.theme.v1`
   com script inline anti-flash no index.html (aplica o atributo ANTES do
   primeiro paint — se mudar chave/valor, mude nos DOIS lugares: index.html e

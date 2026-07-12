@@ -1882,3 +1882,91 @@ telas): theme (com os checks [ DARK ]/[ WHITE ] atualizados) + pools normal +
 rig normal + rewards normal — **TUDO PASSOU**. Sondas regeneráveis no
 scratchpad: n4-shots.mjs (toggle/pools/rodapé + larguras medidas) e
 n4-footer-fix.mjs (rodapé por coords absolutas + cópia com clique real).
+
+# NOTES — R6: alinhamento + glifos pixelados + rodapé simples (2026-07-12)
+
+Correção dirigida pelos três achados do screenshot real do Carlos. A skill
+creative-ui-director foi usada SÓ no item 2 (técnica/escala dos glifos), em
+modo design-system-constrained-upgrade lean. O alinhamento do item 1 e a
+remoção de mecânica do rodapé no item 3 foram tratados como ajustes mecânicos.
+
+## 1. ThemeToggle — causa raiz do desalinhamento, medida
+
+Antes de editar, `scripts/shell-detail-shots.mjs` mediu o botão real nos dois
+arranjos e temas. O candidato "SVG inline brigando com flex" foi descartado:
+o `<svg>` já computava `display: block` por ser flex item. `items-center`
+também funcionava literalmente — centro da caixa 18×18 do SVG e centro da
+caixa de linha 14,84375px do `<span>` coincidiam no mesmo Y.
+
+O desvio estava DENTRO da caixa tipográfica: font-size 11px / line-height
+14,85px, e a tinta real do caption mono ficava ~0,92px acima do centro da
+linha. A captura N4 em lupa 5× confirmou por pixel: centro do ícone em 104,5 e
+centro da tinta do texto em 100,5, delta −4px na lupa = **−0,8 CSS px**. Logo,
+trocar `display` do SVG ou somente reduzir o line-height não moveria a tinta
+relativa ao centro da própria line box.
+
+Fix: `translate-y-px` SÓ no `<span>` do rótulo — compensação óptica de 1px,
+não tamanho novo nem offset arbitrário. Pós-fix, a estimativa de métrica da
+fonte ficou 0,078px do centro do SVG; a leitura dos pixels nas quatro capturas
+finais (rail/mobile × dark/light) deu o MESMO delta de **0,3 CSS px** (1,5px
+na lupa 5×, arredondamento do raster). Caixas e alvo de toque continuam
+estáveis; `[ DARK ]`/`[ WHITE ]`, data-testid e aria-label não mudaram.
+
+## 2. Sol/lua — traço fino SAIU, grade grossa entrou (skill)
+
+Diagnóstico visual: ao lado do PixelHeart do mesmo R6, o sol/lua de path/line
+parecia pertencer a outro sistema. A direção escolhida foi reutilizar a
+primitiva já existente em vez de inventar outra: SVG inline com grade 11×11 de
+`<rect>`, lado **0,82** (vão halftone), um tom por
+`var(--color-mist-400)`, células estáticas próprias pra lua/sol. Mesma viewBox
+e mesma caixa nos dois estados; a regra estado-atual e o aria-label de ação
+ficaram intactos. A alternativa de grade fina a 18px foi rejeitada pela
+evidência de `docs/logo-exploracao.md`, não por preferência.
+
+Calibração no app real em deviceScaleFactor 1, com crop ×1 + lupa 5× da MESMA
+grade em 18/22/24px (`r6-final-glyph-*`):
+
+- **18px:** silhuetas ainda reconhecíveis, mas o passo de 1,64px funde os vãos
+  por antialias — vira a mesma zona de risco registrada na exploração.
+- **22px (escolhido):** pitch exato de 2px na grade 11×11; os quadradinhos e
+  vãos sobrevivem nos dois temas, e o glifo segue subordinado ao caption.
+- **24px:** textura igualmente segura, mas o ícone passa a dominar o rótulo
+  ao lado; ganho de leitura marginal sobre 22px.
+
+Anti-generic quick score do componente: 0/12 antes e depois — o defeito não
+era composição genérica, era incoerência entre duas primitivas da mesma
+casca. A ação corretiva foi convergir pro vocabulário pixelado já específico
+do produto, sem cor, efeito ou dependência novos.
+
+## 3. DonationFooter — só endereço completo + corações
+
+Mudança mecânica fechada pelo Carlos:
+
+- frase "projeto comunitário, sem afiliação oficial" removida, sem substituta;
+- `shortAddress`, truncamento, botão, `copyAddress`, estado `copied`, clipboard,
+  title e aria-live removidos por completo;
+- `DONATION_ADDRESS` comparada contra o HEAD: **idêntica byte a byte**, literal
+  existente com 101 caracteres (a contagem histórica do prompt dizia 106; o
+  valor hardcoded real sempre prevalece);
+- endereço completo agora é `<p>` simples com `break-all`; rótulo e endereço
+  subiram de text-caption pra **text-label**; PixelHeart 15→**18px**;
+- faixa interna `max-w-4xl`, com os corações ladeando o bloco sem card/sombra.
+
+Medição a 390px, dark E light: área do endereço = **298×54px** (3 linhas),
+`scrollWidth === clientWidth === 298`, overflow horizontal da página = 0.
+Sonda também confirmou `hasCopyButton=false` e `hasDisclaimer=false`. No rail
+desktop, endereço completo fica em uma linha (836×18px). Capturas finais:
+`r6-final-footer-{mobile,rail}-{dark,light}.png`.
+
+## Verificação R6
+
+- `npm run build`: limpo (Vite 182ms, zero warning).
+- `npm run lint`: só os 2 warnings PRÉ-existentes
+  (SeriesSwatch.tsx/logo-shots.mjs), nenhum novo.
+- `node scripts/theme-e2e.mjs`: **13/13 PASS**, incluindo texto exato,
+  aria-label, glifo SVG, troca, persistência e anti-flash.
+- `git diff --check`: limpo (só aviso de conversão CRLF→LF do CLAUDE.md).
+- Evidência regenerável: `scripts/shell-detail-shots.mjs`; saídas
+  `r6-final-toggle-{rail,mobile}-{dark,light}.png` (lupa 5×),
+  `r6-final-toggle-context-*`, régua `r6-final-glyph-{18,22,24}-*` em ×1/×5 e
+  os quatro rodapés citados acima.

@@ -49,62 +49,69 @@ function NavLinks() {
   ))
 }
 
-// Botão de troca de tema — glifo de traço fino (sol/lua) no lugar do rótulo
-// mono `[ TEMA · … ]`. Motivo: na zona meta (base do rail / linha sob a nav
-// mobile) o rótulo por extenso pesava como um item de nav e o min-w-[17ch]
-// reservava uma faixa larga pra alternar um bit. O GLIFO declara o estado
-// ATUAL (lua = escuro, sol = claro — a MESMA regra do rótulo que substitui:
-// diz o que É, nunca o destino); a AÇÃO segue no aria-label ("Mudar pro tema
-// …"), inalterada — o canal de acessibilidade é o mesmo de antes, só o canal
-// VISÍVEL migrou de texto pra glifo (mesmo espírito da procedência da
-// tendência no R5, que virou title/aria). Sem lib de ícones (o projeto não
-// tem e não deve ganhar uma por isto): SVG à mão como o LogoMark, fill none +
-// stroke currentColor — a linguagem "linha, não sólido" do sistema. Cor no
-// token mist-400 (elemento interativo NÃO-texto: 5,0:1 escuro / 5,3:1 claro
-// na célula da textura, muito acima do piso 3:1 — medido no contrast-check).
-// Glifo 18px em viewBox 24 (stroke 2 → traço 1,5px rendido; calibrado por
-// captura). Sol e lua ocupam a MESMA caixa → zero deslocamento na troca; o
-// alvo de toque ≥24px (AA) vem de uma extensão invisível before:-inset-1.5
-// (mesma técnica do SegmentedControl), então o glifo alinha na borda da
-// coluna sem margem de centragem.
-const GLYPH_SIZE = 18
+// Botão de troca de tema — o sol/lua usa a MESMA linguagem pixelada do
+// PixelHeart: grade grossa 11×11 de <rect>, um tom e vão real entre células.
+// A exploração docs/logo-exploracao.md já mediu que grades finas perdem a
+// textura abaixo de ~24px; a grade grossa é a única família que se mantém
+// halftone no pequeno. Captura R6: 18px funde os vãos; 24px pesa demais ao
+// lado do caption; 22px dá passo de grade exato de 2px e segura os dois.
+// Cor no papel mist-400 (o mesmo contraste medido do glifo anterior). O GLIFO
+// declara o estado ATUAL (lua = escuro, sol = claro) e a AÇÃO segue só no
+// aria-label. Mesma caixa pros dois estados: zero salto.
+const GLYPH_SIZE = 22
+const THEME_GLYPH_DOT = 0.82
 
-const glyphProps = {
-  width: GLYPH_SIZE,
-  height: GLYPH_SIZE,
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 2,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-  'aria-hidden': true,
-} as const
+type GlyphCell = readonly [x: number, y: number]
 
-// Crescente como UMA forma de traço (dois arcos), sem recorte por
-// preenchimento — respeita o "sem sólido chapado" do sistema
-function MoonGlyph() {
+const MOON_CELLS: ReadonlyArray<GlyphCell> = [
+  [5, 0], [6, 0],
+  [3, 1], [4, 1], [5, 1], [6, 1],
+  [2, 2], [3, 2], [4, 2], [5, 2],
+  [1, 3], [2, 3], [3, 3],
+  [1, 4], [2, 4], [3, 4],
+  [0, 5], [1, 5], [2, 5],
+  [1, 6], [2, 6], [3, 6],
+  [1, 7], [2, 7], [3, 7],
+  [2, 8], [3, 8], [4, 8], [5, 8],
+  [3, 9], [4, 9], [5, 9], [6, 9],
+  [5, 10], [6, 10],
+]
+
+const SUN_CELLS: ReadonlyArray<GlyphCell> = [
+  [5, 0], [5, 1],
+  [2, 2], [8, 2],
+  [4, 3], [5, 3], [6, 3],
+  [3, 4], [7, 4],
+  [0, 5], [1, 5], [3, 5], [7, 5], [9, 5], [10, 5],
+  [3, 6], [7, 6],
+  [4, 7], [5, 7], [6, 7],
+  [2, 8], [8, 8],
+  [5, 9], [5, 10],
+]
+
+function PixelThemeGlyph({ cells }: { cells: ReadonlyArray<GlyphCell> }) {
   return (
-    <svg {...glyphProps}>
-      <path d="M16 4A8 8 0 0 0 16 20A9.5 9.5 0 0 1 16 4Z" />
+    <svg width={GLYPH_SIZE} height={GLYPH_SIZE} viewBox="0 0 11 11" aria-hidden className="block shrink-0">
+      {cells.map(([x, y]) => (
+        <rect
+          key={`${x}-${y}`}
+          x={x}
+          y={y}
+          width={THEME_GLYPH_DOT}
+          height={THEME_GLYPH_DOT}
+          style={{ fill: 'var(--color-mist-400)' }}
+        />
+      ))}
     </svg>
   )
 }
 
+function MoonGlyph() {
+  return <PixelThemeGlyph cells={MOON_CELLS} />
+}
+
 function SunGlyph() {
-  return (
-    <svg {...glyphProps}>
-      <circle cx="12" cy="12" r="4" />
-      <line x1="12" y1="6" x2="12" y2="3.5" />
-      <line x1="12" y1="18" x2="12" y2="20.5" />
-      <line x1="18" y1="12" x2="20.5" y2="12" />
-      <line x1="6" y1="12" x2="3.5" y2="12" />
-      <line x1="16.24" y1="7.76" x2="18.01" y2="5.99" />
-      <line x1="7.76" y1="16.24" x2="5.99" y2="18.01" />
-      <line x1="16.24" y1="16.24" x2="18.01" y2="18.01" />
-      <line x1="7.76" y1="7.76" x2="5.99" y2="5.99" />
-    </svg>
-  )
+  return <PixelThemeGlyph cells={SUN_CELLS} />
 }
 
 // N4 (2026-07-12): o ícone-só ficou ambíguo em uso real (sem hover/sem leitor
@@ -112,9 +119,12 @@ function SunGlyph() {
 // AO LADO do glifo, na convenção de colchetes do sistema. Grafia EXATA pedida
 // pelo Carlos: inglês, `[ DARK ]` com o escuro ativo e `[ WHITE ]` (não
 // "LIGHT") com o claro. O rótulo declara o estado ATUAL, como sempre; a AÇÃO
-// segue SÓ no aria-label. O glifo sol/lua é o mesmo do N3 (intocado); o
-// min-w-[9ch] reserva a largura do rótulo mais longo ("[ WHITE ]", 9 chars mono)
-// pra a troca DARK↔WHITE não mexer na largura do botão.
+// segue SÓ no aria-label. R6 troca apenas a técnica do glifo acima; o
+// min-w-[9ch] reserva a largura do rótulo mais longo ("[ WHITE ]", 9 chars
+// mono) pra a troca DARK↔WHITE não mexer na largura do botão. Medição do R6:
+// flex centralizava as CAIXAS, mas a tinta da fonte mono ficava 0,92px acima
+// do centro (o SVG já computava display:block). translate-y-px é a correção
+// óptica medida; trocar display/line-height não moveria a tinta dentro da box.
 function ThemeToggle({ theme, onToggle }: { theme: Theme; onToggle: () => void }) {
   return (
     <button
@@ -125,13 +135,12 @@ function ThemeToggle({ theme, onToggle }: { theme: Theme; onToggle: () => void }
       className="relative inline-flex items-center gap-2 font-mono text-caption tracking-wide text-mist-400 transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:text-mist-100 motion-reduce:transition-none"
     >
       {theme === 'dark' ? <MoonGlyph /> : <SunGlyph />}
-      <span className="min-w-[9ch] text-left">[ {theme === 'dark' ? 'DARK' : 'WHITE'} ]</span>
+      <span className="min-w-[9ch] translate-y-px text-left">[ {theme === 'dark' ? 'DARK' : 'WHITE'} ]</span>
     </button>
   )
 }
 
 // Endereço de doação — HARDCODED e EXATO (nunca gerar/derivar de outra fonte).
-// Só a APRESENTAÇÃO trunca; o valor copiado e o do title são sempre completos.
 const DONATION_ADDRESS =
   'ZEPHYR2eWBjJtirbhwCoxh9HLDLp6H6sbjBn3zpo38QXZHFVuACysqsDeLi9dvJ29FRQLXqhVVKmkDbv2EDoophcFd4Ur3pH7WT3Y'
 
@@ -168,53 +177,26 @@ function PixelHeart({ size = 15 }: { size?: number }) {
   )
 }
 
-// Rodapé de doação (N4): a linha de créditos de API SAIU; entra o endereço de
-// doação copiável ladeado pelos corações pixelados. A frase de não-afiliação
-// FICA (compacta, logo abaixo) — com o site usando cor/logo de marca da
-// Zephyr, é a ÚNICA linha que evita o visitante confundir isto com o site
-// oficial; não é estilo, é o aviso de afiliação do produto.
+// Rodapé de doação (R6): endereço completo como texto simples, sem ação de
+// cópia e sem disclaimer. break-all é deliberado: preserva os 101 caracteres
+// exatos e impede overflow no viewport de 390px. Tipografia sobe um degrau
+// (caption→label) e o coração acompanha de 15→18px.
 function DonationFooter() {
-  const [copied, setCopied] = useState(false)
-  const copyAddress = async () => {
-    try {
-      await navigator.clipboard.writeText(DONATION_ADDRESS)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 2_000)
-    } catch {
-      // Contexto inseguro / clipboard bloqueado: o title mantém o valor à mão
-    }
-  }
-  // Truncação visual (cabeça 12 + … + cauda 8) em TODOS os breakpoints — os
-  // 106 chars dominariam o rodapé quieto até no desktop. O valor COMPLETO vem
-  // pelo clipboard (todos) e pelo title (hover no desktop); em 390px não
-  // estoura porque o que é desenhado tem ~21 chars.
-  const shortAddress = `${DONATION_ADDRESS.slice(0, 12)}…${DONATION_ADDRESS.slice(-8)}`
   return (
-    <div className="flex flex-col items-center gap-2 px-4">
-      <div className="flex items-center justify-center gap-2.5">
-        <PixelHeart />
-        <div className="flex min-w-0 flex-col items-center">
-          <span className="font-mono text-caption tracking-wide text-mist-400">apoie o projeto</span>
-          <button
-            type="button"
-            onClick={copyAddress}
-            title={DONATION_ADDRESS}
-            aria-label={`Copiar endereço de doação ZEPH: ${DONATION_ADDRESS}`}
-            className="mt-0.5 inline-flex max-w-full items-center gap-1.5 font-mono text-caption text-mist-300 transition-colors hover:text-zeph-300"
+    <div className="flex w-full justify-center px-4">
+      <div className="flex w-full max-w-4xl items-center justify-center gap-3">
+        <PixelHeart size={18} />
+        <div className="min-w-0 flex-1 text-center">
+          <span className="font-mono text-label tracking-wide text-mist-400">apoie o projeto</span>
+          <p
+            data-testid="donation-address"
+            className="mt-1 break-all font-mono text-label text-mist-300"
           >
-            <span className="truncate">{shortAddress}</span>
-            <span aria-hidden className="shrink-0 text-mist-400">
-              {copied ? '[ copiado! ]' : '[ copiar ]'}
-            </span>
-          </button>
+            {DONATION_ADDRESS}
+          </p>
         </div>
-        <PixelHeart />
+        <PixelHeart size={18} />
       </div>
-      <p className="text-label text-mist-400">projeto comunitário, sem afiliação oficial</p>
-      {/* Confirmação pra leitor de tela (a visual é o "[ copiado! ]" acima) */}
-      <span role="status" aria-live="polite" className="sr-only">
-        {copied ? 'Endereço de doação copiado' : ''}
-      </span>
     </div>
   )
 }
