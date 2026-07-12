@@ -14,9 +14,12 @@
 //   vira "—" na tela (convenção do projeto).
 
 import { ApiError, fetchJson } from './http'
+import { ATOMS_PER_ZEPH } from '../emission'
 
-/** ZEPH tem 12 casas atômicas (coinUnits "1000000000000", confirmado na HeroMiners). */
-const ATOMS_PER_ZEPH = 1e12
+// ZEPH tem 12 casas atômicas (coinUnits "1000000000000", confirmado na HeroMiners)
+// — ATOMS_PER_ZEPH vem de emission.ts, dono único do fator de conversão
+// (achado da auditoria de estrutura 2026-07-12: este arquivo redefinia o
+// mesmo valor em vez de importar).
 
 /** Endereço nunca visto pela pool — erro distinto pra UI orientar o usuário. */
 export class MinerNotFoundError extends Error {

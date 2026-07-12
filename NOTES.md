@@ -2024,3 +2024,79 @@ e meta description também estão em inglês.
   `scripts/shell-detail-shots.mjs` também tiveram seus contratos de texto de
   produto atualizados. O primeiro não foi reexecutado nesta máquina porque
   OpenSSL não está disponível; isso não integra a suíte de aceite desta sessão.
+
+# NOTES — Auditoria de estrutura + code-audit-cleanup + reescrita do Prompt 5 (2026-07-12)
+
+Sessão no chat Cowork (sem Claude Code): rodou `backend-structure-auditor` sobre o
+working tree pós-EN1 (ainda sem commit), depois `code-audit-cleanup` sobre o mesmo
+estado, e por fim reescreveu o Prompt 5 (`docs/zephyr-mining-hub-prompts.md`) absorvendo
+os achados de ambas. Contexto: Carlos ia rodar o Prompt 5 (histórico, escrito antes do
+R1–R7) e pediu pra verificar se precisava atualizar antes — precisava.
+
+## backend-structure-auditor
+
+Censo completo dos 38 arquivos de `src/` (não amostragem) — relatório completo em
+`docs/AUDITORIA-ESTRUTURA-2026-07-12.md`. Resumo: codebase "estruturalmente muito
+disciplinado" (100% das chamadas de rede via `fetchJson`, 100% dos módulos via
+`usePolling`, zero `console.*`, zero hex solto) — o padrão encontrado não é convenções
+competindo, é duplicação pura em 4 pontos: constantes de domínio redefinidas em vez de
+importadas (`ATOMS_PER_ZEPH`, `MIN_READING_GAP_MS`, poll de 60s das pools), um bloco de
+agregação de erro (`failingSources`/`noDataAtAll`) copiado entre `NetworkPulsePage.tsx`
+e `RewardsPage.tsx`, três motores de histórico local paralelos (`luckHistory.ts`,
+`networkHashrateHistory.ts`, e o motor que `rigStatus.ts` já generalizou só pras 2
+séries do próprio módulo), e dois gráficos (`ReserveRatioChart.tsx`/
+`RewardSplitChart.tsx`) reimplementando a mesma interação de hover/teclado (~40-50% de
+cada componente). Pontuação: 4 nas 7 dimensões aplicáveis — faixa "consistente"
+baixa/início de acúmulo de deriva, mas 100% duplicação pura, zero convenção divergente.
+
+## code-audit-cleanup
+
+Aplicou SÓ a consolidação de menor risco: `ATOMS_PER_ZEPH` (definida em
+`src/lib/emission.ts` e redefinida com o mesmo valor em `src/lib/api/minerStats.ts`) —
+`minerStats.ts` agora importa de `emission.ts`; zero mudança de comportamento (mesmo
+valor, mesmo tipo, único uso é a mesma divisão de sempre). Os outros 3 achados da
+auditoria (constantes cross-module `MIN_READING_GAP_MS`/poll de 60s, o hook
+`useFailingSources`, o hook de chart hover) ficaram DE FORA desta rodada por decisão
+deliberada, não por serem arriscados demais em si: os dois primeiros exigem escolher um
+lar novo em `lib/` pra uma constante compartilhada entre módulos-irmãos (pequena decisão
+de arquitetura, não um cleanup mecânico de um arquivo só); o hook de `failingSources`
+tem uma assimetria real entre os dois usos (NetworkPulsePage conta `dailyStats.error` no
+aviso mas NÃO no "sem dado nenhum"; RewardsPage conta as 3 fontes nos dois) que precisa
+ser generalizada com cuidado; e o hook de chart hover mexe em interação de teclado/mouse
+que só dá pra verificar com confiança rodando a suíte e2e real (Windows, CDP) — que este
+chat não tem. Registrados como itens do Prompt 5 reescrito em vez de aplicados às
+cegas.
+
+**Limitação de ambiente confirmada nesta sessão:** `npm run lint` (oxlint) falha aqui com
+`Cannot find native binding — @oxlint/binding-linux-x64-gnu` (binário nativo Windows-only
+instalado no projeto, mesma classe de limitação já registrada no HANDOFF pro
+rolldown/lightningcss). `npx tsc --noEmit` também não é confiável neste sandbox: acusou
+`error TS1127: Invalid character` na linha 296 de `AppShell.tsx` (a última linha do
+arquivo) — conferido por `Read` direto no mesmo instante, o arquivo está correto e
+completo. É o MESMO fenômeno de mount Linux defasado que o HANDOFF já documenta pra
+`git status`/`git diff` (visto de novo ao vivo: `wc -l` via bash relatou 1885 linhas
+pra este mesmo NOTES.md e 2553 para `docs/zephyr-mining-hub-prompts.md`, mas o `Read`
+foi além dos dois números sem erro — a contagem do bash estava defasada). Regra
+reforçada: build/lint/typecheck neste sandbox não são fonte de verdade; toda verificação
+desta sessão foi por leitura manual de código (todos os 38 arquivos de `src/`, não só os
+citados pela auditoria).
+
+## Prompt 5 reescrito
+
+A versão em `docs/zephyr-mining-hub-prompts.md` foi escrita antes do R1–R7 e tinha 3 dos
+6 itens já resolvidos por iterações posteriores (loading/erro desde o Prompt 1, nav ativa
+desde R1/N1, tema — agora dois, T1). A reescrita: remove os 3 itens feitos, mantém a
+varredura `order=desc`, absorve README.md desatualizado + ErrorBoundary ausente (achados
+já mapeados em `docs/ANALISE-MELHORIAS-2026-07-11.md`), absorve os 3 achados da auditoria
+de estrutura não aplicados pelo cleanup, e pede a correção dos 2 warnings de lint
+pré-existentes (`scripts/logo-shots.mjs`, `SeriesSwatch.tsx` — nunca resolvidos desde o
+N2). Decisão de Carlos incorporada: mantém o redirect `/` → `/rede` (sem página inicial
+nova). Não pede um REVIEW.md novo — a auditoria de estrutura já cumpre esse papel.
+
+## Pendência de git (ATIVA no fim desta sessão)
+
+O working tree segue com a tradução EN1 inteira + a auditoria de estrutura sem commit
+(`HEAD` ainda em `39f3f6f`, o R7) — pendência que já existia ANTES desta sessão começar,
+mais a mudança do `minerStats.ts` e a reescrita do Prompt 5/HANDOFF feitas agora.
+Recomendado a Carlos: commitar tudo junto antes de rodar qualquer prompt novo (mesma
+lógica do commit agrupado N3+G1+R6) — mensagem sugerida em `docs/HANDOFF.md`.

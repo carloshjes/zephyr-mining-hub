@@ -58,13 +58,30 @@ rewrite resolve isso sem backend próprio).
 | G1 (Fable) | Ganhos estimados no Monitor do Rig (1ª composição cross-module: hashrate do rig + da rede + recompensa + preço) | 🟡 rodou (`src/modules/rig/earnings.ts` existe, RigDashboard.tsx modificado), **AINDA SEM COMMIT** | — |
 | R6 (Fable) | 3 achados de screenshot: rótulo DARK/WHITE no botão de tema, largura do parágrafo da Bússola = largura da tabela, rodapé com coração pixelado + endereço de doação | 🟡 rodou (confirmado por screenshot), **AINDA SEM COMMIT** | — |
 | R7 (Fable) | Corrige alinhamento ícone/rótulo do ThemeToggle (translate-y-px, correção óptica medida), troca sol/lua pra técnica pixelada (grade 11×11, mesma família do PixelHeart), simplifica o rodapé (remove disclaimer, endereço completo sem truncar/sem botão, fonte e coração maiores) | ✅ feito, verificado, commitado e enviado | `39f3f6f` |
-| 5 (Fable) | Integração final | ⬜ não iniciado — entra depois da tradução pro inglês | — |
-| EN1 | Tradução pro inglês (hardcode, sem i18n) | 📝 **prompt escrito em 2026-07-12, pronto pra colar** (`docs/zephyr-mining-hub-prompts.md`) — não rodado ainda | — |
+| 5 (Fable) | Integração final | 📝 **prompt REESCRITO em 2026-07-12** (absorve `docs/AUDITORIA-ESTRUTURA-2026-07-12.md` + achados do code-audit-cleanup) — pronto pra colar, ver `docs/zephyr-mining-hub-prompts.md` | — |
+| EN1 | Tradução pro inglês (hardcode, sem i18n) | ✅ **RODOU** (confirmado: CLAUDE.md/NOTES.md já refletem a tabela PT→EN e o locale `en-US`) — **AINDA SEM COMMIT** | — |
 | — | Prompt de deploy no Vercel | ⬜ ainda não escrito | — |
-| — | Skills (auditoria/limpeza/visual) | ⬜ não rodadas | — |
+| — | Skill `backend-structure-auditor` | ✅ **rodou 2026-07-12** — `docs/AUDITORIA-ESTRUTURA-2026-07-12.md`, 4 achados [Baixo]/[Médio], zero bug | — |
+| — | Skill `code-audit-cleanup` | 🟡 **rodou 2026-07-12, parcial** — aplicou só a consolidação de `ATOMS_PER_ZEPH`; os outros 3 achados viraram itens do Prompt 5 reescrito (exigiam decisão de arquitetura pequena ou e2e real pra verificar com confiança) | — |
 
-**Pendência de git ATIVA (2026-07-12): N3 + G1 + R6 rodaram em sequência sem
-commit entre sessões** — `git status` confirma working tree com CLAUDE.md, NOTES.md,
+**Pendência de git ATIVA — a mais recente (2026-07-12, depois do R7 já commitado em
+`39f3f6f`):** o EN1 (tradução completa) + a auditoria de estrutura +
+`code-audit-cleanup` + a reescrita do Prompt 5/deste HANDOFF rodaram TODOS sem commit
+entre eles — `HEAD` segue em `39f3f6f`. `git status` mostra a lista inteira de
+arquivos tocados (quase todo `src/`, mais `CLAUDE.md`/`NOTES.md`/`docs/`) — alguns
+aparecem como "deleted" E "untracked" ao mesmo tempo (índice inconsistente do mount do
+sandbox, mesmo fenômeno das lições abaixo; conferido por `Read` direto em
+`RigDashboard.tsx`/`vite.config.ts`: os dois existem intactos, não é perda real).
+Recomendação: commitar tudo junto AGORA, antes de rodar o Prompt 5, numa PowerShell
+limpa fora de qualquer sessão `claude`:
+```
+git add -A
+git commit -m "prompt EN1: traducao pro ingles + auditoria de estrutura + code-audit-cleanup + prompt 5 reescrito"
+git push
+```
+
+**Pendência de git — histórica, já resolvida (2026-07-12, N3 + G1 + R6):** rodaram em
+sequência sem commit entre sessões — `git status` confirma working tree com CLAUDE.md, NOTES.md,
 scripts/contrast-check.mjs, scripts/theme-e2e.mjs, src/components/layout/AppShell.tsx,
 src/modules/pools/PoolsPage.tsx, src/modules/rig/RigDashboard.tsx modificados +
 src/modules/rig/earnings.ts novo — TUDO isso ainda só no disco, `HEAD` continua em
@@ -313,23 +330,29 @@ que não é o site oficial; sem ela, a lacuna de confiança parece maior que o c
 de manter uma frase curta. Se o Carlos preferir a remoção total, é um ajuste de
 uma linha no prompt antes de colar.
 
-9. Rodar as skills `backend-structure-auditor` e `code-audit-cleanup` — via Skill
-   tool do chat Cowork, não via Claude Code. Subiu pra ANTES da tradução de
-   propósito: os achados alimentam a reescrita do Prompt 5 e auditar antes de
-   traduzir evita retrabalho em texto que muda. Roda depois do T1 (UI estável).
-10. Tradução pro inglês — **prompt EN1 escrito em 2026-07-12** (chat Cowork),
-    pronto pra colar em sessão nova, seção "Prompt EN1" de
-    `docs/zephyr-mining-hub-prompts.md`. Decisão registrada: inglês hardcode
-    (sem i18n), rotas continuam em português nesta rodada, CLAUDE.md/NOTES.md/
-    README.md/docs/ e comentários de código seguem em português (só o produto
-    visível muda de idioma). Ainda depende do item 9 (auditorias) rodar antes,
-    pela mesma lógica de evitar retrabalho em texto que muda.
-11. Prompt 5 (integração final) — **REESCREVER antes de colar**: foi escrito antes
-    do R1–R3 e metade dos itens já foi feita (loading/erro compartilhado, navegação
-    com rota ativa, tema único). A reescrita absorve: README.md desatualizado,
-    ErrorBoundary por módulo (não existe nenhum — erro de render vira tela branca),
-    varredura order=desc e os 2 lint warnings herdados do N2. Detalhe em
-    `docs/ANALISE-MELHORIAS-2026-07-11.md`.
+9. ~~Rodar as skills `backend-structure-auditor` e `code-audit-cleanup`~~ — feito
+   2026-07-12 (chat Cowork, via Skill tool). `backend-structure-auditor` completo:
+   `docs/AUDITORIA-ESTRUTURA-2026-07-12.md`, 4 achados. `code-audit-cleanup`
+   parcial: aplicou só `ATOMS_PER_ZEPH` (consolidado em `emission.ts`); os outros
+   3 achados viraram itens do Prompt 5 reescrito (ver item 11) — detalhe em
+   NOTES.md, seção "Auditoria de estrutura + code-audit-cleanup + reescrita do
+   Prompt 5".
+10. ~~Tradução pro inglês~~ — **RODOU** (EN1). CLAUDE.md/NOTES.md já refletem a
+    tabela PT→EN dos 4 módulos e a decisão de locale (`DISPLAY_LOCALE = 'en-US'`).
+    Rotas continuam em português (`/rede`, `/pools`, etc. — decisão desta rodada,
+    tradução de rota fica pra outro prompt se o Carlos quiser).
+    **AINDA SEM COMMIT** — ver pendência de git no topo deste arquivo.
+11. ~~Prompt 5 (integração final) — REESCREVER antes de colar~~ — **feito
+    2026-07-12** (chat Cowork). A versão em `docs/zephyr-mining-hub-prompts.md`
+    remove os 3 itens já resolvidos (loading/erro, nav ativa, tema — agora 2
+    temas) e absorve: README.md desatualizado, ErrorBoundary por módulo (não
+    existe nenhum — erro de render vira tela branca), varredura order=desc, os 2
+    lint warnings herdados do N2, e os 3 achados da auditoria de estrutura que o
+    code-audit-cleanup não aplicou (constantes cross-module, hook
+    `useFailingSources`, hook de chart hover). Mantém o redirect `/` → `/rede`
+    (decisão do Carlos — sem página inicial nova). **Pronto pra colar** — só
+    falta commitar o que está pendente (ver topo deste arquivo) antes de abrir a
+    sessão do Fable.
 12. Escrever o prompt de deploy no Vercel — **ainda não existe**. Além do rewrite
     do proxy (`/zephyr-api/(.*)` → `zephyrprotocol.com/api/$1`), precisa de
     fallback de SPA (catch-all → index.html, DEPOIS do rewrite da API, senão

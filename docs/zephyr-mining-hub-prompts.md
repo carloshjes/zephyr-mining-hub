@@ -1277,48 +1277,166 @@ pronto.
 
 ---
 
-## Prompt 5 — Fable: integração e revisão final
+## Prompt 5 — Fable: integração e revisão final (REESCRITO 2026-07-12)
+
+Versão original (histórico, não colar) escrita antes do R1–R7/N1–N3/T1/G1/EN1 — na
+época pedia REVIEW.md do zero, loading/erro compartilhado, nav com rota ativa, tema
+único e página inicial. Desde então: loading/erro compartilhado existe desde o Prompt 1
+(`ErrorNotice`/`Skeleton`), nav com rota ativa existe desde R1/N1 (rail + `[ Rótulo ]`),
+e "tema único" virou DOIS temas (T1) — os três itens saíram desta versão. Página
+inicial: Carlos decidiu manter o redirect `/` → `/rede` como está (não crie página
+nova — ver `<restricoes>`).
+
+Esta reescrita absorve duas fontes que não existiam na versão original:
+`docs/AUDITORIA-ESTRUTURA-2026-07-12.md` (skill `backend-structure-auditor`, rodada no
+chat Cowork sobre o working tree pós-EN1: 4 achados, todos [Baixo]/[Médio], zero bug de
+comportamento) e uma rodada de `code-audit-cleanup` (mesmo dia, mesmo chat) que aplicou
+só a consolidação mais mecânica (`ATOMS_PER_ZEPH` — `src/lib/api/minerStats.ts` agora
+importa de `emission.ts` em vez de redefinir) e deixou o resto pra esta sessão de
+propósito: ou exigia escolher um lar novo pra uma constante compartilhada entre módulos
+(decisão pequena de arquitetura), ou envolvia hooks de interação (hover/teclado) que só
+dá pra verificar com confiança rodando a suíte e2e real — Windows, CDP — que aquele
+ambiente não tinha. Leia CLAUDE.md, NOTES.md e a auditoria de estrutura inteira antes de
+começar; não crie um REVIEW.md novo — a auditoria já é o REVIEW.md desta rodada.
 
 ```
-Aja como um engenheiro front-end sênior fazendo revisão final de um projeto que teve
-cada módulo construído em uma sessão separada, sem memória compartilhada entre elas —
-seu trabalho aqui é unificar, não reescrever do zero.
+Aja como um engenheiro front-end sênior fazendo a integração final de um produto cujos
+4 módulos foram construídos em sessões separadas sem memória compartilhada entre elas —
+seu trabalho é consolidar duplicação real já mapeada, fechar uma lacuna de robustez
+conhecida, e deixar o repo apresentável pra quem chegar de fora. Não é redescoberta: os
+itens abaixo já têm diagnóstico (arquivo, linha, causa) de uma auditoria de estrutura
+real — sua tarefa é decidir a correção e aplicar, testando cada item antes de seguir
+pro próximo (mesma disciplina do R1/R3/R4).
 
 <contexto>
-Os 4 módulos do Zephyr Mining Hub (Pulso da Rede, Bússola de Pools, Raio-X da Recompensa,
-Monitor do Rig) já existem no repo, construídos em prompts/sessões diferentes. É esperado
-ter inconsistência de estilo entre eles.
+O Zephyr Mining Hub tem os 4 módulos prontos (Network Pulse, Pool Compass, Reward X-Ray,
+Rig Monitor), produto em inglês (hardcoded, EN1), design system "Sinal Técnico" com
+tema escuro/claro (T1). `docs/AUDITORIA-ESTRUTURA-2026-07-12.md` fez um censo completo
+dos 38 arquivos de `src/` e achou 4 padrões de duplicação — nenhum bug, mas o tipo de
+coisa que uma "integração final" existe pra resolver antes que fique mais caro. Leia o
+arquivo inteiro antes de começar: os trechos abaixo resumem, mas os números de linha e
+o raciocínio completo estão lá.
 </contexto>
 
 <tarefa>
-1. Revise os 4 módulos e liste em REVIEW.md qualquer inconsistência de: nomenclatura de
-   variável/função, tratamento de erro/loading (cada módulo pode ter reinventado o
-   próprio jeito de mostrar "carregando"/"erro"), estilo visual (cores, espaçamento,
-   tipografia).
-2. Unifique os padrões mais divergentes: um único componente de loading/erro reutilizado
-   pelos 4 módulos, um único tema no Tailwind config.
-3. Finalize a navegação entre os 4 módulos com indicação clara de qual está ativo.
-4. Adicione uma página inicial simples explicando em 2-3 frases o que é o Zephyr Mining
-   Hub, linkando pros 4 módulos.
-5. Rode `npm run build` e garanta que sobe sem erro nem warning novo.
-6. Procure por qualquer chamada à Scanner API usando `order=desc` sem `from`/`to`
-   explícitos (o Prompt 3 achou e corrigiu um caso não-determinístico exatamente nisso,
-   em getLatestBlockReward — ver CLAUDE.md). Se achar outra ocorrência, corrija com a
-   mesma âncora por altura.
+1. README.md — reescreva refletindo o estado real (hoje ainda diz "🚧 placeholder" pra
+   Pool Compass/Reward X-Ray/Rig Monitor, todos prontos há muito). Cubra: os 4 módulos
+   como produto único, o design system (tema escuro/claro), que o produto é em inglês
+   e o repo (CLAUDE.md/NOTES.md/docs/comentários) é em português, os scripts de
+   verificação (`design-shots.mjs`, os *-e2e.mjs, `contrast-check.mjs`) e a pasta docs/.
+   Não precisa ser extenso — é a porta de entrada do repo, não um manual.
+
+2. ErrorBoundary por módulo — hoje não existe NENHUM no projeto (confirmado por grep):
+   um throw durante o render de qualquer componente derruba a árvore React inteira e
+   vira tela em branco, exatamente o que a convenção "erro sempre visível, nunca tela
+   em branco" do CLAUDE.md proíbe pra falha de REDE (a camada de rede é defensiva; erro
+   de RENDER não tem rede de proteção nenhuma hoje). Adicione um ErrorBoundary por rota
+   (as 4 dentro de `AppShell`/`App.tsx` — decida o ponto de captura mais próximo do
+   `<Outlet />` sem duplicar por módulo) com fallback na MESMA linguagem visual de erro
+   do resto do produto (`[ FAILED ]`, mesma família do `ErrorNotice` variant="blocking"
+   — reaproveite o componente ou o estilo dele, não invente um terceiro).
+
+3. Varredura `order=desc` sem `from`/`to` — o Prompt 3 achou e corrigiu um caso
+   não-determinístico exatamente nisso (`getLatestBlockReward`, ver CLAUDE.md). Confirme
+   por grep em `src/` que a ÚNICA ocorrência restante é o fallback documentado em
+   `getRecentBlockRewards` (zephyrScanner.ts, quando a janela ancorada por altura vem
+   vazia) — esse é intencional e já comentado, não corrija. Se achar QUALQUER outra
+   ocorrência não ancorada por altura, corrija com a mesma âncora compartilhada
+   (`getAnchorHeight`).
+
+4. Constantes de domínio duplicadas restantes (achado 1 da auditoria — a parte do
+   `ATOMS_PER_ZEPH` já foi resolvida, não mexa nela de novo):
+   a. `MIN_READING_GAP_MS = 55_000` está definida separadamente em
+      `src/modules/pools/luckHistory.ts:20` e `src/modules/rig/rigStatus.ts:73`, mesmo
+      valor e mesma justificativa ("polling é 60s, gap evita duplicata"). Pools e rig
+      são módulos-irmãos (a regra do projeto — CLAUDE.md — é que não se importam entre
+      si), então a correção não é um importar do outro: escolha um lar em `src/lib/`
+      (ex. um pequeno módulo de constantes de histórico local, ou exportada de onde já
+      fizer sentido semântico) e importe dos dois.
+   b. O intervalo de poll das pools (`60_000`) está hardcoded em
+      `src/modules/pools/PoolsPage.tsx:30` (`POLL_INTERVAL_MS`) e
+      `src/modules/rig/RigDashboard.tsx:50` (`POOL_POLL_MS`) — o comentário do
+      RigDashboard já admite que é "o mesmo passo da Bússola de Pools" sem importar de
+      um lugar comum. Mesma correção: constante compartilhada em `lib/`, não um módulo
+      importando do outro. (NÃO mexa no `SERIES_POLL_MS` do RewardsPage.tsx — a
+      auditoria confirmou que é o mesmo número por coincidência, não a mesma violação:
+      justificativa diferente, cadência de bloco.)
+
+5. Bloco de agregação de erro duplicado (achado 2) — `NetworkPulsePage.tsx:184-192` e
+   `RewardsPage.tsx:217-224` têm o mesmo par `failingSources`/`noDataAtAll` e o mesmo
+   JSX condicional de `ErrorNotice` logo depois, quase byte a byte. ATENÇÃO: não são
+   100% idênticos — NetworkPulsePage inclui `dailyStats.error` no `failingSources` mas
+   NÃO conta `dailyStats.data` no `noDataAtAll` (é uma fonte secundária, só do "delta vs.
+   ontem"); RewardsPage conta as 3 fontes nos dois. `RigDashboard.tsx:338-342` tem uma
+   3ª variante (`earningsFailingSources`) renderizada diferente (texto inline, não
+   `ErrorNotice`) — não precisa virar idêntica às outras, mas pode usar o mesmo hook se
+   couber sem forçar. Extraia um hook `useFailingSources` (ou nome equivalente) pra
+   `src/hooks/` que aceite algo como uma lista de `{ error, label, countsForNoData }` e
+   devolva `{ failingSources, noDataAtAll }`, preservando essa assimetria real — não a
+   apague por engano ao generalizar.
+
+6. Dois gráficos reimplementando a mesma interação (achado 4, o de maior volume —
+   ~40-50% de cada componente): `ReserveRatioChart.tsx` e `RewardSplitChart.tsx`
+   compartilham `HoverState`, `setHoverFromPointer` (idêntico), `onKeyDown`
+   (Arrow←/→/Home/End/Escape, quase idêntico) e o cálculo de `tooltipLeft`
+   (`Math.min(Math.max(x, N), Math.max(width - N, N))` — SÓ a margem `N` difere: 72 no
+   Reserve Ratio, 96 no Reward Split). Extraia um hook (`useChartHover` ou equivalente)
+   que os dois componentes usem, parametrizado pela margem do tooltip. Depois de
+   extrair, rode a suíte e2e completa (ela testa hover/teclado nos dois gráficos) antes
+   de considerar este item pronto — é o item com mais risco de regressão sutil desta
+   sessão.
+
+7. Achado 3 (motores de histórico paralelos: `luckHistory.ts`,
+   `networkHashrateHistory.ts` e o motor genérico que `rigStatus.ts` já usa
+   internamente pras 2 séries do próprio módulo) — a auditoria classifica como menor
+   prioridade (zero risco ativo, só dívida de manutenção). Fica a seu critério: se
+   couber com folga depois dos itens 1-6, generalize o motor de `rigStatus.ts` pra um
+   utilitário em `lib/` usado pelos 3; se o tempo/risco não fechar, registre em
+   NOTES.md como backlog explícito e siga em frente — não é bloqueante pra esta sessão.
+
+8. Rode `npm run lint` e resolva os 2 warnings PRÉ-existentes (presentes desde o N2,
+   nunca corrigidos): `scripts/logo-shots.mjs` (ternário como expressão, vira if/else,
+   mesmo fix que já foi aplicado em `rail-logo-shots.mjs`) e
+   `src/modules/rewards/SeriesSwatch.tsx` (leia o warning exato do lint pra decidir o
+   fix — não estava óbvio numa leitura estática).
 </tarefa>
 
 <restricoes>
-- Não reescreva a lógica de negócio de cada módulo (os fetches, os cálculos) — só a
-  camada de apresentação/consistência, a menos que encontre um bug real; nesse caso,
-  documente o bug em REVIEW.md antes de corrigir.
-- Preserve os critérios de aceite originais de cada módulo — não remova funcionalidade
-  pra "simplificar".
+- NÃO crie página inicial nova — Carlos decidiu manter `/` → `/rede` (redirect atual em
+  `App.tsx`) como está. Não reabra essa decisão.
+- NÃO crie um REVIEW.md — `docs/AUDITORIA-ESTRUTURA-2026-07-12.md` já cumpre esse papel
+  pra esta rodada. Registre o que foi corrigido/decidido em NOTES.md, convenção usual do
+  projeto (uma seção "# NOTES — Prompt 5: ..." como as demais).
+- Não reescreva lógica de negócio (fetches, cálculos, fórmulas) — os 6 itens acima são
+  consolidação de duplicação e robustez de apresentação, não mudança de comportamento.
+  Se encontrar um bug real no caminho, documente em NOTES.md antes de decidir corrigir
+  ali ou deixar pra outra sessão.
+- Preserve os critérios de aceite de cada módulo já existente — nada de "simplificar"
+  removendo funcionalidade.
+- Produto já em inglês (EN1): qualquer texto novo visível ao visitante (fallback do
+  ErrorBoundary, README não conta — README é doc de trabalho, fica em português) segue
+  em inglês, mesma convenção mono `[ RÓTULO ]` onde já existir.
+- Não toque no `SERIES_POLL_MS` do RewardsPage.tsx (ver item 4b) nem no fallback
+  `order=desc` documentado de `getRecentBlockRewards` (ver item 3).
 </restricoes>
 
 <criterios_de_aceite>
 - `npm run build` limpo.
-- Os 4 módulos usam o mesmo componente de loading/erro.
-- REVIEW.md lista o que foi encontrado e o que foi corrigido.
+- `npm run lint` SEM NENHUM warning (os 2 pré-existentes resolvidos, zero novo).
+- Grep por acentuação fora de comentário em `src/` continua em zero (não regredir EN1).
+- Suíte e2e completa (pools normal/broken2miners, rewards normal/lowratio/
+  brokenrewards, rig normal/notfound, theme) — TUDO PASSA, especialmente após o item 6.
+- README.md reflete o produto real (4 módulos prontos, não placeholder).
+- Existe ErrorBoundary cobrindo as 4 rotas, com fallback na linguagem visual do projeto;
+  confirme com um erro de render forçado temporariamente (ex. `throw` num componente)
+  que a tela mostra o fallback em vez de branco, depois remova o throw de teste.
+- `MIN_READING_GAP_MS` e o poll de 60s das pools/rig vêm de uma constante importada
+  única cada um — zero redefinição do mesmo valor em módulos diferentes.
+- `useFailingSources` e o hook de chart hover existem e são usados pelos sites
+  originais (Network/Rewards para o primeiro; Reserve Ratio/Reward Split para o
+  segundo).
+- CLAUDE.md/NOTES.md atualizados com o que foi feito, o que foi decidido no item 7, e
+  qualquer bug real encontrado no caminho.
 </criterios_de_aceite>
 ```
 
