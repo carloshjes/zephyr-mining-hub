@@ -60,7 +60,7 @@ rewrite resolve isso sem backend próprio).
 | R7 (Fable) | Corrige alinhamento ícone/rótulo do ThemeToggle (translate-y-px, correção óptica medida), troca sol/lua pra técnica pixelada (grade 11×11, mesma família do PixelHeart), simplifica o rodapé (remove disclaimer, endereço completo sem truncar/sem botão, fonte e coração maiores) | ✅ feito, verificado, commitado e enviado | `39f3f6f` |
 | 5 (Fable) | Integração final | ✅ feito, verificado e commitado | `804f088` |
 | EN1 | Tradução pro inglês (hardcode, sem i18n) | ✅ feito, verificado e commitado (junto com auditoria + code-audit-cleanup + reescrita do Prompt 5) | `fc27443` |
-| D1 (Fable) | Deploy em produção (Vercel) | 📝 **escrito em 2026-07-12** (chat Cowork) — pronto pra colar, ver `docs/zephyr-mining-hub-prompts.md` | — |
+| D1 (Fable) | Deploy em produção (Vercel) | ✅ **no ar**: `https://zephyr-mining-hub.vercel.app`. Checklist de NOTES.md ("Deploy Vercel (D1)"): a/b/c confirmados (b por fetch direto no proxy, não captura de tela — ver NOTES.md), **falta só d (teste do XMRig, só o Carlos consegue rodar) e e (cadência de polling, risco baixo)** | `5df2c50` |
 | — | Skill `backend-structure-auditor` | ✅ **rodou 2026-07-12** — `docs/AUDITORIA-ESTRUTURA-2026-07-12.md`, 4 achados [Baixo]/[Médio], zero bug | — |
 | — | Skill `code-audit-cleanup` | 🟡 **rodou 2026-07-12, parcial** — aplicou só a consolidação de `ATOMS_PER_ZEPH`; os outros 3 achados viraram itens do Prompt 5 reescrito (exigiam decisão de arquitetura pequena ou e2e real pra verificar com confiança) | — |
 
@@ -176,6 +176,24 @@ RigDashboard.tsx): conteúdo intacto e correto nos dois. Mesmo diagnóstico de
 antes — índice temporariamente inconsistente, provavelmente por escrita
 concorrente (sessão `claude` ainda aberta) — SEM perda real. Não precisa de ação
 além de fechar sessões `claude` abertas antes do próximo commit.
+
+**Lição nova (2026-07-12, sessão do D1): o chat Cowork rodando `git status` pelo
+próprio sandbox pode travar o commit do Carlos.** Rodei `git status` neste chat
+pra verificar o relato do Fable antes de instruir o commit; o comando terminou
+com `warning: unable to unlink '.git/index.lock': Operation not permitted` — o
+sandbox cria o lock mas não consegue apagá-lo (mesma classe de restrição de
+unlink já documentada acima pro `git checkout`). O lock ficou órfão no `.git/`
+compartilhado; quando o Carlos rodou `git add`/`git commit` na PowerShell dele
+logo depois, bateu no mesmo lock e falhou silenciosamente — `git push` reportou
+"Everything up-to-date" porque não havia commit novo (`HEAD` confirmado ainda no
+commit anterior por `git log`). Fix: apagar `.git\index.lock` manualmente numa
+PowerShell limpa (`Remove-Item .git\index.lock`) e repetir add/commit/push;
+confirmado depois por `git rev-parse HEAD` == `git rev-parse origin/main`.
+**Regra nova: este chat deve evitar rodar `git status`/`git add`/`git commit`
+pelo sandbox nos minutos antes de instruir o Carlos a commitar** — se precisar
+verificar estado de git, prefira `git log`/`git rev-parse`/`git cat-file`
+(não tocam o índice) em vez de `git status`/`git diff` (tocam o índice e podem
+deixar lock preso).
 
 ## Lições da sessão de 2026-07-09 (git + sessão do Fable concorrente)
 

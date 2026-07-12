@@ -2204,24 +2204,39 @@ função serverless, segredo ou backend com estado nessa solução.
 
 ## Checklist pós-deploy — Carlos
 
-Os itens abaixo exigem a URL pública real e permanecem pendentes nesta sessão:
+Deploy real feito pelo Carlos em 2026-07-12: `https://zephyr-mining-hub.vercel.app`,
+preset Vite confirmado por captura da tela de import. Itens a-c re-verificados neste
+chat por fetch HTTP direto na URL pública (não é inspeção visual — ver ressalva no
+item b); d e e continuam exigindo o Carlos.
 
-- [ ] **a.** Importar o repo em vercel.com (ou executar `vercel --prod`) e
-  confirmar **Framework Preset = Vite**.
-- [ ] **b.** Abrir a URL pública e confirmar dado real, não apenas skeleton ou
-  erro, nos quatro módulos. Conferir especialmente **Network Pulse** e
-  **Reward X-Ray**, que dependem do rewrite da Scanner API.
-- [ ] **c.** Recarregar com F5 ou abrir links diretos em `/pools`,
-  `/recompensa` e `/meu-rig`; nenhuma rota pode responder 404. Este é o teste
-  do fallback de SPA.
+- [x] **a.** Importar o repo em vercel.com e confirmar **Framework Preset = Vite**.
+  Confirmado por captura da tela "New Project" (preset Vite autodetectado, root `./`,
+  sem env vars) e pelo deploy ter ficado no ar.
+- [x] **b.** Abrir a URL pública e confirmar dado real, não apenas skeleton ou erro,
+  nos quatro módulos. **Verificado parcialmente**: `GET
+  /zephyr-api/v1/livestats` na URL pública devolveu JSON real da Scanner API
+  (`reserve_ratio: 4.032967`, `zeph_price: 0.4194`, etc.) — prova que o rewrite de
+  produção funciona de ponta a ponta, não só em dev/preview. Não foi possível abrir
+  um navegador de verdade nesta sessão (Claude in Chrome não estava conectado), então
+  a renderização dos quatro módulos em si não foi vista por captura — só a resposta
+  HTTP do dado que os alimenta. Carlos já relatou "deu certo" olhando a tela real; se
+  quiser fechar 100%, um único olhar nos 4 módulos confirma o resto.
+- [x] **c.** Recarregar com F5 ou abrir links diretos em `/pools`, `/recompensa` e
+  `/meu-rig`; nenhuma rota pode responder 404. **Confirmado pelas 4 rotas** (`/rede`,
+  `/pools`, `/recompensa`, `/meu-rig`) via fetch direto na URL pública: as 4
+  devolveram 200 com o mesmo shell HTML (`<title>Zephyr Mining Hub</title>`, meta
+  description em inglês) — o fallback de SPA está funcionando em produção.
 - [ ] **d.** Com o XMRig real ou `scripts/xmrig-sim.mjs` rodando localmente com
   `--http-enabled`, abrir a URL pública HTTPS da Vercel e configurar o Rig
   Monitor para esse XMRig local. Registrar o resultado como **funcionou**,
   **bloqueado** ou **bloqueado com aviso**. `https://localhost` → XMRig HTTP já
   funcionou, mas um domínio público pertence a outro espaço de endereço para a
   política de Local Network Access do Chrome; a UI já degrada graciosamente e
-  esse resultado não bloqueia o deploy.
+  esse resultado não bloqueia o deploy. **Único item que só o Carlos consegue
+  rodar** (precisa do XMRig/simulador local dele).
 - [ ] **e.** No painel da Vercel e/ou na aba Network do navegador, confirmar que
   o proxy não introduziu polling mais rápido que os 30 s de cache da Scanner
   API. A cadência deve continuar sendo decidida pelo `usePolling` do app, não
-  pelo rewrite.
+  pelo rewrite. Risco baixo por construção (o rewrite é um proxy passivo, não
+  adiciona lógica de cadência), mas fica em aberto até alguém olhar a aba Network
+  de verdade.
