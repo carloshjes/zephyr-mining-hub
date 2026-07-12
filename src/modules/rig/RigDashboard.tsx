@@ -4,6 +4,12 @@ import { useDataPulse } from '../../hooks/useDataPulse'
 import { useElementWidth } from '../../hooks/useElementWidth'
 import { getMinerPool, MinerNotFoundError, type MinerSnapshot } from '../../lib/api/minerStats'
 import { fetchXmrigSummary, type XmrigSummary } from '../../lib/api/xmrig'
+import {
+  getLatestBlockReward,
+  getLiveStats,
+  SCANNER_CACHE_SECONDS,
+} from '../../lib/api/zephyrScanner'
+import { getNetworkInfo } from '../../lib/api/zephyrExplorer'
 import { ErrorNotice } from '../../components/ui/ErrorNotice'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { StatCard } from '../../components/ui/StatCard'
@@ -14,10 +20,12 @@ import {
   formatHashrate,
   formatInteger,
   formatTime,
+  formatUsd,
   formatZeph,
   orDash,
 } from '../../lib/format'
 import type { RigConfig } from './rigConfig'
+import { estimateDailyEarnings } from './earnings'
 import {
   appendDailyHashrateReading,
   appendHashrateReading,
@@ -42,6 +50,9 @@ import {
 const POOL_POLL_MS = 60_000
 // XMRig é local (sem rede) — 5 s dá sensação de tempo real sem custo
 const XMRIG_POLL_MS = 5_000
+// Ganho estimado: mesmas 3 fontes e mesmo passo do Pulso da Rede (cache de
+// 30 s do Scanner — a constante importada, nunca 30000 solto)
+const EARNINGS_POLL_MS = SCANNER_CACHE_SECONDS * 1_000
 
 interface RigDashboardProps {
   config: RigConfig
@@ -233,6 +244,14 @@ export function RigDashboard({ config }: RigDashboardProps) {
       ? xmrigPoll.data
       : undefined
 
+  // Ganho estimado — as 3 fontes que o Pulso da Rede já consome (funções
+  // module-level: identidade estável, dispensam useCallback). Erro isolado
+  // por fonte, no mesmo espírito do par pool/xmrig acima: uma falhando não
+  // derruba as outras nem o resto da tela.
+  const networkInfoPoll = usePolling(getNetworkInfo, EARNINGS_POLL_MS)
+  const blockRewardPoll = usePolling(getLatestBlockReward, EARNINGS_POLL_MS)
+  const liveStatsPoll = usePolling(getLiveStats, EARNINGS_POLL_MS)
+
   // Régua do "esperado": histórico por fonte (pool mede TODOS os workers da
   // carteira; XMRig mede um rig só — média de cada um na sua escala)
   const poolKey = historyKey(config.poolId, wallet, 'pool')
@@ -302,6 +321,26 @@ export function RigDashboard({ config }: RigDashboardProps) {
     .filter((part) => part !== undefined)
     .join(' · ')
 
+  // Ganho estimado (1ª composição cross-module do produto): o signalHashrate
+  // deste módulo cruzado com rede/recompensa/preço. Campo de input ausente
+  // degrada o campo de SAÍDA pra "—" — nunca número parcial nem zero
+  // disfarçado de dado (regras em earnings.ts).
+  const earnings = estimateDailyEarnings({
+    rigHashrate: signalHashrate,
+    networkHashrate: networkInfoPoll.data?.hash_rate,
+    minerRewardZeph: blockRewardPoll.data?.miner_reward,
+    zephPrice: liveStatsPoll.data?.zeph_price,
+  })
+  const earningsLoading =
+    networkInfoPoll.isLoading || blockRewardPoll.isLoading || liveStatsPoll.isLoading
+  // Falha visível por fonte (convenção: erro nunca silencioso), no escopo do
+  // bloco — o restante da tela tem seus próprios avisos
+  const earningsFailingSources = [
+    networkInfoPoll.error && 'Explorer (hashrate da rede)',
+    blockRewardPoll.error && 'Scanner (recompensa)',
+    liveStatsPoll.error && 'Scanner (preço)',
+  ].filter((source): source is string => Boolean(source))
+
   const notFound = poolPoll.error instanceof MinerNotFoundError
 
   return (
@@ -338,6 +377,40 @@ export function RigDashboard({ config }: RigDashboardProps) {
               </p>
               <div className="mt-4">
                 <StatusBadge status={status} detail={statusDetail} />
+              </div>
+
+              {/* Ganho estimado — o vão sob o StatusBadge (as proporções
+                  pré-R4, NOTES.md) vira a 1ª composição cross-module do
+                  produto. Leitura SECUNDÁRIA: data-lg mono (a mesma régua
+                  dos dígitos do HalvingCountdown), nunca competindo com o
+                  headline do sinal. Anatomia idêntica ao [ TENDÊNCIA ] do
+                  Pulso da Rede: caption mono + mt-10, sem moldura nova. */}
+              <div className="mt-10">
+                <p className="font-mono text-caption tracking-wide text-mist-400">
+                  [ GANHO ESTIMADO ]
+                </p>
+                {earningsLoading ? (
+                  <div className="mt-2 space-y-2">
+                    <Skeleton className="h-9 w-64" />
+                    <Skeleton className="h-5 w-40" />
+                  </div>
+                ) : (
+                  <>
+                    <p className="mt-1 font-mono text-data-lg font-medium text-mist-100">
+                      {orDash(earnings.zephPerDay, (value) => `${formatZeph(value, 4)}/dia`)}
+                    </p>
+                    <p className="mt-1 text-body text-mist-300">
+                      {orDash(earnings.usdPerDay, (value) => `≈ ${formatUsd(value)}`)}{' '}
+                      <span className="text-mist-400">em USD/dia</span>
+                    </p>
+                    {earningsFailingSources.length > 0 && (
+                      <p className="mt-2 font-mono text-caption text-bad">
+                        [ fonte com falha: {earningsFailingSources.join(' · ')} — tentando de
+                        novo automaticamente ]
+                      </p>
+                    )}
+                  </>
+                )}
               </div>
             </>
           ) : (

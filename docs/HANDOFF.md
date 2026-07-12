@@ -36,7 +36,7 @@ rewrite resolve isso sem backend próprio).
   Nenhum prompt depende de qual modelo executa; se o GLM voltar, os prompts 2-4
   funcionam do mesmo jeito.
 
-## Onde estamos (verificado por `git log`/`git status` reais em 2026-07-11, não por memória)
+## Onde estamos (verificado por `git log`/`git status` reais em 2026-07-12, não por memória)
 
 | # | Módulo | Status | Commit |
 |---|--------|--------|--------|
@@ -52,10 +52,35 @@ rewrite resolve isso sem backend próprio).
 | N2 (Fable) | Cintilância da logo (95/288 pontos, 3 fases) + recomposição mobile do rail (logo 96px, nav em grade 2×2) | ✅ feito, commitado e enviado | `e785e82` |
 | R3 (Fable) | Sinal Técnico v3: fundo mais claro + textura de blocos com movimento, --text-headline/--text-display recalibrados, halving vira readout, sparkline de hashrate de rede (novo, `networkHashrateHistory.ts` + `TrendSparkline.tsx` generalizado de `LuckSparkline`), chips da Bússola com fundo sólido, faixas do Raio-X com respiração de opacidade, RESERVE RATIO com bg-ink-900, fix do rótulo do piso (medido: 0,07 px da borda antes do fix, flip dinâmico depois), scrollbar/botões estilizados, StatusBadge do Rig com fundo tintado + halo no estado normal, gráfico de hashrate 24h no Rig (payments sondado ao vivo — 2Miners confirmou CORS+formato, HeroMiners não; regra "as duas ou nenhuma" descartou payments) | ✅ feito, verificado e commitado | `0c11837` |
 | R4 (Fable) | Correções de layout + acabamento a partir de 6 screenshots reais do Carlos: rampa da logo sem tom de branco (mist-300 saiu, 4 tons [.40,.29,.21,.10], regenerada via logo-export.mjs), rail 16rem (teto matemático do breakpoint xl) + header mobile 128px, chips da Bússola empilham em coluna + "N workers" nowrap, --text-display 11rem→9rem, legenda duplicada do Raio-X removida, rótulo do piso removido com código morto, scrollbar 8px thumb hairline, TrendSparkline variant bars + pendingBalance como faixa própria, StatusBadge normal vira readout nu (escada nada < tintado < sólido) | ✅ feito, verificado, commitado e enviado | `de6398c` |
+| R5 (Fable) | Lapidações finais (sparklines responsivos, chips da Bússola, mobile do Raio-X, gráfico de barras do Rig, below sem caixa, favicon removido) | ✅ feito, verificado, commitado e enviado | `4a2f71a` |
+| T1 (Fable) | Tema claro "Azul técnico": 2º conjunto de valores pros mesmos tokens, botão de troca persistente, anti-flash | ✅ feito, verificado, commitado e enviado | `eda8661` |
+| N3 (Fable) | Ícone (sol/lua traço mono) no botão de troca de tema, substituindo o texto `[ TEMA · ... ]` | 🟡 rodou (confirmado por screenshot), **AINDA SEM COMMIT** | — |
+| G1 (Fable) | Ganhos estimados no Monitor do Rig (1ª composição cross-module: hashrate do rig + da rede + recompensa + preço) | 🟡 rodou (`src/modules/rig/earnings.ts` existe, RigDashboard.tsx modificado), **AINDA SEM COMMIT** | — |
+| R6 (Fable) | 3 achados de screenshot: rótulo DARK/WHITE no botão de tema, largura do parágrafo da Bússola = largura da tabela, rodapé com coração pixelado + endereço de doação | 🟡 rodou (confirmado por screenshot), **AINDA SEM COMMIT** | — |
+| R7 (Fable) | Corrige alinhamento ícone/rótulo do ThemeToggle, troca sol/lua pra técnica pixelada (consistência com o PixelHeart), simplifica o rodapé (remove disclaimer, endereço completo sem truncar/sem botão, fonte e coração maiores) | ⬜ prompt escrito em `docs/zephyr-mining-hub-prompts.md`, pronto pra colar | — |
 | 5 (Fable) | Integração final | ⬜ não iniciado — entra depois da tradução pro inglês | — |
 | — | Tradução pro inglês | ⬜ sessão separada, depois do R2 (não escrita ainda) | — |
 | — | Prompt de deploy no Vercel | ⬜ ainda não escrito | — |
 | — | Skills (auditoria/limpeza/visual) | ⬜ não rodadas | — |
+
+**Pendência de git ATIVA (2026-07-12): N3 + G1 + R6 rodaram em sequência sem
+commit entre sessões** — `git status` confirma working tree com CLAUDE.md, NOTES.md,
+scripts/contrast-check.mjs, scripts/theme-e2e.mjs, src/components/layout/AppShell.tsx,
+src/modules/pools/PoolsPage.tsx, src/modules/rig/RigDashboard.tsx modificados +
+src/modules/rig/earnings.ts novo — TUDO isso ainda só no disco, `HEAD` continua em
+`eda8661` (T1). Isso quebrou a regra 2 (commit imediato depois de cada prompt) três
+vezes seguidas — risco real de perda (mesmo caso do Prompt 2, ver regra 2 abaixo).
+Como o N3 ficou embutido dentro do AppShell.tsx que o R6 já editou por cima, não dá
+pra separar os dois em commits limpos sem `git add -p` (arriscado numa PowerShell
+comum) — recomendação: **commitar TUDO junto agora, antes de rodar o R7**, com uma
+mensagem que liste os três prompts. Sugestão de comando (rodar numa PowerShell limpa,
+regra 5):
+```
+git add -A
+git commit -m "prompts N3 + G1 + R6: icone de tema, ganhos estimados no rig, rotulo DARK/WHITE + rodape de doacao"
+git push
+```
+Depois disso, retomar o commit-por-prompt normalmente a partir do R7.
 
 **Pendência de git do N2 (RESOLVIDA, 2026-07-11):** o N2 ficou um tempo só no working
 tree (relatado numa sessão anterior deste chat) — Carlos commitou antes de abrir a
@@ -92,6 +117,21 @@ CONTEÚDO: `git cat-file -p HEAD:<arquivo>` + `git diff --no-index` (50 linhas d
 diferença num arquivo que o status dizia limpo). Regra: verificação de estado de git
 feita pelo chat Cowork só vale por conteúdo (show/cat-file/hash-object); status/diff
 confiáveis só rodados no Windows, pelo Carlos.
+
+**Lição nova (2026-07-12): 3 arquivos truncados de verdade no working tree ao abrir
+este chat** (`index.html`, `src/modules/rig/RigDashboard.tsx`,
+`docs/zephyr-mining-hub-prompts.md` — cada um cortado no meio de uma linha, sem
+conteúdo novo real, só deleção do final do arquivo). Diferente da lição acima: aqui
+NÃO era ilusão de stat cache — `wc -l`/`tail` confirmaram por CONTEÚDO que os arquivos
+estavam mesmo menores e cortados a meio de token (ex.: index.html parava no meio de
+`<script>`). Causa provável: a sessão anterior deste chat (que "ficou lotada") travou
+ou foi cortada no meio de uma escrita. Tentativa de correção com `git checkout -- ` deu
+`error: unable to unlink old '<arquivo>': Operation not permitted` — o mount do sandbox
+não permite o padrão unlink+rename que `git checkout` usa. **Fix que funcionou:**
+`git show HEAD:<arquivo> > <arquivo>` (sobrescreve por truncate+write, não por unlink) —
+restaurou os 3 arquivos byte a byte iguais ao HEAD, confirmado por `git status` limpo
+depois. Regra pro futuro: se `git checkout`/`git restore` falhar com "unable to unlink"
+neste sandbox, use `git show HEAD:<path> > <path>` em vez de insistir no checkout.
 
 ## Lições da sessão de 2026-07-09 (git + sessão do Fable concorrente)
 
@@ -205,14 +245,44 @@ porque tendem a se repetir:
    barras maiores/responsivas com tratamento visual novo (latitude da skill),
    estado below do rig padronizado na anatomia de readout nu do normal (desvio
    deliberado da escada do R4 — texto/halo viram o canal não-cor), favicon
-   removido (novo ícone virá do Carlos depois). Pronto pra colar. ANTES de rodar:
-   commitar os docs pendentes (analise + prompts R5/T1 + handoff).
+   removido (novo ícone virá do Carlos depois). **Rodou, verificado e
+   commitado** (`4a2f71a`).
 8c. **Prompt T1 (tema claro white/blue)** — paleta "A · Azul técnico" (matiz
    ≈217°, fundo neutro #f7f7f7) escolhida pelo Carlos entre 3 candidatas em
    2026-07-11. Override [data-theme='light'] dos mesmos tokens, escuro segue
    default, botão mono `[ TEMA · … ]` no rail e no bloco mobile, contrast-check
-   estendido, design-shots ×2 temas. Pronto pra colar — **só depois do commit do
-   R5**.
+   estendido, design-shots ×2 temas. **Rodou, verificado e commitado**
+   (`eda8661`).
+8d. **Prompt N3 (ícone de tema)** — escrito em 2026-07-12 neste chat, depois de
+   rodar a skill `creative-ui-director` (3 direções avaliadas: traço mono
+   sol/lua, extensão dot-matrix da logo, glifo compacto em colchetes — Carlos
+   escolheu traço mono). Troca o texto `[ TEMA · ESCURO ]` por um ícone SVG à
+   mão, sem lib nova. Pronto pra colar, independente da fila principal.
+8e. **Prompt G1 (ganhos estimados no Rig)** — escrito em 2026-07-12 neste chat,
+   depois de rodar a skill `project-direction-scout` (4 direções avaliadas:
+   ganhos estimados, comparação com rede/pool, recorde pessoal, não preencher —
+   Carlos escolheu ganhos estimados). Preenche o vão vazio da coluna dominante
+   do Monitor do Rig cruzando hashrate do rig + hashrate da rede + recompensa +
+   preço — primeira composição cross-module do produto. Pronto pra colar,
+   sessão própria (não junto do N3).
+8f. **Prompt R6 (achados de screenshot pós-N3)** — escrito em 2026-07-12 neste
+   chat a partir de 2 screenshots reais do Carlos (Pulso da Rede e Bússola,
+   tema claro). Depende do N3 já commitado (parte do botão só-ícone). Três
+   itens independentes: rótulo `[ DARK ]`/`[ WHITE ]` ao lado do glifo do
+   ThemeToggle (inglês de propósito, grafia exata pedida pelo Carlos), largura
+   do parágrafo de luck/effort da Bússola igualada à da tabela, e rodapé
+   trocando a lista de fontes de API por um endereço de carteira pra doação
+   ladeado por um coração pixelado (técnica de pontos do LogoMark, sem
+   emoji/ícone de lib) — manteve a frase "sem afiliação oficial" por conta
+   própria (não pedida explicitamente; ver nota abaixo). Pronto pra colar.
+**Nota sobre o R6 (julgamento deste chat, não instrução literal do Carlos):** o
+pedido original era só "retire a linha de fontes e coloque o endereço de doação".
+O prompt manteve a fração "sem afiliação oficial" da linha antiga — o produto usa
+cor/logo de marca da Zephyr, então essa frase é o que deixa claro pro visitante
+que não é o site oficial; sem ela, a lacuna de confiança parece maior que o custo
+de manter uma frase curta. Se o Carlos preferir a remoção total, é um ajuste de
+uma linha no prompt antes de colar.
+
 9. Rodar as skills `backend-structure-auditor` e `code-audit-cleanup` — via Skill
    tool do chat Cowork, não via Claude Code. Subiu pra ANTES da tradução de
    propósito: os achados alimentam a reescrita do Prompt 5 e auditar antes de

@@ -1,12 +1,17 @@
 // Teste E2E da troca de tema em Edge headless via CDP — sem dependências
 // (WebSocket nativo do Node >= 22). Pré-requisito: `npm run dev` rodando.
 //
-// Contrato (rodada do 2º tema, 2026-07-12):
+// Contrato (rodada do 2º tema, 2026-07-12 · glifo 2026-07-12):
 // 1. Default = ESCURO, sem atributo data-theme (identidade do produto; os
 //    demais e2e verificam cor computada assumindo este default).
-// 2. O botão [ TEMA · … ] aplica [data-theme='light'] no <html>, os tokens
-//    fluem (bg computado do body vira o ink-950 claro) e o rótulo declara o
-//    estado ATUAL (convenção mono do sistema: o colchete diz o que É).
+// 2. O botão de tema aplica [data-theme='light'] no <html> e os tokens fluem
+//    (bg computado do body vira o ink-950 claro). O botão virou um GLIFO
+//    (sol/lua) no lugar do rótulo mono `[ TEMA · … ]`: o estado ATUAL agora
+//    se lê pelo desenho, e a verificação migrou do innerText pro aria-label —
+//    que declara a AÇÃO oferecida ("Mudar pro tema claro" quando escuro,
+//    "…escuro" quando claro), logo determina o estado corrente. Mudança
+//    DELIBERADA de canal (texto → glifo+aria), espelhando o que o R5 fez com
+//    a procedência da tendência; as 4 garantias de tema abaixo NÃO mudaram.
 // 3. Persistência: reload mantém o claro SEM flash (o inline script do
 //    index.html aplica o atributo antes do paint — verificado aqui lendo o
 //    atributo já no primeiro poll após a navegação).
@@ -103,12 +108,20 @@ async function waitFor(expression, timeoutMs, label) {
   throw new Error(`timeout esperando: ${label}`)
 }
 
-const STATE = `({
-  attr: document.documentElement.getAttribute('data-theme'),
-  bg: getComputedStyle(document.body).backgroundColor,
-  stored: localStorage.getItem('zephyr-hub.theme.v1'),
-  label: document.querySelector('aside [data-testid="theme-toggle"]')?.innerText.trim(),
-})`
+// O canal do estado é o glifo (visual) + o rótulo mono `[ DARK ]`/`[ WHITE ]`
+// (N4, de volta ao lado do ícone) + o aria-label (a AÇÃO oferecida). 'action'
+// é o aria-label; 'icon' confirma que o glifo segue lá; 'text' é o rótulo.
+const STATE = `(() => {
+  const btn = document.querySelector('aside [data-testid="theme-toggle"]')
+  return {
+    attr: document.documentElement.getAttribute('data-theme'),
+    bg: getComputedStyle(document.body).backgroundColor,
+    stored: localStorage.getItem('zephyr-hub.theme.v1'),
+    action: btn?.getAttribute('aria-label'),
+    icon: !!btn?.querySelector('svg'),
+    text: btn?.innerText.trim(),
+  }
+})()`
 
 await send('Page.enable')
 await send('Emulation.setDeviceMetricsOverride', { width: 1360, height: 940, deviceScaleFactor: 1, mobile: false })
@@ -119,7 +132,8 @@ await waitFor(`location.pathname === '/rede' && document.querySelector('[data-te
 let state = await evaluate(STATE)
 check('default: sem data-theme', state.attr === null)
 check('default: fundo escuro computado (ink-950 #141414)', state.bg === 'rgb(20, 20, 20)', state.bg)
-check('default: rótulo declara o estado ATUAL', state.label === '[ TEMA · ESCURO ]', state.label)
+check('default: glifo presente + rótulo [ DARK ] (estado atual)', state.icon && state.text === '[ DARK ]', `icon=${state.icon} text=${JSON.stringify(state.text)}`)
+check('default: aria-label oferece a ação do estado atual (escuro→claro)', state.action === 'Mudar pro tema claro', state.action)
 
 // 2. clique → claro
 await evaluate(`document.querySelector('aside [data-testid="theme-toggle"]').click(); true`)
@@ -128,7 +142,8 @@ state = await evaluate(STATE)
 check('clique: aplica data-theme=light', state.attr === 'light')
 check('clique: tokens fluem (fundo #f7f7f7)', state.bg === 'rgb(247, 247, 247)', state.bg)
 check('clique: persiste light no localStorage', state.stored === 'light')
-check('clique: rótulo vira [ TEMA · CLARO ]', state.label === '[ TEMA · CLARO ]', state.label)
+check('clique: rótulo vira [ WHITE ] (grafia exata, não LIGHT)', state.text === '[ WHITE ]', state.text)
+check('clique: aria-label vira a ação inversa (claro→escuro)', state.action === 'Mudar pro tema escuro', state.action)
 
 // 3. reload → persiste; o atributo tem que estar lá JÁ no primeiro poll
 //    (anti-flash: o inline script roda antes do React montar)

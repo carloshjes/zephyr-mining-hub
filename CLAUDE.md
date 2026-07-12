@@ -145,6 +145,17 @@ classe por causa do tema. Contraste MEDIDO com `scripts/contrast-check.mjs`
   do antigo w-screen — main agora centra na COLUNA à direita do rail, não na viewport,
   e w-screen cru desalinharia (conta em NOTES.md). Footer vive dentro da coluna
   (full-width real começaria escondido embaixo do rail fixo). main mantém max-w-6xl.
+  Rodapé de DOAÇÃO (N4 2026-07-12): a linha de créditos de API SAIU; entra o
+  endereço ZEPH de doação (const `DONATION_ADDRESS` hardcoded e EXATO em
+  AppShell.tsx — só a apresentação trunca, cabeça 12 + … + cauda 8; valor
+  completo via clipboard e title) copiável (navigator.clipboard, confirmação
+  `[ copiar ]`→`[ copiado! ]` + status aria-live), ladeado por um coração
+  PIXELADO (`PixelHeart`: MESMA técnica de grade de pontos do LogoMark —
+  `<rect>` num grid 7×6, cor por token via style; nunca emoji/ícone de
+  lib/Unicode ♥) no token zeph-300. A frase "projeto comunitário, sem afiliação
+  oficial" FICA logo abaixo — com o site usando cor/logo de marca da Zephyr, é a
+  ÚNICA linha que evita confusão de afiliação (não é estilo, é aviso). Em 390px
+  não estoura (o desenhado tem ~21 chars).
 - Marca integrada (2026-07-10 · rampa R4): o rail usa `LogoMark` em 176px; o bloco
   de topo (<xl) usa 128px (tamanhos R4 — a variação tonal por ponto lê a olho nu nos
   dois, crops em NOTES.md), o que também habilita a cintilância nos DOIS arranjos.
@@ -169,12 +180,30 @@ classe por causa do tema. Contraste MEDIDO com `scripts/contrast-check.mjs`
   textura = preto a 3% (o par de cores da grade é o token `--color-texture-block`,
   papel só-textura). Da paleta planejada, zeph-300/good/bad FALHARAM piso e foram
   recalibrados descendo claridade com matiz preservado (contrast-check, seção TEMA
-  CLARO — não edite valores sem re-rodar). Troca: botão `[ TEMA · ESCURO/CLARO ]`
-  (rótulo declara o estado ATUAL, convenção dos colchetes; ação no aria-label) na
-  BASE do rail e em linha própria sob a nav mobile; persistência em
-  `zephyr-hub.theme.v1` com script inline anti-flash no index.html (aplica o
-  atributo ANTES do primeiro paint — se mudar chave/valor, mude nos DOIS lugares:
-  index.html e src/lib/theme.ts). ESCURO segue o default sem marcação (atributo
+  CLARO — não edite valores sem re-rodar). Troca (glifo desde 2026-07-12): o
+  botão virou um ÍCONE de traço fino desenhado à mão (lua = escuro / sol =
+  claro) no lugar do antigo rótulo mono `[ TEMA · ESCURO/CLARO ]` — na zona
+  meta o rótulo por extenso pesava como item de nav. O GLIFO declara o estado
+  ATUAL (mesma regra do rótulo: diz o que É, não o destino); a AÇÃO segue no
+  aria-label ("Mudar pro tema …"), então o canal de acessibilidade NÃO mudou.
+  N4 (2026-07-12): o ícone-SÓ ficou ambíguo em uso real (sem hover/sem leitor
+  de tela não dá pra saber o que faz) e ganhou de VOLTA um rótulo mono AO LADO
+  do glifo — `[ DARK ]` (escuro ativo) / `[ WHITE ]` (claro ativo; grafia EXATA
+  em inglês pedida pelo Carlos, é WHITE e não LIGHT). O rótulo declara o estado,
+  a ação segue SÓ no aria-label, min-w-[9ch] reserva a largura do mais longo
+  ("[ WHITE ]") pra a troca não deslocar layout; o glifo sol/lua é o mesmo do
+  N3. Sem lib de ícones (SVG inline
+  como o LogoMark, fill none + stroke currentColor); cor no token mist-400
+  (interativo NÃO-texto ≥3:1: 5,0:1 escuro / 5,3:1 claro na célula, bloco GLIFO
+  DE TEMA do contrast-check). Glifo 18px em viewBox 24 (traço 2 → 1,5px
+  rendido); sol e lua na MESMA caixa (zero deslocamento na troca) e alvo de
+  toque ≥24px por extensão invisível `before:-inset-1.5`. Fica na BASE do rail
+  e em linha própria sob a nav mobile; persistência em `zephyr-hub.theme.v1`
+  com script inline anti-flash no index.html (aplica o atributo ANTES do
+  primeiro paint — se mudar chave/valor, mude nos DOIS lugares: index.html e
+  src/lib/theme.ts). O theme-e2e verifica o rótulo `[ DARK ]`/`[ WHITE ]`
+  (innerText) + o glifo (`<svg>`) + o aria-label da ação; as 4 garantias de
+  tema seguem intactas. ESCURO segue o default sem marcação (atributo
   removido, nunca data-theme='dark') — contrato dos e2e, que verificam cor
   computada no default; theme-e2e.mjs cobre troca/persistência/anti-flash. Os
   efeitos (textura, respiração, draw-in, pulso, halo, cintilância) são os MESMOS
@@ -190,7 +219,17 @@ classe por causa do tema. Contraste MEDIDO com `scripts/contrast-check.mjs`
 - /recompensa — Raio-X da Recompensa: como o prêmio de bloco se divide entre
   minerador/reserva/yield. Público, sem configuração.
 - /meu-rig — Monitor do Rig: cada visitante configura a própria carteira/pool/XMRig local,
-  salvo em localStorage do navegador dele.
+  salvo em localStorage do navegador dele. Ganho estimado (2026-07-12 — a PRIMEIRA
+  composição cross-module do produto): o vão da coluna dominante sob o StatusBadge
+  mostra `(signalHashrate / hash_rate da rede) × miner_reward ×
+  (86400 / BLOCK_TIME_SECONDS)` em ZEPH/dia e `× zeph_price` em USD/dia — função pura
+  em `src/modules/rig/earnings.ts`; 3 polls novos no RigDashboard (getNetworkInfo,
+  getLatestBlockReward, getLiveStats — as MESMAS fontes do /rede) a
+  `SCANNER_CACHE_SECONDS × 1000` (constante importada, nunca 30000 solto).
+  Degradação POR CAMPO: sem preço só o USD vira "—"; sem hashrate da rede ou
+  recompensa a estimativa toda vira "—" (bloquear o Explorer derruba TAMBÉM o
+  blockrewards — âncora, capturado em NOTES.md); a tela nunca quebra. miner_reward
+  já é a fatia de 65% — NÃO recalcule o split.
 
 ## Zephyr Scanner API
 Base: https://zephyrprotocol.com/api/v1 — GET, sem autenticação, cache de 30s por endpoint

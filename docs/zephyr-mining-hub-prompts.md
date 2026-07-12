@@ -2230,6 +2230,415 @@ texto corrido ≥4,5:1 com folga, alívio/decoração documentados):
 
 ---
 
+## Prompt N3 — Fable: ícone no botão de troca de tema
+
+Independente da fila principal (não bloqueia nem é bloqueado por skills/tradução/Prompt
+5/deploy) — pode rodar em qualquer sessão livre, sozinho. Direção escolhida em
+2026-07-12 no chat de planejamento (3 avaliadas: traço mono sol/lua, extensão dot-matrix
+da logo, glifo compacto em colchetes) — traço mono venceu por ser a mais legível
+universalmente e a mais barata de implementar com precisão.
+
+```
+Aja como um engenheiro front-end sênior de direção visual trocando um único
+controle por um ícone dentro de um design system já tokenizado — invoque a
+skill creative-ui-director no início (modo design-system-constrained-upgrade,
+escopo enxuto: só este componente).
+
+<contexto>
+Leia CLAUDE.md e NOTES.md (seção do 2º tema/T1) antes de começar. O botão de
+troca de tema (ThemeToggle, dentro de src/components/layout/AppShell.tsx) hoje
+é texto mono `[ TEMA · ESCURO ]` / `[ TEMA · CLARO ]`, com min-w-[17ch] pra não
+deslocar layout na troca. Motivo da mudança: o rótulo por extenso pesa demais
+na zona mais quieta do sistema (base do rail / linha sob a nav mobile).
+</contexto>
+
+<decisoes_ja_tomadas>
+1. Direção escolhida (entre 3 avaliadas no chat de planejamento): traço mono
+   fino (sol/lua), NÃO um ícone de biblioteca — o projeto não tem dependência
+   de ícones (só react/react-dom/react-router-dom) e não deve ganhar uma só
+   por isso. SVG desenhado à mão, stroke="currentColor" (ou var(--color-*)),
+   mesma lógica de "sem preenchimento chapado" do resto do sistema.
+2. O ícone declara o estado ATUAL, nunca o destino — mesma regra do rótulo de
+   texto que ele substitui (convenção dos colchetes mono: "sempre dizem o que
+   É"). Tema escuro ativo → lua. Tema claro ativo → sol.
+3. A AÇÃO (não o estado) vai no aria-label, exatamente como hoje
+   ("Mudar pro tema claro" / "Mudar pro tema escuro") — isso não muda.
+4. min-w-[17ch] deixa de fazer sentido (não é mais texto longo) — o botão
+   pode encolher pro tamanho do alvo de toque acessível (mínimo ~24px de área
+   clicável), mas SEM layout shift perceptível entre os dois estados (sol e
+   lua devem ocupar a mesma caixa).
+</decisoes_ja_tomadas>
+
+<tarefa>
+1. Desenhe os dois glifos (sol / lua) como SVG inline dentro do próprio
+   componente ThemeToggle — sem lib nova, sem arquivo .svg separado (mesma
+   convenção do LogoMark: SVG gerado no código, não asset importado). Traço
+   fino (1.5–2px), sem preenchimento chapado, tamanho consistente com a
+   escala do sistema (calibre por captura — não é um valor documentado
+   ainda, decida e registre).
+2. Troque o conteúdo do <button> de texto pra ícone, preservando: o
+   data-testid="theme-toggle" existente (o e2e depende dele), o aria-label
+   dinâmico, o onClick.
+3. Acessibilidade: já que o rótulo visível de texto some, confirme que
+   aria-label sozinho basta (não precisa de texto visualmente oculto extra,
+   mas pode adicionar se achar mais robusto — documente a escolha).
+4. Calibre nos dois lugares onde o botão aparece (base do rail desktop, linha
+   sob a nav mobile) e nos dois temas — 4 combinações. Screenshot de cada uma.
+5. Confirme com contrast-check.mjs que o traço do ícone bate o piso de
+   contraste de elemento interativo não-texto (≥3:1) nos dois temas — decida
+   qual token de cor usar (mist-400 parece o mais próximo do peso visual do
+   texto atual) e registre em CLAUDE.md.
+</tarefa>
+
+<restricoes>
+- Não mexe em MAIS NADA do AppShell além do componente ThemeToggle — nav,
+  logo, layout do rail/header mobile ficam intocados.
+- Não muda a lógica de troca de tema (applyTheme/currentTheme, localStorage,
+  script anti-flash do index.html) — só o CONTEÚDO VISUAL do botão.
+- Zero gradiente/sombra/blur/glow no ícone. Uma transição sutil (cor no
+  hover, crossfade/rotate na troca) é aceitável SE vier em par com
+  motion-reduce, como todo movimento do sistema — não é obrigatória.
+- Zero dependência nova (sem lucide, sem @heroicons, sem lib de ícone) — SVG
+  à mão, como o LogoMark.
+</restricoes>
+
+<criterios_de_aceite>
+- Ícone substitui o texto nos dois arranjos (rail/mobile) e nos dois temas,
+  sem layout shift entre os dois estados.
+- data-testid="theme-toggle" e aria-label dinâmico intactos — theme-e2e.mjs
+  passa sem alteração de contrato.
+- contrast-check com o ícone passando o piso de elemento interativo nos dois
+  temas — valor registrado em CLAUDE.md/NOTES.md.
+- `npm run build` limpo; CLAUDE.md atualizado (a linha que hoje descreve o
+  botão como "convenção mono" precisa refletir a troca pro ícone).
+</criterios_de_aceite>
+```
+
+---
+
+## Prompt G1 — Fable: ganhos estimados no Monitor do Rig
+
+Independente da fila principal, mas prefira rodar numa sessão própria (não junto do N3
+— um prompt por sessão, regra 1 do HANDOFF). Decisão do chat de planejamento em
+2026-07-12: entre 4 direções para o vão vazio da coluna dominante do Rig (ganhos
+estimados, comparação com a rede/pool, recorde pessoal, não preencher), Carlos escolheu
+ganhos estimados — a única que cruza dado de módulos diferentes pela primeira vez no
+produto.
+
+```
+Aja como um desenvolvedor front-end pleno consumindo múltiplas APIs já
+integradas no projeto pra compor uma estimativa nova — sem inventar dado,
+sem API nova, só reaproveitando três funções que já existem e já são usadas
+em outro módulo.
+
+<contexto>
+Leia CLAUDE.md e NOTES.md antes de começar, com atenção especial às seções
+"Zephyr Scanner API" e "Zephyr Explorer API". O Monitor do Rig
+(src/modules/rig/RigDashboard.tsx) tem hoje um vão vazio na coluna dominante,
+logo abaixo do hashrate do rig + StatusBadge — o rail ao lado (4 StatCards) é
+mais alto que o conteúdo da esquerda, então sobra espaço (já registrado em
+NOTES.md como "retorno às proporções pré-R4", não é bug). Decisão do chat de
+planejamento: preencher esse vão com uma estimativa de ganho — a primeira vez
+que o produto cruza dado de módulos diferentes (hoje /rede, /pools,
+/recompensa e /meu-rig são ilhas que não se falam).
+</contexto>
+
+<dados_e_apis>
+Três funções já prontas e já em uso no Pulso da Rede
+(src/modules/network/NetworkPulsePage.tsx) — reaproveite-as, não reimplemente:
+- `getNetworkInfo()` de src/lib/api/zephyrExplorer.ts → `.hash_rate` (H/s da
+  rede). CORS aberto, sem proxy.
+- `getLatestBlockReward()` de src/lib/api/zephyrScanner.ts → `.miner_reward`
+  (recompensa do minerador em ZEPH, já é a fatia de 65%, não precisa
+  recalcular o split). Passa pelo proxy /zephyr-api.
+- `getLiveStats()` de src/lib/api/zephyrScanner.ts → `.zeph_price` (USD).
+  Mesmo proxy.
+- `BLOCK_TIME_SECONDS` (120) já exportado de src/lib/emission.ts — use pra
+  derivar blocos/dia (86400 / BLOCK_TIME_SECONDS = 720), não hardcode 720
+  solto.
+- O hashrate do PRÓPRIO rig já existe no componente: a variável
+  `signalHashrate` (fonte XMRig local se alcançável, senão pool — é
+  literalmente o número que já aparece no hero "[ SINAL DO RIG ]").
+
+Fórmula: ganho_diario_zeph = (signalHashrate / networkInfo.hash_rate) *
+blockReward.miner_reward * (86400 / BLOCK_TIME_SECONDS). Ganho em USD =
+ganho_diario_zeph * liveStats.zeph_price (só quando os dois estiverem
+disponíveis — são independentes, um pode faltar sem derrubar o outro).
+</dados_e_apis>
+
+<decisoes_ja_tomadas>
+1. Local: dentro da <section> da região dominante do Rig, no mesmo
+   <div className="min-w-0"> que hoje só tem o hero + StatusBadge — abaixo
+   deles, preenchendo o vão. Não mexe no rail (StatCards) nem em mais nada
+   da tela.
+2. É uma ESTIMATIVA, não uma promessa — trate com o MESMO cuidado de rótulo
+   que o HalvingCountdown já usa pra "estimado pelo daemon" (leia o
+   componente antes de escrever o texto novo, pra reusar o mesmo tom, não
+   inventar um jeito novo de avisar).
+3. Três polls novos (rede, recompensa, preço) — reaproveite usePolling
+   (mesmo hook que pool/xmrig já usam neste componente) com o MESMO
+   intervalo que o Pulso da Rede usa pra essas fontes
+   (SCANNER_CACHE_SECONDS * 1000 — importe a constante, não hardcode 30000).
+4. Degradação por campo, não tudo-ou-nada: se faltar SÓ o preço, mostra
+   ZEPH/dia com "—" no lugar do USD; se faltar hashrate da rede ou
+   recompensa, o bloco inteiro cai pra "—" (a conta não fecha sem os dois).
+   Nunca trava a tela — o resto do Monitor do Rig (hero, rail, tabela de
+   workers) continua funcionando mesmo se os 3 polls novos falharem.
+</decisoes_ja_tomadas>
+
+<tarefa>
+1. Três polls novos em RigDashboard.tsx (usePolling + as três funções
+   acima), com tratamento de erro isolado por fonte (o padrão que o
+   componente já usa pra pool/xmrig — erro de uma fonte não derruba as
+   outras).
+2. Cálculo da estimativa como função pura e testável (pode viver num arquivo
+   novo, tipo src/modules/rig/earnings.ts, se achar mais limpo que inline).
+3. UI no vão da coluna dominante: label mono `[ GANHO ESTIMADO ]` (convenção
+   de colchetes do sistema), valor em destaque (calibre o tamanho por
+   captura — não é hero, é leitura secundária; não deve competir com o
+   headline do hashrate), sub-linha com USD/dia + a ressalva de estimativa.
+4. Skeleton enquanto os 3 polls novos ainda não resolveram (mesmo componente
+   Skeleton que o resto da tela usa).
+5. Screenshot em desktop e mobile, tema claro e escuro (4 capturas), com o
+   bloco preenchido E com pelo menos uma fonte falhando (confirme que "—"
+   aparece em vez de tela quebrada).
+</tarefa>
+
+<restricoes>
+- Não recalcule o split 65/30/5 manualmente — `miner_reward` já vem pronto
+  da API; usar outro campo ou recalcular é duplicar lógica que já existe em
+  src/lib/emission.ts/zephyrScanner.ts.
+- Não crie um valor "estimado" quando QUALQUER um dos 4 inputs
+  (signalHashrate, hash_rate da rede, miner_reward, zeph_price) estiver
+  undefined — vira "—", nunca um número parcial ou zero disfarçado de dado.
+- Zero gradiente/glow/sombra nova — reusa os tokens/readouts que a tela já
+  tem (mesma anatomia do restante da coluna dominante).
+- Não mexe no rail de StatCards, na tabela de workers, nem no bloco
+  [ TENDÊNCIA 24H ] — escopo é só o vão acima deles.
+</restricoes>
+
+<criterios_de_aceite>
+- Estimativa visível no vão, com fallback "—" por campo ausente (testado
+  forçando erro numa das 3 fontes novas).
+- Ressalva de "estimado" no mesmo tom do HalvingCountdown existente.
+- `npm run build` limpo; lint sem warning novo; e2e do rig (normal/notfound)
+  segue passando sem alteração de contrato (novo bloco não deve quebrar os
+  waitFor existentes).
+- CLAUDE.md/NOTES.md atualizados: a nova fórmula, os 3 polls novos, e o
+  registro de que é a primeira composição cross-module do produto.
+</criterios_de_aceite>
+```
+
+---
+
+## Prompt R6 — Fable: lapidações a partir de screenshots (botão de tema com rótulo, largura do parágrafo da Bússola, rodapé com doação)
+
+Depende do N3 já commitado (o botão de tema hoje é só ícone — este prompt parte
+daí, não refaz o N3). Independente do G1. Três achados de uso real, a partir de
+screenshots reais do Carlos em 2026-07-12 — mesmo gênero do R4/R5.
+
+```
+Aja como um engenheiro front-end sênior de direção visual fazendo uma rodada de
+lapidação a partir de screenshots reais do Carlos (mesmo gênero do R4/R5) — invoque
+a skill creative-ui-director no início pro item 3 (rodapé/doação, é o único dos três
+com julgamento estético aberto; os itens 1 e 2 são ajustes mecânicos, resolva direto).
+
+<contexto>
+Leia CLAUDE.md e NOTES.md antes de começar. Três achados de uso real, independentes
+entre si:
+1. O botão de tema (ThemeToggle, AppShell.tsx) hoje é SÓ ícone (sol/lua, do N3,
+   já commitado) — sem nenhum texto visível, só aria-label. Na prática ficou
+   ambíguo demais pra quem não passa o mouse/não usa leitor de tela.
+2. O parágrafo de explicação do luck/effort na Bússola de Pools (PoolsPage.tsx)
+   tem max-w-3xl, mais estreito que a tabela acima dele — sobra uma faixa vazia
+   grande à direita em telas largas.
+3. O rodapé (AppShell.tsx) hoje só credita as fontes de dado. O Carlos quer trocar
+   isso por um endereço de carteira pra doação, decorado com um motivo pixelado —
+   ESTE item pede leitura de direção visual, os outros dois não.
+</contexto>
+
+<decisoes_ja_tomadas>
+1. Botão de tema: o ícone FICA (não volta a ser só texto) — ganha um rótulo mono
+   ao lado, em INGLÊS mesmo (não traduza pra ESCURO/CLARO): "DARK" quando o tema
+   escuro está ativo, "WHITE" quando o claro está ativo — grafia exata pedida pelo
+   Carlos, mantenha "WHITE" e não "LIGHT". Mesma regra de sempre: o rótulo declara
+   o estado ATUAL, a ação continua só no aria-label (isso não muda). Use a
+   convenção de colchetes do sistema no texto (`[ DARK ]` / `[ WHITE ]`) do mesmo
+   jeito que o botão usava antes do N3. O botão cresce o suficiente pra caber
+   ícone + texto sem aperto (reserve a largura do mais longo dos dois rótulos —
+   "[ WHITE ]" — pra não deslocar layout na troca); calibre o tamanho exato por
+   captura, como sempre.
+2. Parágrafo do luck/effort: remova o max-w-3xl (ou troque por algo que acompanhe
+   a largura real da tabela acima) — o texto deve ocupar a mesma largura que a
+   `<table>` ocupa no mesmo breakpoint, sem sobrar faixa vazia à direita. Não muda
+   o CONTEÚDO do parágrafo, só a largura.
+3. Rodapé: a linha "Dados: Zephyr Scanner API..." SAI. No lugar, um endereço de
+   carteira pra doação, ladeado por um motivo de coração PIXELADO (mesma técnica
+   de grade de pontos do LogoMark.tsx — NÃO emoji de coração, NÃO ícone de
+   biblioteca, NÃO Unicode ♥ — um SVG pequeno desenhado com a mesma lógica de
+   pontos/quadradinhos, monocromático, token de cor decorativo do sistema, ex.
+   mist-400 ou zeph-300). O aviso "projeto comunitário, sem afiliação oficial"
+   FICA (só ele — pode descartar a lista de fontes de API), compacto, perto do
+   bloco de doação: o site usa cor/logo de marca da Zephyr, então essa frase é a
+   única coisa que deixa claro pro visitante que isto não é o site oficial — não
+   é só estilo, é a única linha do produto que evita confusão de afiliação.
+   Endereço exato (hardcode, não invente nem abrevie o valor real — só a
+   apresentação visual pode truncar):
+   ZEPHYR2eWBjJtirbhwCoxh9HLDLp6H6sbjBn3zpo38QXZHFVuACysqsDeLi9dvJ29FRQLXqhVVKmkDbv2EDoophcFd4Ur3pH7WT3Y
+</decisoes_ja_tomadas>
+
+<tarefa>
+1. ThemeToggle: adicione o rótulo mono ao lado do glifo (ver decisão 1). Ajuste o
+   min-w/gap pro par ícone+texto sem deslocar layout entre os dois estados.
+   Screenshot dos dois estados, rail E mobile, os dois temas (4 capturas).
+2. PoolsPage: troque o max-w-3xl do parágrafo por algo que acompanhe a largura da
+   tabela (ou remova o cap e deixe o container pai controlar). Screenshot em
+   desktop confirmando que as duas larguras batem.
+3. Rodapé: desenhe o motivo de coração pixelado (componente novo ou função dentro
+   do AppShell — decida pelo mesmo critério do LogoMark: gerar a grade de pontos
+   em código, não um asset importado) e monte o bloco novo do rodapé: coração ·
+   rótulo curto tipo "apoie o projeto" · endereço em font-mono · coração. O
+   endereço é longo (106 caracteres) — em mobile (390px, o viewport que o projeto
+   sempre testa) ele NÃO PODE estourar layout: escolha entre truncar
+   visualmente com o valor completo disponível via title/clique-pra-copiar, ou
+   quebra de linha controlada (break-all) dentro do max-w do rodapé — decida e
+   documente. Adicione um botão/ação de copiar (navigator.clipboard, sem lib
+   nova) com alguma confirmação visual de que copiou. Mantenha a frase de não
+   afiliação (decisão 3). Screenshot desktop + mobile, os dois temas (4
+   capturas).
+</tarefa>
+
+<restricoes>
+- Item 1 não mexe na lógica de troca de tema nem no glifo sol/lua em si (só
+  adiciona o texto ao lado) — MoonGlyph/SunGlyph continuam os mesmos.
+- Item 2 não muda o texto do parágrafo, só a largura.
+- Item 3: zero emoji, zero ícone de biblioteca, zero Unicode de coração — o
+  motivo pixelado segue a MESMA técnica de pontos do LogoMark. Zero
+  gradiente/glow/sombra (regra de sempre do sistema). O endereço da carteira é
+  hardcoded, exato, nunca gerado/formatado a partir de outra fonte.
+- Os três itens são independentes — não deixe um item quebrar outro (ex.: não
+  aproveite pra "melhorar" mais nada no rodapé ou no ThemeToggle além do pedido).
+</restricoes>
+
+<criterios_de_aceite>
+- Botão de tema com ícone + rótulo `[ DARK ]`/`[ WHITE ]`, sem layout shift entre
+  estados, nos dois arranjos (rail/mobile) e temas — theme-e2e.mjs segue
+  passando (aria-label e data-testid intactos).
+- Parágrafo da Bússola com a mesma largura da tabela em desktop.
+- Rodapé com coração pixelado + endereço de doação (texto completo correto,
+  copiável) + frase de não afiliação, sem estourar layout em 390px, nos dois
+  temas.
+- `npm run build` limpo; lint sem warning novo; e2e existente (rewards/rig/pools/
+  theme) passa sem alteração de contrato.
+- CLAUDE.md/NOTES.md atualizados: o rótulo do botão, a largura do parágrafo, e o
+  novo padrão de rodapé (coração pixelado + doação).
+</criterios_de_aceite>
+```
+
+---
+
+## Prompt R7 — Fable: ajustes no botão de tema e no rodapé (a partir de screenshot pós-R6)
+
+Depende do R6 (não precisa estar commitado pra rodar, mas commite os dois — N3, G1
+e R6 estão TODOS no working tree ainda sem commit, ver HANDOFF). Três achados a
+partir de screenshot real do Carlos em 2026-07-12.
+
+```
+Aja como um engenheiro front-end sênior de direção visual corrigindo um bug de
+alinhamento e trocando a técnica de um ícone pra consistência visual com um
+padrão que já existe no próprio código — invoque a skill creative-ui-director
+só pro item 2 (redesenho do ícone); os itens 1 e 3 são ajuste/remoção mecânica.
+
+<contexto>
+Leia CLAUDE.md e NOTES.md antes de começar — o R6 (botão de tema com rótulo,
+rodapé de doação) já rodou; este prompt corrige e simplifica o que ele
+entregou, a partir de screenshot real do Carlos em 2026-07-12. Três achados:
+1. No ThemeToggle (AppShell.tsx), o glifo sol/lua e o rótulo `[ DARK ]`/
+   `[ WHITE ]` ao lado não estão alinhados verticalmente — o texto aparece
+   visivelmente mais alto que o centro do ícone, apesar do container já ter
+   items-center.
+2. Comparando lado a lado com o PixelHeart do rodapé (também do R6), o glifo de
+   traço fino do sol/lua ficou destoando — o Carlos prefere o ícone na MESMA
+   linguagem pixelada/halftone do coração.
+3. O rodapé de doação (DonationFooter) ficou mais carregado do que precisa:
+   remover a frase de não-afiliação, mostrar o endereço completo (sem truncar,
+   sem botão de copiar), e aumentar um pouco fonte + coração — sobra espaço.
+</contexto>
+
+<decisoes_ja_tomadas>
+1. Alinhamento: diagnostique a causa raiz antes de aplicar um fix chutado
+   (candidatos prováveis: line-height do token text-caption criando uma caixa
+   assimétrica em volta do texto, ou o <svg> com o display inline padrão do
+   navegador brigando com items-center) — confirme por inspeção/captura, não
+   só por olho.
+2. Ícone do ThemeToggle: troca de técnica, MoonGlyph/SunGlyph (traço fino,
+   stroke currentColor) saem, entram versões PIXELADAS — MESMA técnica do
+   PixelHeart (grade de <rect>, um tom só, fill via var(--color-*), lado do
+   quadradinho <1 unidade pro vão do halftone). Antes de dimensionar, releia
+   docs/logo-exploracao.md: a pesquisa de halftone pequeno já mostrou que
+   grade fina não sobrevive legível abaixo de ~24px (só a "V2 grade grossa",
+   mais grossa, segurava a 24px) — os 18px atuais do ícone estão bem na zona
+   de risco que aquela exploração mapeou. Pode crescer o box do ícone se a
+   grade pedir, com critério (não deve dominar o botão nem destoar do
+   tamanho do rótulo ao lado) — calibre por captura, a 18px E maior, e decida.
+   Sol e lua continuam ocupando a MESMA caixa (zero deslocamento na troca).
+3. Rodapé (DonationFooter): remove a `<p>` "projeto comunitário, sem afiliação
+   oficial" por completo (decisão explícita do Carlos, sobrepõe a ressalva que
+   o R6 tinha registrado). Remove shortAddress/truncamento e o botão
+   "[ copiar ]" inteiro (com o handler copyAddress e o estado copied) — mostra
+   DONATION_ADDRESS completo como texto simples (não mais <button>). Sem
+   truncar, o endereço (106 chars) PRECISA quebrar linha em vez de estourar —
+   use quebra controlada (break-all ou equivalente) dentro do max-w do
+   container, testado em 390px. Fonte do rótulo "apoie o projeto" e do
+   endereço sobe um degrau na escala tokenizada existente (ex.: text-caption →
+   text-label — NUNCA um valor `text-[Npx]` novo, a régua do projeto proíbe).
+   PixelHeart cresce (prop size já existe pra isso) um pouco também — calibre
+   os dois tamanhos juntos por captura, o rodapé tem espaço de sobra.
+</decisoes_ja_tomadas>
+
+<tarefa>
+1. Corrija o alinhamento vertical entre o glifo e o rótulo do ThemeToggle nos
+   dois arranjos (rail/mobile). Screenshot de perto (zoom) confirmando o
+   centro do ícone e a linha de base do texto alinhados.
+2. Redesenhe MoonGlyph/SunGlyph como glifos pixelados (mesma técnica do
+   PixelHeart), calibrando o tamanho pela pesquisa de logo-exploracao.md.
+   Screenshot nos dois temas, rail e mobile, com lupa (mesma técnica de
+   sempre) se o tamanho final for pequeno.
+3. Simplifique o DonationFooter: remove a frase de não-afiliação, remove
+   truncamento + botão de copiar (endereço completo como texto simples),
+   aumenta fonte (token existente, um degrau acima) e o PixelHeart. Confirme
+   que o endereço completo quebra linha sem estourar em 390px, nos dois
+   temas. Endereço não muda (mesmo valor hardcoded).
+</tarefa>
+
+<restricoes>
+- Item 1 não muda o conteúdo do botão (glifo + rótulo continuam os dois),
+  só o alinhamento.
+- Item 2 não muda a REGRA do glifo (estado atual, não destino; mesma caixa
+  pros dois estados) — só a técnica de desenho.
+- Item 3: o endereço em si (DONATION_ADDRESS) não muda. Nenhum novo texto de
+  disclaimer entra no lugar do que saiu — o pedido foi remover, não substituir.
+- Zero lib de ícone, zero emoji, zero gradiente/glow/sombra (regras de sempre).
+- Nenhum tamanho novo fora da escala tokenizada (--text-*) do sistema.
+</restricoes>
+
+<criterios_de_aceite>
+- Ícone e rótulo do ThemeToggle visualmente alinhados (captura de perto)
+  nos dois arranjos e temas.
+- Ícone sol/lua pixelado, na mesma família visual do PixelHeart, legível nos
+  tamanhos calibrados — comparação com docs/logo-exploracao.md registrada em
+  NOTES.md se o tamanho final mudar dos 18px.
+- Rodapé sem a frase de não-afiliação, endereço completo visível (sem truncar,
+  sem botão), fonte e coração maiores, sem estourar 390px nos dois temas.
+- `npm run build` limpo; theme-e2e.mjs segue passando (aria-label/data-testid
+  do ThemeToggle intactos — só o conteúdo visual mudou).
+- CLAUDE.md/NOTES.md atualizados: nova técnica do ícone de tema, novo formato
+  simplificado do rodapé.
+</criterios_de_aceite>
+```
+
+---
+
 ## Depois dos 5 prompts
 
 - Rode a skill **backend-structure-auditor** pra mapear qualquer deriva de padrão que

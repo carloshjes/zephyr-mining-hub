@@ -305,8 +305,11 @@ export function PoolsPage() {
       </div>
 
       {/* R5 2ª leva: os parágrafos soltos do rodapé viraram UM bloco
-          agrupado — mesma informação, menos fragmentos (decisão do Carlos) */}
-      <p className="max-w-3xl text-label leading-relaxed text-mist-400">
+          agrupado — mesma informação, menos fragmentos (decisão do Carlos).
+          N4: o max-w-3xl saiu — o parágrafo era mais estreito que a tabela e
+          sobrava faixa vazia à direita no desktop; agora acompanha a largura
+          da coluna (a mesma que a <table> w-full ocupa no mesmo breakpoint). */}
+      <p className="text-label leading-relaxed text-mist-400">
         Luck/effort: 100% = neutro; abaixo de 100% = blocos achados com menos trabalho que o
         esperado. A medição varia por pool (passe o mouse sobre o valor pra ver a fonte) —
         compare a tendência (últimas {LUCK_HISTORY_LIMIT} leituras coletadas por este navegador,

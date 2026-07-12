@@ -416,3 +416,23 @@ console.log(`\n>>> RESULTADO CLARO: ${allPass ? 'TODOS OS PISOS PASSAM' : 'HÁ F
 console.log('>>> valores finais pro bloco [data-theme=light]:')
 for (const [name, hex] of Object.entries(LIGHT)) console.log(`  ${name}: ${hex}`)
 console.log(`  textura: preto a ${LIGHT_TEXTURE_ALPHA * 100}% (célula ${lightCell})`)
+
+// ============================================================================
+// GLIFO DE TEMA (sol/lua no ThemeToggle, 2026-07-12) — elemento interativo
+// NÃO-texto: o piso WCAG 2.2 (1.4.11) é 3:1 contra os fundos adjacentes. O
+// traço usa o token mist-400 (mesmo peso visual do rótulo mono que
+// substituiu); pior caso = a célula da textura, como no resto do sistema.
+console.log('\n\n============ GLIFO DE TEMA (mist-400, piso não-texto 3:1) ============')
+const ICON_FLOOR = 3
+for (const [themeName, palette, bg, textureCell] of [
+  ['escuro', V3, V3['ink-950'], cell],
+  ['claro', LIGHT, LIGHT['ink-950'], lightCell],
+]) {
+  const onBg = contrast(palette['mist-400'], bg)
+  const onCell = contrast(palette['mist-400'], textureCell)
+  const worst = Math.min(onBg, onCell)
+  console.log(
+    `${themeName}: mist-400 ${palette['mist-400']} → ${fmt(onBg)}:1 no fundo · ` +
+    `${fmt(onCell)}:1 na célula → pior caso ${fmt(worst)}:1 ${worst >= ICON_FLOOR ? 'PASS' : 'FAIL'} (piso ${ICON_FLOOR}:1)`,
+  )
+}

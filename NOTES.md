@@ -1664,3 +1664,221 @@ da rampa (zeph-300/mist-400/zeph-500/zeph-700 claros) leem a olho nu, o Z̶
 segue nítido. Sondas da rodada no scratchpad (theme-probe,
 logo-light-probe); evidências regeneráveis: .e2e-out/theme-light*.png,
 shot-*-light.png (12) e a saída do contrast-check.
+
+# NOTES — Ganho estimado no /meu-rig (2026-07-12)
+
+Primeira composição CROSS-MODULE do produto: até aqui as 4 rotas eram
+ilhas; o Monitor do Rig agora cruza o hashrate do PRÓPRIO rig
+(signalHashrate — XMRig local se alcançável, senão pool) com as três
+fontes que o Pulso da Rede já consome. Nenhuma API nova, nenhum dado
+inventado — só reuso das funções existentes.
+
+## Fórmula e função pura (src/modules/rig/earnings.ts)
+
+ganho_diario_zeph = (signalHashrate / hash_rate da rede) × miner_reward ×
+(86400 / BLOCK_TIME_SECONDS); ganho_usd = ganho_diario_zeph × zeph_price.
+- BLOCKS_PER_DAY derivado de BLOCK_TIME_SECONDS (86400/120 = 720) — nunca
+  720 solto.
+- miner_reward já É a fatia de 65% — o split NÃO é recalculado (seria
+  duplicar lógica que vive em emission.ts/zephyrScanner.ts).
+- Degradação POR CAMPO na própria função: zephPerDay só existe com
+  rig + rede (> 0, guarda de divisão por zero) + recompensa TODOS
+  presentes; usdPerDay só com zephPerDay + preço. Input ausente → "—" no
+  campo de saída, nunca número parcial nem zero disfarçado de dado
+  (rigHashrate = 0 REAL produz 0 legítimo — é dado, não ausência).
+
+## Os 3 polls novos no RigDashboard
+
+usePolling + getNetworkInfo (Explorer) / getLatestBlockReward /
+getLiveStats (Scanner via proxy) — funções module-level passadas direto
+(identidade estável, dispensam useCallback), EARNINGS_POLL_MS =
+SCANNER_CACHE_SECONDS × 1000 (importado; o mesmo passo do Pulso da Rede
+pras mesmas fontes). Erro isolado por fonte no espírito do par pool/xmrig:
+aviso mono caption em bad no escopo do bloco ("[ fonte com falha: … —
+tentando de novo automaticamente ]"), visível mesmo com dado velho na
+tela — erro nunca silencioso.
+
+**Dependência que a captura de falha provou:** bloquear o Explorer derruba
+TAMBÉM o blockrewards (getLatestBlockReward ancora a altura em
+getNetworkInfo — consequência da armadilha do order=desc da Fase 0), então
+o aviso lista as DUAS fontes e a estimativa inteira vai pra "—" — mas
+hero, rail, tabela de workers e XMRig seguem de pé
+(rig-earnings-fail-network.png). Bloqueando SÓ o livestats: ZEPH/dia
+presente e "— em USD/dia" (rig-earnings-fail-price.png).
+
+## UI — o vão vira leitura secundária
+
+[ GANHO ESTIMADO ] preenche o vão sob o StatusBadge (as proporções pré-R4
+registradas na 2ª leva) com a MESMA anatomia do [ TENDÊNCIA ] do /rede:
+caption mono + mt-10, sem moldura nova, zero gradiente/glow/sombra. Valor
+em font-mono text-data-lg (a régua dos dígitos do HalvingCountdown) —
+calibrado por captura: leitura secundária clara, não compete com o
+text-headline do sinal. Sub-linha "≈ US$ … em USD/dia" em body/mist-300.
+A ressalva textual da estimativa (fórmula + "assume blocos de 120 s, sorte
+média…", no tom do HalvingCountdown) chegou a entrar e SAIU por decisão do
+Carlos na revisão — o rótulo [ GANHO ESTIMADO ] já declara a natureza do
+número; não reintroduza a frase. Skeleton compartilhado enquanto os 3
+polls não resolvem. Rail de StatCards, tabela de workers e
+[ TENDÊNCIA 24 H ] intocados.
+
+## Verificação (2026-07-12)
+
+`npm run build` limpo (237ms) · lint só com os 2 warnings pré-existentes
+do N2 · rig-e2e normal + notfound — **TUDO PASSOU sem alteração de
+contrato** (o bloco novo não toca nos waitFor existentes) · 6 capturas:
+rig-earnings-{desktop,mobile}[-light].png (4 preenchidas, 2 temas — o
+bloco lê como secundário nos dois; no claro os papéis fluem sozinhos via
+var()) + rig-earnings-fail-{price,network}.png (degradação por campo e
+tela viva). Sonda regenerável no scratchpad da sessão: earnings-shots.mjs
+(Network.setBlockedURLs pros cenários de falha).
+
+# NOTES — Glifo no ThemeToggle (sol/lua), 2026-07-12
+
+Skill creative-ui-director, modo design-system-constrained-upgrade, escopo
+enxuto (só o ThemeToggle). Diagnóstico: o rótulo `[ TEMA · ESCURO ]` na zona
+meta (base do rail / linha sob a nav mobile) lia com o MESMO peso e a MESMA
+convenção de colchete de um item de nav (`[ Pulso da Rede ]`) — um controle
+utilitário de baixa frequência com autoridade de navegação; e o min-w-[17ch]
+reservava ~10rem pra alternar um bit, com o rótulo mudando de conteúdo/largura
+a cada troca (ruído na região mais quieta). Direção escolhida (a pedida):
+glifo de traço fino sol/lua num quadrado fixo — demove o controle pro peso de
+ícone, devolve a faixa horizontal, e fica DENTRO do sistema (fill none +
+stroke currentColor = a linguagem "linha, não sólido"; cor no token mist-400).
+
+## Desenho dos glifos (à mão, sem lib)
+
+Sem dependência de ícones (o projeto só tem react/react-dom/react-router e não
+deve ganhar uma por isto): SVG inline como o LogoMark. viewBox 0 0 24 24,
+render 18px, stroke-width 2 → traço 1,5px rendido, round caps. Calibração de
+18px por captura (theme-icon-rail/mobile-{dark,light} + os contextos): quieto
+o bastante pra matar o peso de nav, grande o bastante pra ler como sol/lua.
+- Sol: círculo r=4 no centro + 8 raios (linhas r 6→8,5 nas 8 direções).
+- Lua: crescente como UMA forma de traço (dois arcos, `M16 4 A8 8 0 0 0 16 20
+  A9.5 9.5 0 0 1 16 4 Z`), sem recorte por preenchimento — os dois raios ≥8
+  (metade da corda 16) pra os arcos serem válidos; renderizou "C" abrindo pra
+  direita, crescente limpo (verificado em zoom 5x, theme-icon-rail-dark.png —
+  na 1ª tentativa temi virar lente, a captura confirmou crescente).
+Mapeamento: escuro ativo → lua, claro ativo → sol (o glifo diz o que É). Sol e
+lua ocupam a MESMA caixa 18px → zero deslocamento na troca.
+
+## Acessibilidade — aria-label basta, sem texto oculto
+
+O SVG é aria-hidden (decorativo); o nome acessível vem do aria-label do botão
+("Mudar pro tema claro/escuro"), que já existia e declara a AÇÃO. Com o
+aria-label presente, um <span> sr-only com o estado seria IGNORADO pela AT (o
+aria-label vence o nome acessível) e invisível pro vidente — só serviria pra
+enganar o innerText do teste. Rejeitado: a AT anuncia exatamente o que antes
+(a experiência de leitor de tela é IDÊNTICA à do rótulo de texto); só o canal
+do vidente mudou (texto → glifo). Alvo de toque ≥24px (WCAG 2.5.8 AA) por
+extensão invisível `before:-inset-1.5` (a técnica que o SegmentedControl já
+usa), então o glifo alinha na borda da coluna sem caixa de centragem.
+
+## Contraste (contrast-check.mjs, bloco GLIFO DE TEMA)
+
+Elemento interativo NÃO-texto → piso WCAG 1.4.11 = 3:1. Traço em mist-400,
+pior caso na célula da textura como o resto do sistema:
+- escuro: mist-400 #8b86a0 → 5,28:1 no fundo · 5,04:1 na célula → PASS
+- claro: mist-400 #5a6373 → 5,65:1 no fundo · 5,32:1 na célula → PASS
+Folga enorme sobre 3:1 (é o mesmo token do rótulo que substituiu — peso visual
+preservado).
+
+## Conflito de contrato do e2e — resolvido, mudança DELIBERADA
+
+O critério do prompt pedia "theme-e2e.mjs passa sem alteração de contrato",
+mas o theme-e2e lia o innerText do botão e afirmava `=== '[ TEMA · ESCURO ]'`
+/ `'[ TEMA · CLARO ]'` (linhas 110/122/131). Tirar o texto torna essas DUAS
+afirmações impossíveis — o critério literal e "troca texto por ícone" não
+coexistem. Resolvido preservando a INTENÇÃO da verificação, não a letra: os
+dois checks passaram a ler o aria-label (a ação oferecida determina o estado
+corrente) + a presença do `<svg>` e a ausência de texto. As 4 GARANTIAS de
+tema (default sem atributo/fundo escuro; clique→light com tokens fluindo e
+persistência; reload anti-flash; volta remove o atributo e persiste dark)
+ficaram BYTE A BYTE iguais. É o mesmo tipo de migração de canal que o R5 fez
+com a procedência da tendência (texto visível → title/aria) — documentado como
+mudança deliberada, não regressão. Só o theme-e2e referenciava o texto (grep):
+os outros suites não citam o toggle.
+
+## Verificação (2026-07-12)
+
+`npm run build` limpo (178ms) · lint só com os 2 warnings pré-existentes do
+N2 · contrast-check com o bloco GLIFO DE TEMA (5,04:1 escuro / 5,32:1 claro,
+piso 3:1) · theme-e2e.mjs **TUDO PASSOU** (13 checks, incl. os 2 migrados pro
+aria-label + o novo "é glifo SVG sem texto") · 4 capturas zoomadas
+(theme-icon-{rail,mobile}-{dark,light}.png) + 2 de contexto
+(theme-icon-ctx-{rail,mobile}.png): sol e lua na mesma caixa, crescente limpo,
+mist-400 fluindo tom a tom nos dois temas. Sondas regeneráveis no scratchpad
+da sessão: theme-icon-shots.mjs (clips 5x do glifo) e theme-icon-context.mjs
+(coluna do rail / header mobile).
+
+# NOTES — N4: rótulo do tema + largura da Bússola + rodapé de doação (2026-07-12)
+
+Três achados de uso real do Carlos, independentes. Itens 1 e 2 mecânicos; o 3
+(rodapé) passou pela skill creative-ui-director (design-system-constrained-
+upgrade, escopo enxuto).
+
+## 1. ThemeToggle — rótulo [ DARK ]/[ WHITE ] de volta ao lado do glifo
+
+O ícone-só do N3 ficou ambíguo em uso real (sem hover / sem AT não dá pra saber
+o que o botão faz). Decisão do Carlos: o ícone FICA e ganha um rótulo mono ao
+lado, em INGLÊS e com grafia EXATA — `[ DARK ]` (escuro ativo) / `[ WHITE ]`
+(claro ativo; é WHITE, NÃO "LIGHT"). Regra de sempre: o rótulo declara o estado
+ATUAL, a ação segue só no aria-label (inalterado). Botão virou
+`inline-flex items-center gap-2` com o glifo (o mesmo do N3, intocado) + um
+`<span min-w-[9ch] text-left>` — o min-w reserva a largura do mais longo
+("[ WHITE ]", 9 chars mono) pra a troca DARK↔WHITE não mexer na largura. Cor
+mist-400 no botão inteiro → glifo (currentColor) e texto acendem juntos no
+hover. theme-e2e voltou a checar o innerText (`[ DARK ]`/`[ WHITE ]`) + o glifo
++ o aria-label; as 4 garantias de tema intactas. Capturas zoom 5x:
+n4-toggle-{rail,mobile}-{dark,light}.png.
+
+## 2. Bússola — parágrafo do luck/effort na largura da tabela
+
+O parágrafo tinha max-w-3xl (768px), mais estreito que a tabela → sobrava faixa
+vazia à direita no desktop. Removido o cap (só a largura; o TEXTO não mudou) —
+agora o `<p>` acompanha a coluna, a mesma que a `<table w-full>` ocupa.
+Medido ao vivo em 1360 (n4-shots): tabela = 1056,0px · parágrafo = 1056,0px ·
+delta = 0,0px. Captura n4-pools-desktop.png.
+
+## 3. Rodapé de doação (skill) — endereço copiável + coração pixelado
+
+Diagnóstico: o rodapé era uma linha só de créditos de API — o tratamento mais
+fraco possível. O novo rodapé tem DUAS funções (doação + aviso de não-afiliação
+de confiança), e um endereço de 101 chars é inútil sem copiar. Direção
+escolhida (a única que sobrevive ao check; alternativas endereço+botão separado
+e break-all de 106 chars rejeitadas): o endereço truncado + a tag
+`[ copiar ]` são UM controle de cópia; corações pixelados o ladeiam; a frase de
+não-afiliação desce pra uma linha quieta. Move compositivo: o rodapé ganha uma
+AÇÃO clara sem card/gradiente/primitiva nova.
+
+- **Coração pixelado (`PixelHeart` em AppShell.tsx):** MESMA técnica do LogoMark
+  — `<rect>` numa grade (7×6, HEART_CELLS), lado 0,82 pra deixar o vão da grade
+  (halftone), cor por token via style (zeph-300 — o acento do sistema, num
+  rodapé que fora isso é todo mist-400). NÃO emoji, NÃO ícone de lib, NÃO
+  Unicode ♥ (restrição). Decorativo (aria-hidden); o rótulo "apoie o projeto"
+  carrega o sentido. Fica em AppShell.tsx (não em ui/) porque é só-rodapé — o
+  LogoMark vive em ui/ por ser reusado (rail + header).
+- **Endereço:** const `DONATION_ADDRESS` HARDCODED e exata; verificada char a
+  char contra o prompt (o prompt dizia "106 caracteres" mas o literal dado tem
+  101 — usei o literal, não a contagem). Só a apresentação trunca: desenho =
+  cabeça 12 + … + cauda 8 (~21 chars) em TODOS os breakpoints (os 101 chars
+  dominariam o rodapé quieto até no desktop). Valor COMPLETO via clipboard
+  (todos) e title (hover desktop) — opção (a) do prompt.
+- **Copiar:** navigator.clipboard.writeText (sem lib), try/catch (contexto
+  inseguro cai no title), confirmação visual `[ copiar ]`→`[ copiado! ]` por 2s
+  + um `role="status" aria-live` sr-only pra AT. Provado com clique REAL via
+  CDP Input.dispatchMouseEvent (o `.click()` programático não é ativação de
+  usuário → writeText era bloqueado): clipboard recebeu os 101 chars EXATOS
+  (comparação === true) e a tag virou "[ copiado! ]".
+- **Não-afiliação:** "projeto comunitário, sem afiliação oficial" FICA (só ela;
+  os créditos de API saíram) logo abaixo — é a única linha que separa este
+  produto do site oficial da Zephyr (que ele imita em cor/logo). 390px não
+  estoura. Capturas n4-footer-{desktop,mobile}-{dark,light}.png + -copied.
+
+## Verificação (2026-07-12)
+
+`npm run build` limpo (169ms) · lint só com os 2 warnings pré-existentes ·
+e2e completa SEM alteração de contrato (o rodapé novo renderiza em todas as
+telas): theme (com os checks [ DARK ]/[ WHITE ] atualizados) + pools normal +
+rig normal + rewards normal — **TUDO PASSOU**. Sondas regeneráveis no
+scratchpad: n4-shots.mjs (toggle/pools/rodapé + larguras medidas) e
+n4-footer-fix.mjs (rodapé por coords absolutas + cópia com clique real).
