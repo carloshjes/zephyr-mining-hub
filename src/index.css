@@ -51,6 +51,14 @@
   --color-mist-400: #8b86a0; /* texto muted — piso AA de texto corrido */
   --color-mist-600: #57536a; /* SÓ decorativo (2,7:1) — nunca texto */
 
+  /* Scrollbar decorativa NEUTRA (R5 2026-07-11): cinza de croma ZERO, fora
+     das famílias ink/mist/zeph de propósito — TODAS carregam matiz roxo
+     (hairline ≈262°, mist-600 ≈250°) e, no thumb, qualquer uma lia com
+     tinta de roxo em uso real. Papel ÚNICO: o polegar da scrollbar-themed.
+     Nunca texto, borda ou superfície de conteúdo (mesma classe de uso
+     decorativo do mist-600, mas exclusiva da scrollbar). */
+  --color-scroll: #3a3a3a;
+
   /* Cores semânticas de estado — BINÁRIO, sem meio-termo:
      good = positivo/saudável/normal · bad = negativo/crítico/erro/offline.
      O vermelho alert do R1 saiu do sistema por completo. */
@@ -229,28 +237,32 @@
 
 /* Scrollbar nos tokens do sistema (v3) — a barra branca padrão do navegador
    quebrava o tema nas tabelas roláveis. Uma classe só pra todo container com
-   overflow (tabela do Raio-X, Bússola de Pools, workers do Rig). Rodada
-   2026-07-11 (uso real): 10px → 8px e o polegar desceu de mist-600 pra
-   HAIRLINE — o mist-600 (matiz ≈250°) ainda lia com tinta de roxo; o hairline
-   é a mesma classe de presença dos divisores do sistema, e o affordance de
-   rolagem nunca dependeu do polegar (a tabela corta no meio de coluna).
-   Chromium novo usa scrollbar-color e ignora os ::-webkit-* (comportamento
-   especificado); os ::-webkit-* cobrem Chromium antigo. Cantos retos. */
+   overflow (tabela do Raio-X, Bússola de Pools, workers do Rig).
+   R4 (2026-07-11): 10px → 8px e o polegar mist-600 → hairline. R5 (mesmo
+   dia, uso real de novo): o hairline #282530 TAMBÉM tem matiz roxo (≈262°) e
+   o Carlos ainda percebia a tinta — toda a família ink/mist/hairline carrega
+   croma; neutro de verdade exigiu o token novo --color-scroll (croma zero,
+   papel só-scrollbar). Afinou pra 6px, track TRANSPARENTE (o fundo neutro
+   ink-950 da própria tabela faz o papel — track ink-900 era outra superfície
+   roxa) e o thumb perdeu a borda (com 6px ela comia 2/3 do miolo). O
+   affordance de rolagem segue não dependendo do polegar (a tabela corta no
+   meio de coluna). Chromium novo usa scrollbar-color e ignora os ::-webkit-*
+   (comportamento especificado); os ::-webkit-* cobrem Chromium antigo.
+   Cantos retos. */
 @utility scrollbar-themed {
-  scrollbar-color: var(--color-hairline) var(--color-ink-900);
+  scrollbar-color: var(--color-scroll) transparent;
 
   &::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   &::-webkit-scrollbar-track {
-    background: var(--color-ink-900);
+    background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: var(--color-hairline);
-    border: 1px solid var(--color-ink-900);
+    background: var(--color-scroll);
   }
   &::-webkit-scrollbar-corner {
-    background: var(--color-ink-900);
+    background: transparent;
   }
 }

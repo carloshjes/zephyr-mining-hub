@@ -168,11 +168,15 @@ if (MODE === 'normal') {
     rows.filter((r) => r.chips.some((c) => c.includes('maior hashrate'))).map((r) => r.name).join(','))
   check('chip "menor fee" na HeroMiners (única com fee)', (hero?.chips ?? []).some((c) => c.includes('menor fee')))
 
-  // --- dois chips na MESMA pool (regressão de 2026-07-11): empilhados em
-  // coluna, alinhados à esquerda, abaixo do nome — o flex-wrap horizontal
-  // do R3 quebrava desalinhado. No dado real de hoje a HeroMiners é o caso
-  // (maior hashrate E única com fee); se o mundo mudar e nenhuma pool tiver
-  // os dois, o check degrada pra "n/a" sem falhar.
+  // --- dois chips na MESMA pool: arranjo R5 (mudança DELIBERADA de contrato,
+  // 2026-07-11) — os 3 checks do R4 verificavam o empilhado antigo (ambos
+  // ABAIXO do nome, tops distintos/lefts iguais); a direção nova do Carlos
+  // (screenshot de uso real) põe os chips numa COLUNA À DIREITA do nome:
+  // chip 1 na MESMA linha do nome, chip 2 abaixo do chip 1. O filtro exclui
+  // o span-wrapper da coluna (childElementCount > 0) — só os chips-folha.
+  // No dado real de hoje a HeroMiners é o caso (maior hashrate E única com
+  // fee); se o mundo mudar e nenhuma pool tiver os dois, degrada pra "n/a"
+  // sem falhar.
   const twoChipGeom = await evaluate(`(() => {
     const tr = Array.from(document.querySelectorAll('tbody tr')).find((tr) => {
       const t = Array.from(tr.querySelectorAll('td:first-child span')).map((s) => s.innerText)
@@ -181,20 +185,25 @@ if (MODE === 'normal') {
     if (!tr) return null
     const name = tr.querySelector('a').getBoundingClientRect()
     const chips = Array.from(tr.querySelectorAll('td:first-child span'))
-      .filter((s) => /maior hashrate|menor fee/.test(s.innerText))
+      .filter((s) => s.childElementCount === 0 && /maior hashrate|menor fee/.test(s.innerText))
       .map((s) => s.getBoundingClientRect())
+    if (chips.length !== 2) return { count: chips.length }
     return {
-      stacked: chips.length === 2 && Math.round(chips[0].top) !== Math.round(chips[1].top),
-      leftAligned: chips.length === 2 && Math.round(chips[0].left) === Math.round(chips[1].left),
-      belowName: chips.every((c) => c.top >= name.bottom - 1),
+      count: 2,
+      chip1OnNameLine: chips[0].top < name.bottom && chips[0].bottom > name.top,
+      chip1RightOfName: chips[0].left >= name.right,
+      chip2BelowChip1: chips[1].top >= chips[0].bottom - 1,
+      leftsEqual: Math.round(chips[0].left) === Math.round(chips[1].left),
     }
   })()`)
   if (twoChipGeom === null) {
     check('dois chips juntos: n/a (nenhuma pool com os dois neste ciclo)', true)
   } else {
-    check('dois chips juntos empilham em coluna', twoChipGeom.stacked)
-    check('dois chips juntos alinhados à esquerda', twoChipGeom.leftAligned)
-    check('dois chips juntos abaixo do nome', twoChipGeom.belowName)
+    check('dois chips: chip 1 na linha do nome, à direita dele',
+      twoChipGeom.count === 2 && twoChipGeom.chip1OnNameLine && twoChipGeom.chip1RightOfName,
+      `count=${twoChipGeom.count}`)
+    check('dois chips: chip 2 abaixo do chip 1', twoChipGeom.chip2BelowChip1 === true)
+    check('dois chips: coluna de chips alinhada (lefts iguais)', twoChipGeom.leftsEqual === true)
   }
 
   // --- ordenação padrão: hashrate desc (na medição de 2026-07-08, HeroMiners

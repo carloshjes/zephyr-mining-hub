@@ -57,7 +57,13 @@ export interface HashrateReading {
   /** Saldo pendente na pool (ZEPH) na mesma leitura — só o histórico DIÁRIO
       amostra (2026-07-11); opcional porque nem toda pool expõe o campo
       (HeroMiners pode vir "—") e leituras antigas não o têm. Atenção de
-      leitura: o saldo ZERA quando a pool paga — a serra é o pagamento. */
+      leitura: o saldo ZERA quando a pool paga — a serra é o pagamento.
+      R5: a UI que desenhava esta série (faixa sob as barras) SAIU, mas a
+      amostragem FICA de propósito — decisão documentada em NOTES.md: o
+      campo é opcional, o custo é ~zero (mesmo poll, ~10 bytes/leitura) e
+      manter a coleta significa que reabilitar o desenho no futuro já
+      encontra 24 h de série pronta, sem recomeçar do zero. Sem migração de
+      storage nos dois sentidos. */
   b?: number
 }
 
@@ -133,7 +139,9 @@ export function loadDailyHashrateHistory(key: string): HashrateReading[] {
 
 /** Anexa leitura ao histórico diário (gap de ~5 min, cap de 24 h). O saldo
     pendente (ZEPH) entra na MESMA leitura quando a pool o expõe — dado real
-    do mesmo poll, nunca inventado; ausente, a leitura vai só com hashrate. */
+    do mesmo poll, nunca inventado; ausente, a leitura vai só com hashrate.
+    (R5: a UI não desenha mais o saldo, mas a amostragem fica — ver o
+    comentário do campo b em HashrateReading.) */
 export function appendDailyHashrateReading(
   key: string,
   hashrate: number,

@@ -1285,3 +1285,279 @@ pools-chips-probe, rewards-round-probe, rig-visual-probe) — números e
 método registrados acima. Evidências regeneráveis: .e2e-out/logo/rail-*.png
 e mobile-*.png (estudos de tamanho), .e2e-out/pools-chips-*.png,
 rewards-round-*.png, rig-round-*.png e shot-*.png (12).
+
+# NOTES — Prompt R5: lapidação final (2026-07-11)
+
+Cinco pontos de uso real com screenshot, quatro com direção fechada pelo
+Carlos; a única latitude criativa da rodada foi o tratamento visual das
+barras do rig (skill creative-ui-director, seção abaixo). Tokens, semântica
+good/bad/zeph, composição dominante/rail e convenção mono intactos — a
+rodada adiciona UM token decorativo novo (--color-scroll) e nada mais.
+
+## Instrumentos de tendência em largura MEDIDA (/rede e /meu-rig)
+
+O TrendSparkline de largura fixa 340px deixava ~metade da coluna dominante
+vazia em desktop (o instrumento parecia menor que a importância que tem).
+Decisão fechada: MEDIR o container com o useElementWidth que os gráficos do
+Raio-X já usam, não fixar um width maior na mão.
+
+Armadilha que moldou a implementação: o useElementWidth ata o
+ResizeObserver UMA vez no mount (useEffect []), e os dois blocos de
+tendência nascem dentro de branch condicional (skeleton primeiro) — medir
+no componente da página deixaria o observer preso num ref nulo. Por isso
+cada instrumento virou componente FILHO (NetworkTrend em
+NetworkPulsePage.tsx, DailyTrend em RigDashboard.tsx), montado só quando o
+branch com dado renderiza — a mesma razão de RewardSplitChart ser filho.
+O wrapper leva a altura fixa (h-16 / h-24) SÓ com ≥2 leituras, senão o
+estado "coletando…" ganharia ~70px de vão morto.
+
+Medido (sondas rede-trend-probe/rig-bars-probe do scratchpad da sessão):
+- /rede a 1360: svg = 680px = a coluna dominante exata (1104 de coluna
+  − 48 px-6 − 336 aside − 40 gap); a 390: 358px, sem overflow. Altura 64
+  mantida (proporção de linha fina lê bem em 680px).
+- /meu-rig a 1360: svg = 681px; a 390: 358px, sem overflow. Altura subiu
+  64 → 96 JUNTO com a largura (em 681px a fita de 64px lia achatada pro
+  papel de único instrumento da tela — ver seção do rig).
+- LuckSparkline da Bússola INTACTO (default width=96 não mudou; pools-e2e
+  "sparklines renderizados (2 pools)" passou sem alteração).
+
+## Bússola — chips em coluna À DIREITA do nome (contrato de e2e atualizado)
+
+Direção nova do Carlos com screenshot (o empilhado do R4 resolvia o
+desalinhamento do flex-wrap do R3, mas com os DOIS chips a linha ficava
+alta demais): [ maior hashrate ] AO LADO do nome, na mesma linha;
+[ menor fee ] abaixo do PRIMEIRO CHIP — coluna de chips à direita do nome,
+não abaixo dele. Com um chip só, ele fica ao lado do nome.
+
+Implementação: célula vira `flex items-start gap-2` com o nome + um
+span-wrapper `flex flex-col gap-1 pt-0.5` (o pt-0.5 alinha oticamente o
+chip de caption com a linha de text-body do nome). Medido ao vivo com o
+caso real (HeroMiners = maior hashrate E única com fee) em 1360 e 1024
+(r5-pools-chips-{1360,1024}.png): chip 1 com overlap vertical na caixa do
+nome e à direita dele; chip 2 abaixo do chip 1; lefts iguais; linha da
+tabela caiu pra 68px; NENHUMA célula numérica quebrou e a tabela coube nos
+976px úteis de um viewport 1024 — min-w-[920px] segue suficiente, decidido
+por medição (não alargou).
+
+**Contrato do pools-e2e atualizado (mudança DELIBERADA)**: os 3 checks
+permanentes do R4 verificavam o empilhado antigo (ambos abaixo do nome,
+tops distintos/lefts iguais); viraram 3 checks do arranjo novo (chip 1 na
+linha do nome à direita dele; chip 2 abaixo do chip 1; coluna alinhada),
+documentados no próprio script. O filtro de spans agora exclui o wrapper
+da coluna (childElementCount === 0). Degradação pra "n/a" sem falhar
+continua quando nenhuma pool tem os dois chips.
+
+## Raio-X mobile — SegmentedControl: a causa era o WRAP, não o padding
+
+Diagnóstico por captura (shot-recompensa-mobile do R4): a 390px os rótulos
+"100 blocos"…"1.000 blocos" quebravam em DUAS linhas dentro do botão —
+41,7px de altura (2 × 14,85 de caption + 12 de py). O pedido era "menos
+padding vertical", mas reduzir padding sem matar o wrap não afinaria nada:
+o fix estrutural foi (a) whitespace-nowrap no botão e (b) " blocos" só em
+md+ (`hidden md:inline`) — no mobile os botões leem 100/200/500/1.000, a
+unidade segue na frase "≈ N h de rede" ao lado e no aria-label ESTÁVEL
+("100 blocos") que cada opção agora carrega (display:none sai da árvore de
+acessibilidade; sem o aria-label o nome acessível mudaria por breakpoint).
+
+Alvo de toque (decisão pedida com medição a 390): altura visual ficou
+26,8px (uma linha, py-1.5 mantido — afinar o padding deixaria o botão
+raquítico); o alvo REAL é ≥32px via extensão invisível
+`before:-inset-y-1` (4px por lado ⇒ ~35px) — hit-test da sonda
+rewards-mobile-probe confirmou que pontos 3px ALÉM da borda visual
+resolvem pro botão. As linhas Janela/Escala do controle usam gap-y-2
+(8px): as extensões de 4+4px se tocam sem sobrepor. Faixa da janela
+inteira: 191px de largura, sem overflow horizontal.
+
+## Scrollbar NEUTRA de verdade — token novo --color-scroll (6px)
+
+O thumb hairline do R4 (#282530) tem matiz ≈262°: croma baixa, mas ainda
+roxa — e o Carlos percebia. Constatação que fechou a decisão: a família
+INTEIRA (ink/mist/zeph/hairline) carrega matiz roxo — não existia token
+neutro pra promover. Entrou `--color-scroll: #3a3a3a` (cinza croma ZERO,
+papel documentado no @theme: SÓ scrollbar, nunca texto/borda/superfície de
+conteúdo — mesma classe decorativa do mist-600, porém exclusiva).
+
+@utility scrollbar-themed (vale automaticamente pras 3 tabelas): 8px → 6px,
+thumb var(--color-scroll) SEM borda (com 6px a borda de 1px comia 2/3 do
+miolo), track TRANSPARENTE (track ink-900 era mais uma superfície roxa; o
+fundo neutro da própria tabela faz o papel). Confirmação computada na
+sonda: scrollbar-color `rgb(58, 58, 58) rgba(0, 0, 0, 0)`. Contraste
+medido pro registro (decorativo): 1,62:1 sobre ink-950 · 1,55:1 na célula
+clara · 1,53:1 sobre ink-900 — mais presente que o par antigo
+hairline-sobre-ink-900 (1,16:1) apesar de mais fino. O affordance de
+rolagem segue não dependendo do polegar (a tabela corta no meio de coluna).
+
+## Rig — a faixa do saldo SAIU; barras viram O instrumento (skill)
+
+Decisão do Carlos usando o produto: duas séries empilhadas competem e o
+saldo pendente diz pouco no dia a dia — a faixa
+[ SALDO PENDENTE · MESMAS LEITURAS ] saiu da UI (o valor ATUAL continua no
+rail como StatCard). **A amostragem do b? no motor diário FICA** (decisão
+minha, documentada no rigStatus.ts): campo opcional, custo ~zero (~10
+bytes/leitura no mesmo poll), e manter a coleta significa que reabilitar o
+desenho no futuro já encontra 24 h de série pronta — sem migração de
+storage em nenhum dos sentidos. Sonda com b semeado nas 288 leituras
+provou que a faixa não renderiza mais.
+
+Tratamento visual das barras (creative-ui-director, modo
+design-system-constrained-upgrade lean — a única latitude da rodada).
+Diagnóstico: como único instrumento de tendência da tela, as barras em
+mist-600 (token SÓ-decorativo, 2,7:1) liam como ornamento, não como
+gráfico. Escolhido, dentro do vocabulário existente:
+1. **Base mist-600 → zeph-500** — o token cujo papel documentado é
+   exatamente "suporte/gráfico" (3,5:1); vivacidade por papel de token,
+   não matiz novo. Barra corrente segue zeph-300 (mesmo papel do "ponto
+   atual" da linha).
+2. **data-pulse na chegada de leitura nova** — useDataPulse na timestamp
+   da última leitura diária (dispara a cada ~5 min quando o motor anexa),
+   par com motion-reduce:animate-none como todo movimento do sistema.
+3. **Hover-scrub**: um handler de pointer no plot inteiro (NÃO um hit-rect
+   por barra — seriam 288 alvos de ~2px) destaca a barra sob o cursor em
+   zeph-300 e mostra `hh:mm:ss · valor` em caption mono num overlay
+   aria-hidden com fundo ink-950, sem deslocar layout. SEM foco por
+   teclado nas barras DE PROPÓSITO: 288 tab-stops seriam ruído; o
+   aria-label/summary do svg já entrega a série completa pra AT.
+   O TrendSparkline ganhou a prop opcional formatReading (só variant
+   bars); sem ela as barras não reagem a hover — Pulso da Rede e Bússola
+   seguem com o comportamento de sempre.
+Considerado e rejeitado: draw-in de entrada nas barras (terceiro movimento
+no mesmo instrumento passaria o orçamento de polimento; o pulso já cobre a
+vivacidade pedida). Rubrica: com zeph-500 as barras leem vivas mas seguem
+textura — mais quietas que o hero de 96px; não viram segunda dominante.
+Sonda rig-bars-probe: 287 barras zeph-500 + 1 zeph-300; hover no meio do
+plot → overlay "06:33:21 · 46,01 kH/s" + 2 barras accent (corrente +
+cursor); overlay some no pointerleave. Screenshot r5-rig-bars-hover.png.
+
+## Verificação R5 (2026-07-11)
+
+`npm run build` limpo (177ms) · lint só com os 2 warnings PRÉ-existentes
+do N2 · e2e completa: rewards normal/lowratio/brokenrewards + rig
+normal/notfound + pools normal (com os 3 checks NOVOS do arranjo de chips)
+— **TUDO PASSOU 2026-07-11** · design-shots 12/12 re-fotografadas e
+revisadas na rubrica de 8 perguntas — as 4 telas passaram, com atenção
+explícita ao mobile (item 5 do diagnóstico):
+- /rede: o sparkline em 680px vira o segundo momento da coluna dominante
+  sem disputar com o hero (linha fina mist-600 + ponto accent); a 390
+  ocupa os 358px úteis sem overflow. 8/8.
+- /pools: chips na linha do nome leem como anotação do RANKING (zeph, não
+  estado); linha do caso de dois chips caiu de altura; mobile segue com a
+  rolagem horizontal contida e a coluna de chips íntegra. 8/8.
+- /recompensa: janela em linha única fina no mobile (26,8px visual, alvo
+  ~35px); scrollbar de 6px neutra praticamente desaparece até precisar
+  dela — o dado segue a coisa mais viva da tela. 8/8.
+- /meu-rig: as barras em zeph-500 são o segundo momento claro da tela,
+  vivas sem competir com o hero (texture < headline); positivo/negativo
+  seguem distinguíveis sem cor; mobile 358×96 sem overflow. 8/8.
+Sondas da rodada no scratchpad da sessão (rede-trend-probe,
+pools-chips-probe, rewards-mobile-probe, rig-bars-probe) — números e
+método nas seções acima. Evidências regeneráveis:
+.e2e-out/r5-rede-trend-{1360,390}.png, r5-pools-chips-{1360,1024}.png,
+r5-rewards-390.png, r5-rig-bars-{1360,390,hover}.png e shot-*.png (12).
+
+## Adendo R5 — StatusBadge below sem caixa + favicon removido (2026-07-11)
+
+Dois itens do escopo original que chegaram depois da primeira leva:
+
+**1. StatusBadge: o "abaixo do esperado" perdeu a caixa — desvio DELIBERADO
+da escada do R4.** A escada era: nada (normal) < bad/20 contornado (below,
+4,89:1) < bad sólido (offline). Agora normal e below usam a MESMA anatomia
+de readout nu — ponto + rótulo mono `[ ... ]`, sem border/bg/padding —
+mudando só a cor (bad no lugar de good; 6,6:1 direto no fundo, já medido no
+v2) e o texto. O canal NÃO-COR entre normal e below passa a ser o texto por
+extenso ("Minerando normal" vs "Hashrate abaixo do esperado") e o halo
+ao-vivo, que segue EXCLUSIVO do normal; a superfície fica reservada pro
+pior estado — offline segue caixa sólida bad, distinto por PESO. Nenhum
+degrau é só-cor (daltonismo ok). Os dois estados forçados e capturados:
+rig-below.png (readout nu laranja, sem halo) e rig-notfound.png (offline
+sólido, inalterado). O rig-e2e não referenciava a caixa do below (checks
+são por innerText e data-status) — passou normal + notfound SEM alteração
+de script.
+
+**2. Favicon REMOVIDO sem substituto** (decisão do Carlos — um ícone novo
+virá depois): o <link rel="icon"> saiu do index.html (comentário no lugar
+explica o porquê, pra ninguém "consertar" a ausência) e public/favicon.svg
+foi deletado. Confirmado: `grep -ri favicon dist/` pós-build só encontra o
+próprio comentário — zero referência a arquivo; src/ e vite.config não
+referenciam. O logo-export.mjs continua emitindo favicon-{mist,zeph}.svg em
+.e2e-out/logo/ como BYPRODUCT de exploração (não é produção, não tocar). O
+navegador vai requisitar /favicon.ico por conta própria e receber 404 do
+Vercel — esperado e aceito até o ícone novo existir.
+
+Verificação do adendo: `npm run build` limpo (167ms) · rig-e2e normal +
+notfound — **TUDO PASSOU 2026-07-11** · CLAUDE.md atualizado (escada de
+estados do rig + regra "não recrie favicon").
+
+## R5 — 2ª leva: limpeza de metadados + instrumentos de tendência
+
+Decisões do Carlos, tela a tela; nada reabre composição/token.
+
+**Removidos (texto descritivo de mecânica, não de mineração):** as linhas
+"Atualização automática a cada N s · última: HH:MM:SS" das 4 telas (o
+polling continua idêntico por baixo — só o metadado saiu); no /rede, a
+anotação mono sob o hero (dificuldade/bloco/cadência + "estimado pelo
+daemon…") e a legenda "Últimas 360 leituras…"; no /meu-rig, o "a cada 60 s
+· HH:MM" do rail e a legenda "Hashrate da carteira na pool, até 288
+leituras…". Os headers das 4 telas perderam o flex justify-between (não
+há mais segunda coluna).
+
+**Procedência virou canal NÃO-VISUAL — a convenção do projeto não caiu:**
+os rótulos dos instrumentos ficaram [ TENDÊNCIA ] e [ TENDÊNCIA 24 H ], e
+o container de cada um ganhou `role="group"` + `title` + `aria-label` com
+a procedência completa ("coletada neste navegador com a página aberta…;
+não há série histórica pública"). Tooltip pro mouse, aria pra AT — o
+`summary` do próprio svg já dizia a procedência e continua. CLAUDE.md
+atualizado com "não reintroduza a frase como texto visível". Sondado:
+title/aria presentes e com o conteúdo esperado nas duas telas.
+
+**/rede — linha mais alta + efeito dinâmico (latitude com a skill):**
+altura 64 → 96 (a remoção dos metadados liberou o espaço; calibrada por
+captura em r5b-rede-1360.png — 96 respira sem competir com o hero; svg
+segue os 680px da coluna). Efeito escolhido: draw-in de entrada
+(useChartEntrance, com a trava de assentamento que o sistema já tem) +
+data-pulse na leitura nova (~2 min). Halo no ponto corrente REJEITADO: o
+anel pulsante é semântica reservada do StatusBadge normal do rig
+(animate-status-ping é "SÓ estado normal" desde o v3) — reusar diluiria.
+**Armadilha medida no caminho:** animate-chart-draw e animate-data-pulse
+disputam a MESMA propriedade `animation` no wrapper (utilities se
+sobrescrevem na cascata) e a leitura viva que chega logo após a montagem
+cortava o draw-in no meio (animationName computado na montagem: era
+`data-pulse`, não `chart-draw`). Fix: o pulso só se aplica com a entrada
+assentada (`fresh && entranceClass === undefined`) — re-sondado:
+`chart-draw` na montagem, `none` após a trava. Motion-reduce pareado nos
+dois (mesmas utilities de sempre).
+
+**/pools — rodapé em UM bloco:** os 3 parágrafos soltos (Luck/effort ·
+Tendência · "—") viraram um único parágrafo text-label max-w-3xl com a
+mesma informação encadeada — menos fragmentos flutuando sob a tabela.
+
+**/meu-rig — instrumento desceu e cresceu:** o bloco [ TENDÊNCIA 24 H ]
+saiu de baixo do hero e agora vive logo ACIMA da tabela de workers, em
+largura CHEIA (svg = 1041px a 1360; 358 a 390) com altura 96 → 128.
+Rubrica re-conferida na captura (r5b-rig-1360.png): a faixa lê como
+horizonte de textura — o mesmo papel compositivo da faixa do halving no
+/rede — e a primeira leitura da tela segue sendo o hero; o vão que fica
+sob o StatusBadge na coluna dominante é o retorno às proporções pré-R4
+(hero+badge vs rail), que já passavam na rubrica. Renderiza só com
+statusReady (mesma condição de antes da mudança).
+
+**Contratos de e2e: ZERO mudança necessária.** Grep prévio + suíte verde
+provaram que nenhum check referenciava os textos removidos/movidos (os
+waitFor do rig usam "Na pool"/"H/s"/tbody, que ficaram; pools/rewards não
+citavam os headers). Única correção foi em SONDA descartável do
+scratchpad (waitFor de navegação ancorado na rota — o readyState batia no
+about:blank).
+
+## Verificação final R5 (leva 1 + adendos + leva 2, 2026-07-12)
+
+`npm run build` limpo (165ms) · lint só com os 2 warnings PRÉ-existentes
+do N2 · e2e completa re-executada por inteiro APÓS a 2ª leva: rewards
+normal/lowratio/brokenrewards + rig normal/notfound + pools normal —
+**TUDO PASSOU** · design-shots 12/12 re-fotografadas e revisadas na
+rubrica de 8 perguntas: as 4 telas passaram (telas mais silenciosas sem os
+metadados; o dado segue a coisa mais viva de cada uma; nenhum instrumento
+virou segunda dominante; procedência auditável por tooltip/AT). Sondas da
+2ª leva no scratchpad (r5b-height-probe, rede-entrance-probe); evidências
+regeneráveis: .e2e-out/r5b-rede-{1360,390}.png, r5b-rig-{1360,390}.png e
+shot-*.png (12). Nota: o dev server caiu entre sondas e foi re-erguido
+com `npm run dev` — se uma sonda der timeout na primeira carga, cheque a
+porta 5173 antes de suspeitar do código.

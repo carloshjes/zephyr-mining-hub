@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePolling } from '../../hooks/usePolling'
+import { useDataPulse } from '../../hooks/useDataPulse'
+import { useElementWidth } from '../../hooks/useElementWidth'
 import { getMinerPool, MinerNotFoundError, type MinerSnapshot } from '../../lib/api/minerStats'
 import { fetchXmrigSummary, type XmrigSummary } from '../../lib/api/xmrig'
 import { ErrorNotice } from '../../components/ui/ErrorNotice'
@@ -20,7 +22,6 @@ import {
   appendDailyHashrateReading,
   appendHashrateReading,
   computeRigStatus,
-  DAILY_HASHRATE_LIMIT,
   historyKey,
   loadDailyHashrateHistory,
   loadHashrateHistory,
@@ -56,12 +57,15 @@ interface RigDashboardProps {
 // card destoando do vocabulário readout/mono que resolve estado no resto do
 // sistema (selos do Pulso da Rede, tags [ ... ] dos workers). O saudável — o
 // estado de 99% do tempo — agora é a linha mais QUIETA da região: ponto com
-// halo + rótulo mono em good, sem caixa nenhuma. As superfícies ficam
-// reservadas pros negativos, exatamente como o v3 as media (bad/20 tintado
-// pro "abaixo", bad sólido pro offline — contraste 4,89:1 e 6,57:1 em
-// NOTES.md). A escada de peso do R2 fica MAIS íngreme, não menos:
-// nada < caixa tintada com contorno < caixa sólida — e nenhum degrau é
-// só-cor (texto por extenso + glifo em todos).
+// halo + rótulo mono em good, sem caixa nenhuma.
+//
+// R5 (adendo — desvio DELIBERADO da escada do R4, registrado em NOTES.md):
+// o "abaixo do esperado" perdeu a caixa tintada (bad/20 contornada) e usa a
+// MESMA anatomia de readout nu do normal — ponto + rótulo mono, mudando SÓ
+// a cor (bad no lugar de good, 6,6:1 direto no fundo) e o texto. O canal
+// não-cor entre normal e below agora é o TEXTO POR EXTENSO (e o halo, que
+// segue exclusivo do normal); a SUPERFÍCIE fica reservada pro pior estado:
+// offline segue caixa sólida bad — peso distingue. Nenhum degrau é só-cor.
 const STATUS_PRESENTATION: Record<
   RigStatusKind,
   { label: string; className: string; dot: string }
@@ -73,7 +77,7 @@ const STATUS_PRESENTATION: Record<
   },
   below: {
     label: 'Hashrate abaixo do esperado',
-    className: 'border border-bad/60 bg-bad/20 px-3 py-1 text-bad',
+    className: 'text-bad',
     dot: 'bg-bad',
   },
   offline: {
@@ -104,6 +108,57 @@ function StatusBadge({ status, detail }: { status: RigStatusKind; detail: string
         [ {label} ]
       </span>
       <span className="font-mono text-caption text-mist-400">{detail}</span>
+    </div>
+  )
+}
+
+// Procedência da tendência (R5 2ª leva): saiu do texto visível (rótulo e
+// legenda) e virou canal não-visual — title (tooltip) + aria-label no
+// container do instrumento. A convenção do projeto segue de pé: a UI
+// declara a procedência, só mudou o canal.
+const DAILY_TREND_PROVENANCE =
+  'Tendência de 24 h do hashrate da carteira na pool, coletada neste ' +
+  'navegador com a página aberta — 1 leitura a cada ~5 min, até 288; ' +
+  'nenhuma pool integrada expõe série histórica pública.'
+
+// Tendência de 24 h em componente próprio: o useElementWidth ata o
+// ResizeObserver no mount, e este bloco nasce dentro do branch pós-loading —
+// medir no pai deixaria o observer preso num ref nulo (mesma razão do
+// NetworkTrend do Pulso da Rede e do RewardSplitChart ser filho).
+//
+// R5 — as barras viraram o ÚNICO instrumento de tendência da tela (a faixa
+// do saldo pendente saiu, ver seção do gráfico) e cresceram pro papel:
+// largura MEDIDA do container no lugar do 340 fixo. 2ª leva: o instrumento
+// DESCEU do hero pra cima da tabela de workers (largura cheia) e a altura
+// subiu de novo, 96 → 128 (calibrada por captura, NOTES.md) — segue textura,
+// não vira segunda região dominante (rubrica re-conferida).
+// Tratamento (skill creative-ui-director, decisão em NOTES.md): barras na
+// cor de gráfico zeph-500 com corrente/hover em zeph-300 (no próprio
+// TrendSparkline), hover-scrub com hora + valor em caption mono, e pulso de
+// dado novo quando o motor diário anexa leitura (useDataPulse na timestamp
+// da última — SEMPRE em par com motion-reduce:animate-none).
+function DailyTrend({ history, summary }: { history: HashrateReading[]; summary: string }) {
+  const [trendRef, trendWidth] = useElementWidth<HTMLDivElement>()
+  const fresh = useDataPulse(history.length > 0 ? history[history.length - 1].t : undefined)
+  return (
+    <div
+      ref={trendRef}
+      className={`mt-3 ${history.length >= 2 ? 'h-32' : ''}${
+        fresh ? ' animate-data-pulse motion-reduce:animate-none' : ''
+      }`}
+    >
+      {trendWidth > 0 && (
+        <TrendSparkline
+          values={history.map((reading) => reading.h)}
+          summary={summary}
+          width={trendWidth}
+          height={128}
+          variant="bars"
+          formatReading={(index) =>
+            `${formatTime(new Date(history[index].t))} · ${formatHashrate(history[index].h)}`
+          }
+        />
+      )}
     </div>
   )
 }
@@ -219,25 +274,6 @@ export function RigDashboard({ config }: RigDashboardProps) {
     )
   }, [dailyHistory])
 
-  // Segunda métrica REAL da mesma coleta (2026-07-11): saldo pendente por
-  // leitura. Sem eixo duplo — decisão de dataviz do projeto: duas séries de
-  // escala diferente viram dois desenhos empilhados na MESMA janela (é o que
-  // o Raio-X já faz com fatia × ratio). Leituras sem o campo ficam de fora;
-  // com menos de 2, a faixa nem renderiza (nunca fingir série).
-  const balanceValues = useMemo(
-    () => dailyHistory.flatMap((reading) => (reading.b !== undefined ? [reading.b] : [])),
-    [dailyHistory],
-  )
-  const balanceSummary = useMemo(() => {
-    if (balanceValues.length < 2) return ''
-    return (
-      `Saldo pendente na pool nas mesmas leituras: ${balanceValues.length} pontos, ` +
-      `atual ${formatZeph(balanceValues[balanceValues.length - 1], 4)}, ` +
-      `máximo ${formatZeph(Math.max(...balanceValues), 4)}. ` +
-      'O saldo zera quando a pool paga — a queda brusca é o pagamento.'
-    )
-  }, [balanceValues])
-
   useEffect(() => {
     const hashrate = xmrig?.hashrate60s ?? xmrig?.hashrate10s
     if (hashrate === undefined) return
@@ -303,54 +339,6 @@ export function RigDashboard({ config }: RigDashboardProps) {
               <div className="mt-4">
                 <StatusBadge status={status} detail={statusDetail} />
               </div>
-
-              {/* Tendência coletada localmente (v3) — mesma receita de
-                  instrumento do Pulso da Rede: nenhuma pool integrada expõe
-                  série de pagamentos confirmada ao vivo (sondagem em
-                  NOTES.md), então o gráfico do dia é o hashrate da carteira
-                  na pool, coletado por este navegador — dado real, nunca
-                  inventado, e a legenda diz a procedência. 2026-07-11:
-                  virou BARRAS (pedido de uso real) e ganhou a segunda
-                  métrica da mesma coleta — saldo pendente — como faixa
-                  própria embaixo, nunca eixo duplo (regra de dataviz do
-                  projeto; leituras sem o campo ficam de fora). */}
-              <div className="mt-10">
-                <p className="font-mono text-caption tracking-wide text-mist-400">
-                  [ TENDÊNCIA 24 H · COLETADA NESTE NAVEGADOR ]
-                </p>
-                <div className="mt-3">
-                  <TrendSparkline
-                    values={dailyHistory.map((reading) => reading.h)}
-                    summary={dailySummary}
-                    width={340}
-                    height={64}
-                    variant="bars"
-                  />
-                </div>
-                <p className="mt-2 max-w-md text-label text-mist-400">
-                  Hashrate da carteira na pool, até {DAILY_HASHRATE_LIMIT} leituras (1 a cada
-                  ~5 min ≈ 24 h) guardadas neste navegador com a página aberta.
-                </p>
-                {balanceValues.length >= 2 && (
-                  <div className="mt-5">
-                    <p className="font-mono text-caption tracking-wide text-mist-400">
-                      [ SALDO PENDENTE · MESMAS LEITURAS ]
-                    </p>
-                    <div className="mt-3">
-                      <TrendSparkline
-                        values={balanceValues}
-                        summary={balanceSummary}
-                        width={340}
-                        height={36}
-                      />
-                    </div>
-                    <p className="mt-2 max-w-md text-label text-mist-400">
-                      O saldo pendente cresce com os shares e <strong className="font-medium text-mist-300">zera quando a pool paga</strong> — a
-                      queda brusca na serra é o pagamento, não um erro.
-                    </p>
-                  </div>
-                )}
-              </div>
             </>
           ) : (
             <div className="mt-2 space-y-4">
@@ -362,7 +350,9 @@ export function RigDashboard({ config }: RigDashboardProps) {
 
         {/* Rail: as demais métricas da carteira na pool */}
         <aside className="mt-8 lg:mt-0 lg:border-l lg:border-hairline lg:pl-8">
-          <header className="flex flex-wrap items-baseline justify-between gap-2 pb-3">
+          {/* R5 2ª leva: o "a cada 60 s · HH:MM" saiu (decisão do Carlos —
+              o polling continua o mesmo por baixo) */}
+          <header className="pb-3">
             <h2 className="text-lede font-medium text-mist-100">
               Na pool{' '}
               <a
@@ -374,11 +364,6 @@ export function RigDashboard({ config }: RigDashboardProps) {
                 {pool?.name}
               </a>
             </h2>
-            <p className="font-mono text-caption text-mist-400">
-              a cada {POOL_POLL_MS / 1_000} s
-              {poolPoll.lastUpdatedAt !== undefined &&
-                ` · ${formatTime(new Date(poolPoll.lastUpdatedAt))}`}
-            </p>
           </header>
           <div className="space-y-4">
             <StatCard
@@ -433,6 +418,26 @@ export function RigDashboard({ config }: RigDashboardProps) {
           </div>
         </aside>
       </section>
+
+      {/* Tendência coletada localmente (v3) — mesma receita de instrumento
+          do Pulso da Rede: nenhuma pool integrada expõe série de pagamentos
+          confirmada ao vivo (sondagem em NOTES.md), então o gráfico do dia
+          é o hashrate da carteira na pool, coletado por este navegador —
+          dado real, nunca inventado. R4: virou BARRAS. R5: a faixa do saldo
+          pendente SAIU (o valor ATUAL segue no rail; o motor diário CONTINUA
+          amostrando o b? — ver rigStatus.ts). 2ª leva: o instrumento DESCEU
+          de baixo do hero pra cá, logo acima da tabela de workers, em
+          largura cheia — e a procedência saiu do rótulo/legenda visíveis
+          pro title + aria-label do container (role group), canal
+          não-visual, convenção mantida. */}
+      {statusReady && (
+        <section role="group" aria-label={DAILY_TREND_PROVENANCE} title={DAILY_TREND_PROVENANCE}>
+          <p className="font-mono text-caption tracking-wide text-mist-400">
+            [ TENDÊNCIA 24 H ]
+          </p>
+          <DailyTrend history={dailyHistory} summary={dailySummary} />
+        </section>
+      )}
 
       {/* Workers da carteira — mesmo tratamento hairline/mono da tabela do Raio-X */}
       {poolPoll.data && <WorkersTable snapshot={poolPoll.data} />}

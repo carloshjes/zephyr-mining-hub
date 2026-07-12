@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { usePolling } from '../../hooks/usePolling'
 import { useDataPulse } from '../../hooks/useDataPulse'
 import {
@@ -7,7 +7,7 @@ import {
   getRecentReserveRatios,
   SCANNER_CACHE_SECONDS,
 } from '../../lib/api/zephyrScanner'
-import { formatInteger, formatNumber, formatTime, formatZeph, orDash } from '../../lib/format'
+import { formatInteger, formatNumber, formatZeph, orDash } from '../../lib/format'
 import { ErrorNotice } from '../../components/ui/ErrorNotice'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { REWARD_SERIES, sharePercent, toRewardSlices, type RewardSlices } from './rewardSeries'
@@ -63,7 +63,10 @@ const EXPLAINER_SENTENCES = [
 
 interface SegmentedOption<T extends string | number> {
   value: T
-  label: string
+  /** Pode esconder parte do texto por breakpoint (ex.: " blocos" só em md+). */
+  label: ReactNode
+  /** Nome acessível ESTÁVEL quando o label visual encurta no mobile. */
+  ariaLabel?: string
 }
 
 // Controle segmentado dos filtros (janela/escala) — botões com aria-pressed,
@@ -71,6 +74,10 @@ interface SegmentedOption<T extends string | number> {
 // superfície elevada ink-900 (antes o estado inativo era transparente e
 // mostrava o fundo da página — parecia "não clicável" até o hover); o ativo
 // segue com o tint zeph-800/40 POR CIMA da elevação, claramente distinto.
+// R5: whitespace-nowrap — a 390px "100 blocos" quebrava em DUAS linhas e o
+// botão dobrava de altura (a causa era o wrap, não o padding); o alvo de
+// toque segue ≥32px via extensão invisível (::before, 4px por lado), sem
+// engordar o botão visual (medição em NOTES.md).
 function SegmentedControl<T extends string | number>({
   label,
   options,
@@ -93,8 +100,9 @@ function SegmentedControl<T extends string | number>({
               key={String(option.value)}
               type="button"
               aria-pressed={isActive}
+              aria-label={option.ariaLabel}
               onClick={() => onChange(option.value)}
-              className={`px-3 py-1.5 font-mono text-caption transition-colors ${
+              className={`relative px-3 py-1.5 font-mono text-caption whitespace-nowrap transition-colors before:absolute before:inset-x-0 before:-inset-y-1 before:content-[''] ${
                 index > 0 ? 'border-l border-hairline' : ''
               } ${
                 isActive
@@ -215,11 +223,6 @@ export function RewardsPage() {
   const noDataAtAll =
     !rewardsData && !ratiosData && !liveStats.data && failingSources.length > 0
 
-  const lastUpdatedAt = Math.max(
-    rewardsPoll.lastUpdatedAt ?? 0,
-    ratiosPoll.lastUpdatedAt ?? 0,
-  )
-
   const windowHours = (blockCount * 120) / 3_600
 
   // Estado do piso: o valor corrente (livestats; na falta dele, o último
@@ -235,16 +238,12 @@ export function RewardsPage() {
 
   return (
     <div className="space-y-8">
-      <header className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-data-md font-semibold tracking-tight">Raio-X da Recompensa</h1>
-          <p className="mt-1 text-body text-mist-400">
-            Como o prêmio de cada bloco se divide entre minerador, reserva e yield — e por quê.
-          </p>
-        </div>
-        <p className="font-mono text-caption text-mist-400">
-          Atualização automática a cada {SERIES_POLL_MS / 1_000} s
-          {lastUpdatedAt > 0 && ` · última: ${formatTime(new Date(lastUpdatedAt))}`}
+      {/* R5 2ª leva: a linha "Atualização automática … · última: HH:MM" saiu
+          (decisão do Carlos — o polling continua o mesmo por baixo) */}
+      <header>
+        <h1 className="text-data-md font-semibold tracking-tight">Raio-X da Recompensa</h1>
+        <p className="mt-1 text-body text-mist-400">
+          Como o prêmio de cada bloco se divide entre minerador, reserva e yield — e por quê.
         </p>
       </header>
 
@@ -353,7 +352,16 @@ export function RewardsPage() {
               label="Janela"
               options={WINDOW_PRESETS.map((preset) => ({
                 value: preset,
-                label: `${formatInteger(preset)} blocos`,
+                // " blocos" só em md+ — a 390px o rótulo cheio quebrava em 2
+                // linhas (o botão dobrava de altura); a unidade segue na
+                // frase "≈ N h de rede" ao lado e no nome acessível estável
+                ariaLabel: `${formatInteger(preset)} blocos`,
+                label: (
+                  <>
+                    {formatInteger(preset)}
+                    <span className="hidden md:inline"> blocos</span>
+                  </>
+                ),
               }))}
               value={blockCount}
               onChange={setBlockCount}

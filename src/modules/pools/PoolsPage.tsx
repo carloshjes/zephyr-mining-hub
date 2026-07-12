@@ -10,7 +10,6 @@ import {
   formatHashrate,
   formatInteger,
   formatNumber,
-  formatTime,
   formatZeph,
   orDash,
 } from '../../lib/format'
@@ -178,17 +177,12 @@ export function PoolsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-data-md font-semibold tracking-tight">Bússola de Pools</h1>
-          <p className="mt-1 text-body text-mist-400">
-            Comparador das pools ZEPH ativas — clique num cabeçalho pra ordenar.
-          </p>
-        </div>
-        <p className="font-mono text-caption text-mist-400">
-          Atualização automática a cada {POLL_INTERVAL_MS / 1_000} s
-          {poll.lastUpdatedAt !== undefined &&
-            ` · última: ${formatTime(new Date(poll.lastUpdatedAt))}`}
+      {/* R5 2ª leva: a linha "Atualização automática … · última: HH:MM" saiu
+          (decisão do Carlos — o polling continua o mesmo por baixo) */}
+      <header>
+        <h1 className="text-data-md font-semibold tracking-tight">Bússola de Pools</h1>
+        <p className="mt-1 text-body text-mist-400">
+          Comparador das pools ZEPH ativas — clique num cabeçalho pra ordenar.
         </p>
       </header>
 
@@ -226,13 +220,15 @@ export function PoolsPage() {
               const isLowestFee = def.id === lowestFeeId
               return (
                 <tr key={def.id} className={isTopHashrate ? 'bg-zeph-800/20' : ''}>
-                  {/* Nome numa linha; chips (quando houver) empilhados em
-                      coluna logo abaixo, alinhados à esquerda. O flex-wrap
-                      horizontal do R3 quebrava desalinhado quando a MESMA
-                      pool ganhava os dois chips (caso real: HeroMiners com
-                      maior hashrate E menor fee) — visto em produção. */}
+                  {/* Chips numa COLUNA À DIREITA do nome (R5, screenshot do
+                      Carlos): o 1º chip fica na mesma linha do nome, o 2º
+                      abaixo do 1º. O empilhado do R4 (tudo abaixo do nome)
+                      corrigia o desalinhamento do flex-wrap do R3, mas com
+                      os dois chips a linha ficava alta demais em uso real
+                      (caso de hoje: HeroMiners com maior hashrate E menor
+                      fee). Com um chip só, ele fica ao lado do nome. */}
                   <td className="px-3 py-3">
-                    <div className="flex flex-col items-start gap-1.5">
+                    <div className="flex items-start gap-2">
                       <a
                         href={def.website}
                         target="_blank"
@@ -241,8 +237,12 @@ export function PoolsPage() {
                       >
                         {def.name}
                       </a>
-                      {isTopHashrate && highlightChip('maior hashrate')}
-                      {isLowestFee && highlightChip('menor fee')}
+                      {(isTopHashrate || isLowestFee) && (
+                        <span className="flex flex-col items-start gap-1 pt-0.5">
+                          {isTopHashrate && highlightChip('maior hashrate')}
+                          {isLowestFee && highlightChip('menor fee')}
+                        </span>
+                      )}
                     </div>
                   </td>
 
@@ -304,18 +304,16 @@ export function PoolsPage() {
         </table>
       </div>
 
-      <div className="space-y-1 text-label text-mist-400">
-        <p>
-          Luck/effort: 100% = neutro; abaixo de 100% = blocos achados com menos trabalho que o
-          esperado. A medição varia por pool (passe o mouse sobre o valor pra ver a fonte) —
-          compare a tendência, não o número exato entre pools.
-        </p>
-        <p>
-          Tendência: últimas {LUCK_HISTORY_LIMIT} leituras coletadas por este navegador (1 por
-          minuto com a página aberta), guardadas localmente. A linha fina marca os 100%.
-        </p>
-        <p>“—” = campo que a API da pool não expõe. Fees e pagamentos podem mudar; confirme no site da pool.</p>
-      </div>
+      {/* R5 2ª leva: os parágrafos soltos do rodapé viraram UM bloco
+          agrupado — mesma informação, menos fragmentos (decisão do Carlos) */}
+      <p className="max-w-3xl text-label leading-relaxed text-mist-400">
+        Luck/effort: 100% = neutro; abaixo de 100% = blocos achados com menos trabalho que o
+        esperado. A medição varia por pool (passe o mouse sobre o valor pra ver a fonte) —
+        compare a tendência (últimas {LUCK_HISTORY_LIMIT} leituras coletadas por este navegador,
+        1 por minuto com a página aberta; a linha fina marca os 100%), não o número exato entre
+        pools. “—” = campo que a API da pool não expõe; fees e pagamentos podem mudar, confirme
+        no site da pool.
+      </p>
     </div>
   )
 }

@@ -2044,6 +2044,63 @@ Um item de cada vez, e2e do módulo antes de seguir:
 </criterios_de_aceite>
 ```
 
+### Adendo 2 ao R5 (2026-07-11) — limpeza de metadados de UI + tendências
+
+A primeira execução do R5 rodou com uma cópia do prompt anterior aos adendos do
+StatusBadge/favicon (adendo 1, itens 5/6 acima); este bloco soma a segunda leva de
+pedidos do Carlos. Cola na MESMA sessão do R5 (nada foi commitado), junto com o
+adendo 1 se ele ainda não rodou:
+
+```
+Segunda leva de itens do escopo R5 — limpeza de metadados de UI e ajustes dos
+instrumentos de tendência. Nada aqui reabre composição/token; e2e e docs no final
+valem pro R5 inteiro.
+
+1. Remoções de texto descritivo (decididas pelo Carlos, tela a tela):
+   - /rede: a linha "Atualização automática a cada 30 s (cache da API) ·
+     última: HH:MM:SS"; a anotação mono sob o hero ("dificuldade X bi (…) ·
+     bloco N · um novo a cada ~120 s" + "estimado pelo daemon da rede
+     (dificuldade ÷ 120 s), via explorer"); a legenda "Últimas 360 leituras
+     (1 por bloco, ~2 min) guardadas neste navegador…".
+   - /pools: "Atualização automática a cada 60 s · última: HH:MM:SS".
+   - /recompensa: "Atualização automática a cada 60 s · última: HH:MM:SS".
+   - /meu-rig: "a cada 60 s · HH:MM:SS" (rail) e a legenda "Hashrate da
+     carteira na pool, até 288 leituras (1 a cada ~5 min ≈ 24 h)…".
+
+2. Procedência vira canal não-visual (a convenção do projeto NÃO cai): os
+   rótulos dos instrumentos de tendência perdem o "· COLETADA NESTE NAVEGADOR"
+   (ficam [ TENDÊNCIA ] e [ TENDÊNCIA 24 H ]), e o container de cada
+   instrumento ganha title + aria-label com a procedência completa ("coletada
+   neste navegador com a página aberta; não há série histórica pública").
+   Atualize a frase da convenção no CLAUDE.md: a UI segue declarando a
+   procedência, agora por tooltip/AT em vez de texto visível.
+
+3. /rede — o gráfico de tendência fica mais ALTO (a remoção dos textos libera
+   espaço vertical; hoje ele lê comprimido) — calibre a altura por captura. E
+   ganha um efeito dinâmico sutil na LINHA (sua latitude, com a skill):
+   candidatos — draw-in de entrada (useChartEntrance já existe, com a trava de
+   assentamento) e/ou pulso/halo discreto no ponto corrente. Motion-reduce
+   pareado, sempre; o hero continua a coisa mais viva da tela.
+
+4. /pools — os dois parágrafos do rodapé da tabela ("Luck/effort: …" e
+   "Tendência: … / '—' = …") viram UM bloco agrupado (mesma informação, menos
+   fragmentos soltos).
+
+5. /meu-rig — o instrumento [ TENDÊNCIA 24 H ] DESCE: sai de baixo do hero e
+   fica logo ACIMA da tabela de workers; as barras ficam mais ALTAS,
+   preenchendo parte do espaço liberado. Reconfirme na rubrica que ele não
+   vira segunda região dominante.
+
+6. Contratos: qualquer check de e2e que referencie texto removido/movido é
+   atualizado com a mudança documentada no script.
+
+7. Verificação final (vale pro R5 inteiro, adendos inclusos): npm run build
+   limpo; e2e completa (rewards×3, rig×2, pools×1); design-shots 12/12 na
+   rubrica de 8; CLAUDE.md/NOTES.md atualizados (procedência via title/aria,
+   altura nova das tendências, rodapé agrupado, posição nova do gráfico do
+   rig, StatusBadge below nu, favicon removido).
+```
+
 ---
 
 ## Prompt T1 — Fable: tema claro "white/blue" + botão de troca de tema

@@ -10,11 +10,24 @@
 // partem do PISO DO DOMÍNIO (min − 15% do span), não do zero — mesma janela
 // recortada que a linha já usava: isto é textura de tendência, não magnitude
 // absoluta (um hashrate estável perto de 16 kH/s viraria um bloco chapado se
-// ancorasse no zero). A barra mais recente fica no accent, as demais na cor
-// de de-ênfase — o mesmo papel do "ponto atual" da linha.
+// ancorasse no zero).
+//
+// R5 (skill creative-ui-director, NOTES.md): no Monitor do Rig as barras
+// viraram o ÚNICO instrumento de tendência da tela e subiram de decoração
+// pra gráfico — a base saiu do mist-600 (token SÓ-decorativo, 2,7:1) pro
+// zeph-500 (o token cujo papel documentado é exatamente "suporte/gráfico",
+// 3,5:1); a barra mais recente segue no accent zeph-300 (o mesmo papel do
+// "ponto atual" da linha). Hover-scrub: mover o ponteiro sobre o plot
+// destaca a barra sob o cursor (zeph-300) e mostra a leitura formatada pelo
+// chamador (formatReading) em caption mono, num overlay que não desloca
+// layout. SEM foco por teclado nas barras de propósito: seriam até 288
+// tab-stops de ruído — o aria-label/summary já entrega a série completa
+// pra AT (mesma decisão de escopo do title do svg).
 //
 // Com menos de 2 leituras não existe tendência: o componente DIZ que está
 // coletando, sem fingir gráfico (convenção do projeto: nunca inventar dado).
+
+import { useState, type PointerEvent } from 'react'
 
 interface TrendSparklineProps {
   values: number[]
@@ -27,6 +40,9 @@ interface TrendSparklineProps {
   height?: number
   /** 'line' (padrão — Pulso da Rede e Bússola) ou 'bars' (Monitor do Rig). */
   variant?: 'line' | 'bars'
+  /** SÓ variant 'bars': rótulo mono da leitura sob o cursor (hover-scrub).
+      Sem ele, as barras não reagem a hover. */
+  formatReading?: (index: number) => string
 }
 
 // Folga pro ponto atual (r=4 + anel de 2) não cortar na borda
@@ -39,7 +55,11 @@ export function TrendSparkline({
   width = 96,
   height = 28,
   variant = 'line',
+  formatReading,
 }: TrendSparklineProps) {
+  // Hover-scrub das barras (null = ponteiro fora do plot)
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
+
   if (values.length < 2) {
     return (
       <span className="font-mono text-caption text-mist-400">
@@ -70,7 +90,15 @@ export function TrendSparkline({
   const slot = plotW / values.length
   const barW = Math.max(1, Math.min(slot * 0.7, 8))
 
-  return (
+  // Índice da leitura sob o cursor — um handler só no plot inteiro (não um
+  // hit-rect por barra: com 288 leituras seriam 288 alvos de ~2px)
+  const scrubIndex = (event: PointerEvent<SVGRectElement>) => {
+    const box = event.currentTarget.getBoundingClientRect()
+    const index = Math.floor((event.clientX - box.left) / slot)
+    setHoverIndex(Math.min(values.length - 1, Math.max(0, index)))
+  }
+
+  const chart = (
     <svg
       role="img"
       aria-label={summary}
@@ -91,21 +119,35 @@ export function TrendSparkline({
         />
       )}
       {variant === 'bars' ? (
-        values.map((value, index) => {
-          const left = PAD + index * slot + (slot - barW) / 2
-          const top = y(value)
-          const isCurrent = index === values.length - 1
-          return (
+        <>
+          {values.map((value, index) => {
+            const left = PAD + index * slot + (slot - barW) / 2
+            const top = y(value)
+            // Accent na leitura mais recente E na barra sob o cursor
+            const isAccent = index === values.length - 1 || index === hoverIndex
+            return (
+              <rect
+                key={index}
+                x={left.toFixed(2)}
+                y={top.toFixed(1)}
+                width={barW.toFixed(2)}
+                height={Math.max(height - PAD - top, 1).toFixed(1)}
+                className={isAccent ? 'fill-zeph-300' : 'fill-zeph-500'}
+              />
+            )
+          })}
+          {formatReading && (
             <rect
-              key={index}
-              x={left.toFixed(2)}
-              y={top.toFixed(1)}
-              width={barW.toFixed(2)}
-              height={Math.max(height - PAD - top, 1).toFixed(1)}
-              className={isCurrent ? 'fill-zeph-300' : 'fill-mist-600'}
+              x={PAD}
+              y={0}
+              width={plotW}
+              height={height}
+              fill="transparent"
+              onPointerMove={scrubIndex}
+              onPointerLeave={() => setHoverIndex(null)}
             />
-          )
-        })
+          )}
+        </>
       ) : (
         <>
           <polyline
@@ -128,5 +170,24 @@ export function TrendSparkline({
         </>
       )}
     </svg>
+  )
+
+  if (variant !== 'bars' || !formatReading) return chart
+
+  // Overlay do hover-scrub: aria-hidden (o dado pontual é redundante com o
+  // summary), fundo chapado ink-950 pra ler por cima das barras, sem
+  // deslocar layout (absolute) — não é tooltip nem superfície nova
+  return (
+    <div className="relative" style={{ width }}>
+      {chart}
+      {hoverIndex !== null && (
+        <p
+          aria-hidden
+          className="pointer-events-none absolute top-0 right-0 bg-ink-950 px-1 font-mono text-caption text-mist-300"
+        >
+          {formatReading(hoverIndex)}
+        </p>
+      )}
+    </div>
   )
 }

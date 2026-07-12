@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePolling } from '../../hooks/usePolling'
+import { useChartEntrance } from '../../hooks/useChartEntrance'
+import { useDataPulse } from '../../hooks/useDataPulse'
+import { useElementWidth } from '../../hooks/useElementWidth'
 import {
   getLatestBlockReward,
   getLiveStats,
@@ -10,11 +13,8 @@ import {
 import { getNetworkInfo } from '../../lib/api/zephyrExplorer'
 import {
   DASH,
-  formatCompact,
   formatHashrate,
-  formatInteger,
   formatNumber,
-  formatTime,
   formatUsd,
   formatZeph,
   orDash,
@@ -28,7 +28,6 @@ import { HalvingCountdown } from './HalvingCountdown'
 import {
   appendNetworkHashrateReading,
   loadNetworkHashrateHistory,
-  NETWORK_HASHRATE_LIMIT,
   type NetworkHashrateReading,
 } from './networkHashrateHistory'
 
@@ -73,6 +72,57 @@ function deltaVsYesterday(
 // Sempre texto + glifo, nunca só cor. Semântica v2: saudável=verde (good),
 // abaixo do piso=laranja (bad); acima da faixa é atípico mas não é alarme —
 // fica neutro, na convenção mono de colchetes da direção.
+// Procedência da tendência (R5 2ª leva): saiu do texto visível (rótulo e
+// legenda) e virou canal não-visual — title (tooltip) + aria-label no
+// container do instrumento. A convenção do projeto segue de pé: a UI
+// declara a procedência, só mudou o canal.
+const NETWORK_TREND_PROVENANCE =
+  'Tendência coletada neste navegador com a página aberta — 1 leitura por ' +
+  'bloco (~2 min), últimas 360; não há série histórica pública de hashrate ' +
+  'pra buscar pronta.'
+
+// Instrumento da tendência local em componente próprio: o useElementWidth
+// ata o ResizeObserver no mount, e este bloco nasce dentro do branch
+// pós-loading — medir no pai (que monta antes, ainda em skeleton) deixaria o
+// observer preso num ref nulo (mesmo motivo de RewardSplitChart ser filho).
+// R5: largura MEDIDA do container no lugar do 340 fixo — o gráfico preenche
+// a coluna dominante em desktop e segue coubível no mobile. 2ª leva: altura
+// 64 → 96 (a remoção dos metadados liberou espaço vertical; calibrada por
+// captura, NOTES.md) + o efeito dinâmico da linha (skill creative-ui-
+// director): draw-in de entrada (useChartEntrance, com a trava de
+// assentamento) e data-pulse na chegada de leitura nova (~2 min) — os dois
+// movimentos que o sistema já tem, sempre em par com motion-reduce; halo no
+// ponto corrente foi REJEITADO (o anel pulsante é semântica reservada do
+// StatusBadge normal do rig). O hero segue a coisa mais viva da tela.
+function NetworkTrend({
+  readings,
+  summary,
+}: {
+  readings: NetworkHashrateReading[]
+  summary: string
+}) {
+  const [trendRef, trendWidth] = useElementWidth<HTMLDivElement>()
+  const entranceClass = useChartEntrance()
+  const fresh = useDataPulse(readings.length > 0 ? readings[readings.length - 1].t : undefined)
+  const values = readings.map((reading) => reading.h)
+  // draw-in e pulso disputam a MESMA propriedade animation no wrapper (as
+  // utilities animate-* se sobrescrevem na cascata, medido: a leitura viva
+  // que chega logo após a montagem cortava o draw-in no meio) — durante a
+  // janela de entrada o draw-in é o dono do movimento; pulso só assentado
+  const pulseClass =
+    fresh && entranceClass === undefined ? ' animate-data-pulse motion-reduce:animate-none' : ''
+  return (
+    <div
+      ref={trendRef}
+      className={`mt-3 ${values.length >= 2 ? 'h-24' : ''} ${entranceClass ?? ''}${pulseClass}`}
+    >
+      {trendWidth > 0 && (
+        <TrendSparkline values={values} summary={summary} width={trendWidth} height={96} />
+      )}
+    </div>
+  )
+}
+
 function reserveRatioBadge(ratio: number | undefined) {
   if (ratio === undefined) return undefined
   const chip = (text: string, className: string) => (
@@ -138,31 +188,18 @@ export function NetworkPulsePage() {
     dailyStats.error && 'Scanner API (stats)',
   ].filter((source): source is string => Boolean(source))
 
-  const lastUpdatedAt = Math.max(
-    liveStats.lastUpdatedAt ?? 0,
-    networkInfo.lastUpdatedAt ?? 0,
-    blockReward.lastUpdatedAt ?? 0,
-  )
   const noDataAtAll =
     !liveStats.data && !networkInfo.data && !blockReward.data && failingSources.length > 0
 
-  const difficulty =
-    networkInfo.data?.difficulty !== undefined
-      ? Number(networkInfo.data.difficulty)
-      : undefined
-
   return (
     <div className="space-y-8">
-      <header className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-data-md font-semibold tracking-tight">Pulso da Rede</h1>
-          <p className="mt-1 text-body text-mist-400">
-            Saúde da rede Zephyr em tempo quase-real, direto das APIs públicas.
-          </p>
-        </div>
-        <p className="font-mono text-caption text-mist-400">
-          Atualização automática a cada {SCANNER_CACHE_SECONDS} s (cache da API)
-          {lastUpdatedAt > 0 && ` · última: ${formatTime(new Date(lastUpdatedAt))}`}
+      {/* R5 2ª leva: a linha "Atualização automática … · última: HH:MM" saiu
+          (decisão do Carlos — metadado de mecânica, não de mineração; o
+          polling continua o mesmo por baixo) */}
+      <header>
+        <h1 className="text-data-md font-semibold tracking-tight">Pulso da Rede</h1>
+        <p className="mt-1 text-body text-mist-400">
+          Saúde da rede Zephyr em tempo quase-real, direto das APIs públicas.
         </p>
       </header>
 
@@ -185,44 +222,31 @@ export function NetworkPulsePage() {
             [ HASHRATE DA REDE ]
           </p>
           {networkInfo.isLoading ? (
-            <div className="mt-2 space-y-3">
+            <div className="mt-2">
               <Skeleton className="h-20 w-72" />
-              <Skeleton className="h-4 w-96" />
             </div>
           ) : (
             <>
               <p className="mt-1 text-headline font-semibold tracking-tighter text-zeph-300">
                 {orDash(networkInfo.data?.hash_rate, formatHashrate)}
               </p>
-              <p className="mt-3 font-mono text-caption text-mist-400">
-                dificuldade {orDash(difficulty, formatCompact)}
-                {difficulty !== undefined && ` (${formatInteger(difficulty)})`} · bloco{' '}
-                {orDash(networkInfo.data?.height, formatInteger)} · um novo a cada ~120 s
-              </p>
-              <p className="mt-1 text-label text-mist-400">
-                estimado pelo daemon da rede (dificuldade ÷ 120 s), via explorer
-              </p>
 
               {/* Tendência coletada localmente (v3): dado real acumulado por
-                  este navegador — nenhuma API pública expõe a série, e a
-                  legenda diz exatamente isso (nunca fingir histórico) */}
-              <div className="mt-10">
+                  este navegador — nenhuma API pública expõe a série. R5 2ª
+                  leva: a anotação de dificuldade/bloco sob o hero e a
+                  legenda visível da coleta SAÍRAM (decisão do Carlos); a
+                  procedência migrou pro title + aria-label do container
+                  (role group) — canal não-visual, convenção mantida */}
+              <div
+                className="mt-10"
+                role="group"
+                aria-label={NETWORK_TREND_PROVENANCE}
+                title={NETWORK_TREND_PROVENANCE}
+              >
                 <p className="font-mono text-caption tracking-wide text-mist-400">
-                  [ TENDÊNCIA · COLETADA NESTE NAVEGADOR ]
+                  [ TENDÊNCIA ]
                 </p>
-                <div className="mt-3">
-                  <TrendSparkline
-                    values={hashrateHistory.map((reading) => reading.h)}
-                    summary={trendSummary}
-                    width={340}
-                    height={64}
-                  />
-                </div>
-                <p className="mt-2 max-w-md text-label text-mist-400">
-                  Últimas {NETWORK_HASHRATE_LIMIT} leituras (1 por bloco, ~2 min) guardadas
-                  neste navegador com a página aberta — não há série histórica pública de
-                  hashrate pra buscar pronta.
-                </p>
+                <NetworkTrend readings={hashrateHistory} summary={trendSummary} />
               </div>
             </>
           )}

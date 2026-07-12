@@ -17,7 +17,7 @@ rewrite/proxy do Vercel em produção (mesma ideia do proxy do Vite dev server).
 - Campo ausente na resposta da API vira "—" na tela. Nunca inventar/mockar valor.
 - Loading e erro usam um componente compartilhado (não reinventar por módulo).
 
-## Direção visual — "Sinal Técnico" (R1 2026-07-09 · v2 2026-07-10 · v3 e R4 2026-07-11, ver NOTES.md)
+## Direção visual — "Sinal Técnico" (R1 2026-07-09 · v2 2026-07-10 · v3, R4 e R5 2026-07-11, ver NOTES.md)
 Tokens centralizados no `@theme` de `src/index.css` — NUNCA hex solto em componente
 (utilitário Tailwind ou `var(--color-*)`; em SVG data-driven, via `style`, não atributo).
 Contraste MEDIDO com `scripts/contrast-check.mjs` (WCAG 2.2) contra o fundo, a célula
@@ -38,19 +38,25 @@ clara da textura (#191919, pior caso) e o ink-900 — números em NOTES.md.
   `scripts/zeph-hue-compare.html`.
 - Texto cinza-roxo: mist-100/300/400 (piso de texto corrido = mist-400, 5,3:1 — 5,0:1
   na célula clara, segue AA); mist-600 `#57536a` é SÓ decorativo — nunca texto de
-  conteúdo. Scrollbar de container rolável usa a utility `scrollbar-themed` (8px,
-  track ink-900 + thumb HAIRLINE — R4: o mist-600 no thumb ainda lia com tinta de
-  roxo em uso real) — nunca a barra padrão branca.
+  conteúdo. Scrollbar de container rolável usa a utility `scrollbar-themed` (R5: 6px,
+  track transparente + thumb no token `--color-scroll` `#3a3a3a` — a família
+  ink/mist/zeph/hairline INTEIRA tem matiz roxo e o thumb seguia lendo com tinta em
+  uso real; o token novo é cinza croma ZERO com papel único documentado: SÓ
+  scrollbar, nunca texto/borda/superfície de conteúdo) — nunca a barra padrão branca.
 - COR DE ESTADO É BINÁRIA (v2): good `#22c55e` (8,1:1) = positivo/saudável/normal ·
   bad `#f97316` (6,6:1) = negativo/erro/offline/abaixo do piso. O vermelho alert do R1
   SAIU do sistema por completo. Proibida qualquer outra cor de destaque. Nenhum estado
-  é só-cor: sempre texto/glifo junto, e os estados do rig se distinguem por PESO —
-  R4: normal SEM caixa (linha de readout nua com ponto+halo; good 8,1:1 direto no
-  fundo) < bad/20 contornado (abaixo, 4,89:1 medido) < bad sólido (offline) —
-  superfície significa "algo errado", e nunca por matiz. Destaque COMPARATIVO
+  é só-cor: sempre texto/glifo junto. Estados do rig (R5, desvio deliberado da
+  escada do R4 — NOTES.md): normal E below são a MESMA linha de readout nua
+  (ponto + rótulo mono, sem caixa; good 8,1:1 / bad 6,6:1 direto no fundo) — o
+  canal não-cor entre eles é o TEXTO POR EXTENSO e o halo (exclusivo do normal);
+  offline é a ÚNICA superfície (caixa sólida bad) — superfície significa "pior
+  estado", e nunca por matiz. Destaque COMPARATIVO
   (chips [ maior hashrate ]/[ menor fee ]) não é estado → v3: fundo sólido zeph-300
-  com texto ink-950 (vivacidade por peso, não matiz novo); R4: quando a MESMA pool
-  ganha os dois chips, eles empilham em coluna abaixo do nome (nunca flex-wrap).
+  com texto ink-950 (vivacidade por peso, não matiz novo); R5: os chips formam uma
+  COLUNA À DIREITA do nome — o 1º na mesma linha do nome, o 2º abaixo do 1º; com um
+  chip só, ele fica ao lado do nome (nunca flex-wrap; o empilhado-abaixo-do-nome do
+  R4 deixava a linha alta demais com os dois chips — medição em NOTES.md).
 - Escala tipográfica em tokens `--text-*` (proibido `text-[Npx]` novo em componente):
   caption 11 (mono/eixos/tags) · label 12 (legenda/tabela) · body 14 (corrido) ·
   lede 16 (destaque/título de seção) · data-md 22 (h1/valor de stat) · data-lg 34
@@ -72,10 +78,23 @@ clara da textura (#191919, pior caso) e o ink-900 — números em NOTES.md.
   são COLETADAS localmente (networkHashrateHistory.ts / histórico diário em
   rigStatus.ts, store separado do histórico de status — não misture as cadências) e
   desenhadas pelo `TrendSparkline` compartilhado (ui/) — a UI sempre declara a
-  procedência do dado. R4: o TrendSparkline tem `variant` line (default — rede,
-  pools) e bars (SÓ o rig); a leitura diária do rig amostra também o saldo pendente
-  ({t,h,b?}) e o desenha como FAIXA própria empilhada — nunca eixo duplo, e a
-  legenda avisa que o saldo zera quando a pool paga. Proibido continua: gradiente
+  procedência do dado, e desde a 2ª leva do R5 o canal é NÃO-VISUAL: title +
+  aria-label no container do instrumento (role="group"), não texto na tela — os
+  rótulos são só [ TENDÊNCIA ] e [ TENDÊNCIA 24 H ], sem legenda visível (não
+  reintroduza a frase da coleta como texto). R4: o TrendSparkline tem `variant`
+  line (default — rede, pools) e bars (SÓ o rig). R5: os DOIS instrumentos usam
+  largura MEDIDA do container (useElementWidth num componente FILHO — o observer
+  ata no mount e o bloco nasce depois do skeleton; medir no pai deixaria o ref
+  nulo), nunca width fixo; a faixa do saldo pendente SAIU da UI (o motor diário
+  CONTINUA amostrando o b? de {t,h,b?} — decisão e porquê em rigStatus.ts/
+  NOTES.md). Alturas calibradas por captura (2ª leva): linha do /rede 96 (com
+  draw-in de entrada + data-pulse de leitura nova — o pulso SÓ dispara com a
+  entrada assentada: as utilities animate-* disputam a mesma propriedade e o
+  pulso cortava o draw-in, medido em NOTES.md); barras do rig 128, posicionadas
+  ACIMA da tabela de workers em largura cheia (faixa-horizonte, não segunda
+  dominante), base zeph-500 + corrente/hover zeph-300, hover-scrub com
+  `formatReading` (prop opcional, só bars) — hover sem foco por teclado de
+  propósito (o summary cobre AT). Proibido continua: gradiente
   (fora a exceção acima), glassmorphism, blur, glow, sombra decorativa.
 - Séries do Raio-X (rewardSeries.ts): rampa monocromática ordinal validada + TEXTURA
   por série (v2): minerador liso, reserva hachura diagonal, yield pontilhado —
@@ -130,9 +149,12 @@ clara da textura (#191919, pior caso) e o ink-900 — números em NOTES.md.
   `scripts/logo-export.mjs` (emite também o literal pronto em
   .e2e-out/logo/dots-literal.txt); a rampa de pontos referencia tokens via var(),
   então a recalibração de matiz fluiu sozinha — o espelho manual de tokens do
-  logo-preview.html NÃO flui, foi re-sincronizado no N2. Favicon é o
-  Z̶ sólido em zeph-300 resolvido pra hex `#9c96f5` (favicon vive fora da cascata do app,
-  var() não resolve lá; acompanhou a recalibração) — decisão e evidência em NOTES.md.
+  logo-preview.html NÃO flui, foi re-sincronizado no N2. Favicon: REMOVIDO no R5
+  (decisão do Carlos — o Z̶ sólido saiu SEM substituto; um ícone novo virá depois, fora
+  do sistema atual). index.html não tem <link rel="icon"> e public/favicon.svg não
+  existe — não recrie nenhum dos dois. O logo-export.mjs segue emitindo
+  favicon-*.svg em .e2e-out/logo/ como byproduct de exploração (não é produção);
+  o histórico da decisão antiga (Z̶ em #9c96f5) fica em NOTES.md.
 
 ## Módulos (rotas)
 - /rede — Pulso da Rede: hashrate/dificuldade de rede, halving, saúde do reserve ratio.
@@ -198,7 +220,9 @@ fetch real, não só do servidor):
   serializa payments SEM endereço), por isso o gráfico do rig é hashrate diário
   coletado localmente, não pagamentos (regra: as duas pools ou nenhuma — NOTES.md).
   R4: o saldo pendente (pendingBalance, campo já normalizado nas duas pools) entrou
-  como 2ª série da MESMA coleta local — faixa própria sob as barras, nunca eixo duplo.
+  na MESMA coleta local ({t,h,b?}). R5: a faixa que o desenhava saiu da UI, mas a
+  amostragem do b? FICA (reabilitar o desenho reencontra 24 h de série pronta —
+  justificativa em rigStatus.ts); o valor atual segue no StatCard do rail.
 
 Também confirmado funcionando (CORS aberto, testado com fetch real do navegador):
 - HeroMiners — GET https://zephyr.herominers.com/api/stats, CORS `*` confirmado.
