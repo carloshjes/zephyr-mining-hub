@@ -1,11 +1,18 @@
 // Screenshots das 4 telas em 3 breakpoints (desktop 1360 / tablet 768 /
-// mobile 390) pra revisão de direção visual — Edge headless via CDP, sem
-// dependências. Pré-requisito: `npm run dev`. O /meu-rig é semeado com a
-// carteira de teste real da 2Miners (mesma do rig-e2e) + xmrig-sim local,
-// senão a tela mostraria só o formulário.
+// mobile 390) × 2 TEMAS (24 capturas) pra revisão de direção visual — Edge
+// headless via CDP, sem dependências. Pré-requisito: `npm run dev`. O
+// /meu-rig é semeado com a carteira de teste real da 2Miners (mesma do
+// rig-e2e) + xmrig-sim local, senão a tela mostraria só o formulário.
+//
+// Tema (rodada do 2º tema, 2026-07-12): o tema entra por localStorage
+// (zephyr-hub.theme.v1) ANTES da navegação — o inline script do index.html
+// aplica o atributo pré-paint, o mesmo caminho do usuário real. O ESCURO
+// mantém os nomes de arquivo históricos (shot-<rota>-<bp>.png — referências
+// em NOTES.md continuam válidas); o claro ganha o sufixo -light.
 //
 // Uso: node scripts/design-shots.mjs
-// Saída: .e2e-out/shot-<rota>-<breakpoint>.png
+// Saída: .e2e-out/shot-<rota>-<breakpoint>.png (escuro)
+//        .e2e-out/shot-<rota>-<breakpoint>-light.png (claro)
 
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
@@ -108,22 +115,27 @@ await evaluate(`
   })); true
 `)
 
-for (const route of ROUTES) {
-  for (const bp of BREAKPOINTS) {
-    await send('Emulation.setDeviceMetricsOverride', {
-      width: bp.width, height: bp.height, deviceScaleFactor: bp.scale, mobile: bp.mobile,
-    })
-    await send('Page.navigate', { url: `${BASE}${route.path}` })
-    try {
-      await waitFor(route.ready, 45_000, `${route.name} pronto`)
-    } catch (err) {
-      console.log(`WARN  ${route.name}@${bp.name}: ${err.message} — screenshot do estado atual`)
+for (const theme of ['dark', 'light']) {
+  // Tema via localStorage — o inline script do index.html aplica o atributo
+  // antes do paint na PRÓXIMA navegação (mesmo caminho do usuário real)
+  await evaluate(`localStorage.setItem('zephyr-hub.theme.v1', '${theme}'); true`)
+  for (const route of ROUTES) {
+    for (const bp of BREAKPOINTS) {
+      await send('Emulation.setDeviceMetricsOverride', {
+        width: bp.width, height: bp.height, deviceScaleFactor: bp.scale, mobile: bp.mobile,
+      })
+      await send('Page.navigate', { url: `${BASE}${route.path}` })
+      try {
+        await waitFor(route.ready, 45_000, `${route.name} pronto`)
+      } catch (err) {
+        console.log(`WARN  ${route.name}@${bp.name}@${theme}: ${err.message} — screenshot do estado atual`)
+      }
+      await new Promise((r) => setTimeout(r, 1_200))
+      const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true })
+      const file = `shot-${route.name}-${bp.name}${theme === 'light' ? '-light' : ''}.png`
+      writeFileSync(path.join(OUT_DIR, file), Buffer.from(shot.data, 'base64'))
+      console.log(`shot  .e2e-out/${file}`)
     }
-    await new Promise((r) => setTimeout(r, 1_200))
-    const shot = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true })
-    const file = `shot-${route.name}-${bp.name}.png`
-    writeFileSync(path.join(OUT_DIR, file), Buffer.from(shot.data, 'base64'))
-    console.log(`shot  .e2e-out/${file}`)
   }
 }
 console.log('OK')

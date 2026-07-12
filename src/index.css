@@ -65,6 +65,11 @@
   --color-good: #22c55e;
   --color-bad: #f97316;
 
+  /* Bloco da textura de fundo (tokenizado na rodada do 2º tema): a cor dos
+     quadrados da grade do body::before — branco a 2% no escuro, preto a 3%
+     no claro. Papel ÚNICO: a textura; nunca use em componente. */
+  --color-texture-block: rgb(255 255 255 / 0.02);
+
   /* Escala tipográfica (8 degraus) — todo tamanho de fonte do produto vem
      daqui; proibido text-[Npx] novo em componente.
      caption  metadado mono, eixos, tags [ ... ]
@@ -183,6 +188,66 @@
     monospace;
 }
 
+/* ============================================================================
+   TEMA CLARO (2026-07-12) — o segundo conjunto de VALORES pros MESMOS tokens.
+   Os nomes ink/zeph/mist/good/bad são PAPÉIS, não cores literais: nenhum
+   componente muda de classe por causa do tema — este bloco redefine os custom
+   properties e a cascata faz o resto (utilitários Tailwind emitem var(...)).
+
+   O ESCURO é o default (identidade do produto; os e2e verificam cor computada
+   no default). O atributo data-theme é aplicado no <html> ANTES do primeiro
+   paint pelo script inline do index.html (anti-flash) e gerenciado por
+   src/lib/theme.ts (localStorage zephyr-hub.theme.v1).
+
+   Fica FORA do @theme de propósito: regra não-camadada vence as @layer do
+   Tailwind, e o @theme não aceita selector — é override de runtime, não um
+   segundo conjunto de utilitários.
+
+   Valores CALIBRADOS com scripts/contrast-check.mjs (seção TEMA CLARO —
+   tabela completa lá e em NOTES.md), MESMOS pisos de papel do escuro medidos
+   contra o fundo E contra a célula escura da textura (#f0f0f0, o pior caso
+   do claro — a polaridade da textura inverte). Da paleta de partida do
+   planejamento, 3 valores FALHARAM piso e desceram de claridade com matiz
+   preservado: zeph-300 #1d4ed8→#1944be (7,06:1 na célula), good
+   #15803d→#116832 (6,04:1), bad #c2410c→#a2360a (6,01:1).
+
+   Decisões documentadas:
+   - Elevação INVERTE de direção de propósito: ink-900 claro = BRANCO, mais
+     claro que o fundo #f7f7f7 (1,07:1 — mesma presença sutil do escuro,
+     1,06:1). Superfície elevada no claro é "mais perto da luz"; não é bug.
+   - hairline #d9dde6 com tinta AZUL sutil — espelho da tinta roxa do escuro
+     (a elevação/divisor carregam a marca; o fundo segue croma zero).
+   - zeph-700 claro 1,58:1 na célula (escuro: 1,78:1) — segue SÓ gráfico com
+     alívio (rótulo direto/legenda/tooltip/tabela obrigatórios, como sempre).
+   - good/bad seguem TEXTO seguro (≥6:1) e chapado com texto ink-950 claro
+     passa (6,4:1 / 6,4:1); semântica binária intacta.
+   - scrollbar #c8c8c8: neutro croma zero, papel só-scrollbar (regra do R5). */
+[data-theme='light'] {
+  --color-ink-950: #f7f7f7;
+  --color-ink-900: #ffffff;
+  --color-hairline: #d9dde6;
+
+  --color-zeph-300: #1944be;
+  --color-zeph-500: #3b82f6;
+  --color-zeph-700: #93c5fd;
+  --color-zeph-800: #bfdbfe;
+
+  --color-mist-100: #171c26;
+  --color-mist-300: #3f4859;
+  --color-mist-400: #5a6373;
+  --color-mist-600: #a9b1c2;
+
+  --color-scroll: #c8c8c8;
+
+  --color-good: #116832;
+  --color-bad: #a2360a;
+
+  /* Grade de blocos: preto a 3% (o branco 2% do escuro, espelhado — célula
+     escura resultante #f0f0f0 é o pior caso medido). Mesmos keyframes,
+     mesma deriva: só a cor flui. */
+  --color-texture-block: rgb(0 0 0 / 0.03);
+}
+
 /* Base escura do dashboard — os módulos só usam utilitários em cima disso */
 @layer base {
   body {
@@ -210,7 +275,7 @@
     z-index: -1;
     pointer-events: none;
     background-image: conic-gradient(
-      rgb(255 255 255 / 0.02) 0 25%,
+      var(--color-texture-block) 0 25%,
       transparent 0
     );
     background-size: 6px 6px;

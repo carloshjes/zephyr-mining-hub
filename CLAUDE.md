@@ -17,11 +17,15 @@ rewrite/proxy do Vercel em produção (mesma ideia do proxy do Vite dev server).
 - Campo ausente na resposta da API vira "—" na tela. Nunca inventar/mockar valor.
 - Loading e erro usam um componente compartilhado (não reinventar por módulo).
 
-## Direção visual — "Sinal Técnico" (R1 2026-07-09 · v2 2026-07-10 · v3, R4 e R5 2026-07-11, ver NOTES.md)
+## Direção visual — "Sinal Técnico" (R1 2026-07-09 · v2 2026-07-10 · v3, R4 e R5 2026-07-11 · 2º tema 2026-07-12, ver NOTES.md)
 Tokens centralizados no `@theme` de `src/index.css` — NUNCA hex solto em componente
 (utilitário Tailwind ou `var(--color-*)`; em SVG data-driven, via `style`, não atributo).
-Contraste MEDIDO com `scripts/contrast-check.mjs` (WCAG 2.2) contra o fundo, a célula
-clara da textura (#191919, pior caso) e o ink-900 — números em NOTES.md.
+Desde 2026-07-12 existem DOIS conjuntos de VALORES pros mesmos tokens: o escuro
+(default, definido no @theme) e o claro (bloco `[data-theme='light']` no mesmo
+arquivo) — os nomes ink/zeph/mist/good/bad são PAPÉIS, nenhum componente muda de
+classe por causa do tema. Contraste MEDIDO com `scripts/contrast-check.mjs`
+(WCAG 2.2) contra o fundo, a célula da textura (pior caso: #191919 no escuro,
+#f0f0f0 no claro) e o ink-900 — números em NOTES.md.
 - Fundo unificado ink-950 `#141414` NEUTRO (v3 — clareou do #0a0a0a do v2 por uso
   real; ainda "quase preto", croma zero) + textura de GRADE DE BLOCOS monocromática
   (blocos 3px/vão 3px, branco a 2%, deriva diagonal de 1 período/8s via transform em
@@ -117,7 +121,8 @@ clara da textura (#191919, pior caso) e o ink-900 — números em NOTES.md.
   de LogoMark — não invente valores nem edite fases à mão. TODO uso de animação vem
   em par com `motion-reduce:animate-none`, sem exceção (cintilância provada desligando
   com reduced-motion emulado, NOTES.md).
-- `scripts/design-shots.mjs` fotografa as 4 telas em 3 breakpoints; rubrica de revisão
+- `scripts/design-shots.mjs` fotografa as 4 telas em 3 breakpoints × 2 temas (24
+  capturas; escuro mantém os nomes históricos, claro ganha -light); rubrica de revisão
   agora tem 8 perguntas (as 7 do R2 + "a textura de fundo em movimento compete com o
   dado real, ou o dado segue a coisa mais viva da tela?") — resultado em NOTES.md.
 - Casca de navegação (N1 2026-07-10 · R4 2026-07-11): rail vertical FIXO à esquerda
@@ -155,6 +160,28 @@ clara da textura (#191919, pior caso) e o ink-900 — números em NOTES.md.
   existe — não recrie nenhum dos dois. O logo-export.mjs segue emitindo
   favicon-*.svg em .e2e-out/logo/ como byproduct de exploração (não é produção);
   o histórico da decisão antiga (Z̶ em #9c96f5) fica em NOTES.md.
+
+- TEMA CLARO (2026-07-12): paleta azul (matiz ≈224°) nos MESMOS papéis do roxo —
+  fundo `#f7f7f7` croma zero, elevação ink-900 = BRANCO (mais clara que o fundo:
+  direção INVERTIDA de propósito, não é bug), hairline `#d9dde6` (tinta azul,
+  espelho da tinta roxa), zeph-300 `#1944be` (7,06:1 na célula), zeph-500
+  `#3b82f6`, good `#116832` / bad `#a2360a` (≥6:1 — semântica binária intacta),
+  textura = preto a 3% (o par de cores da grade é o token `--color-texture-block`,
+  papel só-textura). Da paleta planejada, zeph-300/good/bad FALHARAM piso e foram
+  recalibrados descendo claridade com matiz preservado (contrast-check, seção TEMA
+  CLARO — não edite valores sem re-rodar). Troca: botão `[ TEMA · ESCURO/CLARO ]`
+  (rótulo declara o estado ATUAL, convenção dos colchetes; ação no aria-label) na
+  BASE do rail e em linha própria sob a nav mobile; persistência em
+  `zephyr-hub.theme.v1` com script inline anti-flash no index.html (aplica o
+  atributo ANTES do primeiro paint — se mudar chave/valor, mude nos DOIS lugares:
+  index.html e src/lib/theme.ts). ESCURO segue o default sem marcação (atributo
+  removido, nunca data-theme='dark') — contrato dos e2e, que verificam cor
+  computada no default; theme-e2e.mjs cobre troca/persistência/anti-flash. Os
+  efeitos (textura, respiração, draw-in, pulso, halo, cintilância) são os MESMOS
+  nos dois temas — só cor flui via var(). A logo acompanha sozinha (pontos via
+  var(); legibilidade tom a tom no claro provada em lupa 4x, NOTES.md); o espelho
+  MANUAL do logo-preview.html ganhou o conjunto claro (`?theme=light`) e segue
+  não fluindo sozinho. e2e continuam com espelhos do DARK — não precisam mudar.
 
 ## Módulos (rotas)
 - /rede — Pulso da Rede: hashrate/dificuldade de rede, halving, saúde do reserve ratio.

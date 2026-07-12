@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <!-- Sem favicon de propósito (R5): o Z̶ sólido saiu por decisão do
          Carlos — um ícone novo virá depois; até lá, nenhum substituto. -->
+    <!-- Tema salvo aplicado ANTES do primeiro paint (anti-flash): o escuro é
+         o default; só o claro vira atributo. Depois do load quem gerencia o
+         atributo + localStorage é src/lib/theme.ts — mantenha a chave e o
+         valor em sincronia com ele. -->
+    <script>
+      try {
+        if (localStorage.getItem('zephyr-hub.theme.v1') === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light')
+        }
+      } catch (e) {
+        /* sem localStorage (modo privado): fica no default escuro */
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"

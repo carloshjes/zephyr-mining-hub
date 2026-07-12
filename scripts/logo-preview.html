@@ -29,6 +29,26 @@
     /* Cor dos pontos SEM mapa de tom — mist-100 por padrão, zeph-300 via ?dots=zeph */
     --dot: var(--color-mist-100);
   }
+  /* ESPELHO do tema claro (2026-07-12) — mesma armadilha do N2: este arquivo
+     NÃO flui com src/index.css; sincronize À MÃO quando os tokens mudarem.
+     Valores = bloco [data-theme='light'] de produção (calibrados no
+     contrast-check). Ative com ?theme=light — o atributo é aplicado ANTES da
+     resolução dos hex do canvas, então a rampa flui. --color-alert é só o
+     box de erro desta página (legado R1): espelha o bad claro. */
+  [data-theme='light'] {
+    --color-ink-950: #f7f7f7;
+    --color-ink-900: #ffffff;
+    --color-hairline: #d9dde6;
+    --color-zeph-300: #1944be;
+    --color-zeph-500: #3b82f6;
+    --color-zeph-700: #93c5fd;
+    --color-zeph-800: #bfdbfe;
+    --color-mist-100: #171c26;
+    --color-mist-300: #3f4859;
+    --color-mist-400: #5a6373;
+    --color-mist-600: #a9b1c2;
+    --color-alert: #a2360a;
+  }
   * { box-sizing: border-box; margin: 0; }
   body {
     background: var(--color-ink-950);
@@ -101,6 +121,9 @@
     <span style="margin-left:20px">animação (só ao vivo):</span>
     <a href="#" data-anim="0">[ estático ]</a>
     <a href="#" data-anim="1">[ cintilar ]</a>
+    <span style="margin-left:20px">tema (espelho manual):</span>
+    <a href="#" data-theme-choice="dark">[ escuro ]</a>
+    <a href="#" data-theme-choice="light">[ claro ]</a>
   </nav>
 </header>
 
@@ -451,7 +474,11 @@
   const query = new URLSearchParams(location.search)
   const mode = query.get('dots') === 'zeph' ? 'zeph' : 'mist'
   const anim = query.get('anim') === '1'
+  const theme = query.get('theme') === 'light' ? 'light' : 'dark'
   if (anim) document.body.classList.add('anim')
+  // Tema ANTES da resolução dos hex abaixo: o canvas congela os valores no
+  // load, então o atributo precisa estar aplicado já
+  if (theme === 'light') document.documentElement.dataset.theme = 'light'
   const DOT_VAR = mode === 'zeph' ? '--color-zeph-300' : '--color-mist-100'
   document.documentElement.style.setProperty('--dot', `var(${DOT_VAR})`)
   // canvas não resolve var() — os hex vêm DOS tokens, não são cores soltas
@@ -459,14 +486,20 @@
   const DOT_HEX = styles.getPropertyValue(DOT_VAR).trim()
   const rampHexOf = (vars) => vars.map((v) => styles.getPropertyValue(v).trim())
   const RAMP_HEX = { padrao: rampHexOf(RAMPS.padrao), semBranco: rampHexOf(RAMPS.semBranco) }
-  // toggles preservam o outro parâmetro
+  // toggles preservam os outros parâmetros
+  const themeParam = theme === 'light' ? '&theme=light' : ''
   for (const a of document.querySelectorAll('.toggle a[data-mode]')) {
-    a.href = `?dots=${a.dataset.mode}${anim ? '&anim=1' : ''}`
+    a.href = `?dots=${a.dataset.mode}${anim ? '&anim=1' : ''}${themeParam}`
     if (a.dataset.mode === mode) a.classList.add('active')
   }
   for (const a of document.querySelectorAll('.toggle a[data-anim]')) {
-    a.href = `?dots=${mode}${a.dataset.anim === '1' ? '&anim=1' : ''}`
+    a.href = `?dots=${mode}${a.dataset.anim === '1' ? '&anim=1' : ''}${themeParam}`
     if ((a.dataset.anim === '1') === anim) a.classList.add('active')
+  }
+  for (const a of document.querySelectorAll('.toggle a[data-theme-choice]')) {
+    const wantsLight = a.dataset.themeChoice === 'light'
+    a.href = `?dots=${mode}${anim ? '&anim=1' : ''}${wantsLight ? '&theme=light' : ''}`
+    if (wantsLight === (theme === 'light')) a.classList.add('active')
   }
 
   try {

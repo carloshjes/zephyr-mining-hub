@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { LogoMark } from '../ui/LogoMark'
+import { applyTheme, currentTheme, type Theme } from '../../lib/theme'
 
 // Casca comum de navegação — os 4 módulos do produto moram aqui dentro.
 // Composição da casca (2026-07-10): rail vertical fixo à esquerda em telas
@@ -47,7 +49,36 @@ function NavLinks() {
   ))
 }
 
+// Botão de troca de tema — convenção mono do sistema. O rótulo visível
+// declara o estado ATUAL ([ TEMA · ESCURO ] enquanto escuro): os colchetes
+// mono do sistema sempre dizem o que É (rota ativa, [ Minerando normal ]),
+// nunca o destino — a AÇÃO vai no aria-label ("Mudar pro tema claro").
+// min-w em ch reserva a largura do rótulo mais longo ("[ TEMA · ESCURO ]",
+// 17ch) pra alternância não deslocar layout; text-left ancora o colchete.
+function ThemeToggle({ theme, onToggle }: { theme: Theme; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      data-testid="theme-toggle"
+      onClick={onToggle}
+      aria-label={theme === 'dark' ? 'Mudar pro tema claro' : 'Mudar pro tema escuro'}
+      className="min-w-[17ch] text-left font-mono text-caption tracking-wide text-mist-400 transition-colors hover:text-mist-100"
+    >
+      [ TEMA · {theme === 'dark' ? 'ESCURO' : 'CLARO'} ]
+    </button>
+  )
+}
+
 export function AppShell() {
+  // O inline script do index.html já aplicou o atributo antes do paint —
+  // o estado inicial só o espelha (nunca decide o tema no mount)
+  const [theme, setTheme] = useState<Theme>(() => currentTheme())
+  const toggleTheme = () => {
+    const next: Theme = theme === 'dark' ? 'light' : 'dark'
+    applyTheme(next)
+    setTheme(next)
+  }
+
   return (
     // --shell-rail-w: largura do rail, 0 quando a casca está no arranjo de
     // barra horizontal. O Raio-X consome a var pro full-bleed da manchete
@@ -77,6 +108,11 @@ export function AppShell() {
         <nav className="mt-10 flex flex-col gap-y-2.5 font-mono text-body tracking-wide">
           <NavLinks />
         </nav>
+        {/* Controle de sistema (não é navegação): zona meta na BASE do rail
+            — mt-auto empurra pro pé, longe da nav, mesma lógica de rodapé */}
+        <div className="mt-auto pt-8">
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        </div>
       </aside>
 
       {/* Bloco de topo (< xl) — recomposição da MESMA ordem visual do rail
@@ -100,6 +136,12 @@ export function AppShell() {
           <nav className="mt-3 grid grid-cols-[auto_auto] gap-x-6 gap-y-1 font-mono text-label tracking-wide md:flex md:gap-x-5">
             <NavLinks />
           </nav>
+          {/* Linha própria SOB a nav (não 5º item da grade — a 2×2 é
+              agrupamento deliberado do N2 e o tema não é navegação);
+              custo de altura medido em NOTES.md */}
+          <div className="mt-2">
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          </div>
         </div>
       </header>
 

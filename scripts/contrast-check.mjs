@@ -252,3 +252,167 @@ for (const name of ['zeph-300', 'zeph-500', 'zeph-700', 'mist-400', 'good', 'bad
   const after = `${fmt(contrast(V3[name], V3['ink-950']))}:1 (célula ${fmt(contrast(V3[name], cell))}:1)`
   console.log(`${name}: v2 ${before} -> v3 ${after}`)
 }
+
+// ============================================================================
+// TEMA CLARO (rodada do 2º tema, 2026-07-12) — mesmos PISOS DE PAPEL do
+// escuro, medidos contra o fundo claro E contra a célula ESCURA da textura
+// (a polaridade inverte: no claro a grade é PRETO de baixa opacidade sobre o
+// fundo, e o pior caso pra texto escuro é a célula mais escura... na verdade
+// o pior caso pra TEXTO ESCURO é o fundo mais ESCURO? Não — contraste de
+// texto escuro CAI quando o fundo escurece; a célula (mais escura que o
+// fundo) é o pior caso. Espelho exato do escuro, onde a célula CLARA era o
+// pior caso pra texto claro.)
+//
+// Pisos de papel (idênticos ao escuro):
+//   destaque (zeph-300)  ≥ 7:1 na célula
+//   suporte (zeph-500)   ≥ 3:1 na célula
+//   piso de texto (mist-400) ≥ 4,5:1 com folga (alvo ≥5:1 na célula)
+//   estados good/bad (são TEXTO de caption) ≥ 4,5:1 com folga (alvo ≥6:1)
+//   texto ink-950 sobre chapado good/bad/zeph-300 ≥ 4,5:1
+//   alívio (zeph-700) ~2:1 · decoração documentada (zeph-800, mist-600,
+//   hairline, scroll) — sem piso, só registro.
+//
+// Valores de PARTIDA do planejamento; o que falhar piso é RECALIBRADO aqui
+// (desce a claridade com H/S preservados — espelho do withContrastOver, que
+// no v3 subiu a claridade dos escuros).
+
+// Desce SÓ a claridade (H e S preservados) até o contraste-alvo — pra texto
+// ESCURO sobre fundo claro (direção oposta do withContrastOver)
+function darkenToContrast(hex, bgHex, target) {
+  const [h, s] = rgbToHsl(hexToRgb(hex))
+  let lo = 0, hi = rgbToHsl(hexToRgb(hex))[2]
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2
+    const candidate = rgbToHex(hslToRgb([h, s, mid]))
+    if (contrast(candidate, bgHex) >= target) lo = mid
+    else hi = mid
+  }
+  return rgbToHex(hslToRgb([h, s, lo]))
+}
+
+const LIGHT_START = {
+  'ink-950': '#f7f7f7',
+  'ink-900': '#ffffff',
+  hairline: '#d9dde6',
+  'zeph-300': '#1d4ed8',
+  'zeph-500': '#3b82f6',
+  'zeph-700': '#93c5fd',
+  'zeph-800': '#bfdbfe',
+  'mist-100': '#171c26',
+  'mist-300': '#3f4859',
+  'mist-400': '#5a6373',
+  'mist-600': '#a9b1c2',
+  good: '#15803d',
+  bad: '#c2410c',
+  scroll: '#c8c8c8',
+}
+// Textura clara: PRETO a 3% (o branco 2% do escuro espelhado; 3% porque o
+// olho percebe menos textura escura sobre claro que o inverso — mesma
+// família de alpha, célula medida abaixo)
+const LIGHT_TEXTURE_ALPHA = 0.03
+const LIGHT_BG = LIGHT_START['ink-950']
+const lightCell = blend(LIGHT_BG, '#000000', LIGHT_TEXTURE_ALPHA)
+
+console.log('\n\n============ TEMA CLARO ============')
+console.log(`fundo ${LIGHT_BG} · célula escura da textura (preto a ${LIGHT_TEXTURE_ALPHA * 100}%): ${lightCell}`)
+
+// ---------- calibração dos que têm piso de TEXTO ----------
+// Partida medida primeiro; se falhar o alvo, desce a claridade e registra.
+const CALIBRATION = [
+  // [token, alvoNaCélula, motivo]
+  ['zeph-300', 7.0, 'destaque/manchete/chip — piso 7:1 (escuro: 7,1:1)'],
+  ['good', 6.0, 'texto de estado positivo — piso 4,5:1 com folga (escuro: 8,1:1)'],
+  ['bad', 6.0, 'texto de estado negativo — piso 4,5:1 com folga (escuro: 6,6:1)'],
+]
+const LIGHT = { ...LIGHT_START }
+console.log('\n== Calibração (H/S preservados, claridade desce até o alvo na célula) ==')
+for (const [name, target, why] of CALIBRATION) {
+  const start = LIGHT_START[name]
+  const onCell = contrast(start, lightCell)
+  if (onCell >= target) {
+    console.log(`${name}: partida ${start} já bate (${fmt(onCell)}:1 ≥ ${target}:1) — mantido · ${why}`)
+  } else {
+    const fixed = darkenToContrast(start, lightCell, target)
+    LIGHT[name] = fixed
+    console.log(
+      `${name}: partida ${start} FALHA (${fmt(onCell)}:1 < ${target}:1) -> ${fixed} ` +
+      `(${fmt(contrast(fixed, lightCell))}:1 na célula, h=${hueOf(fixed).toFixed(1)}°) · ${why}`,
+    )
+  }
+}
+
+// ---------- tabela completa do claro ----------
+const LIGHT_BACKGROUNDS = [
+  ['ink-950 claro', LIGHT['ink-950']],
+  ['célula escura da textura', lightCell],
+  ['ink-900 claro (elevação = BRANCO, mais claro que o fundo — direção invertida de propósito)', LIGHT['ink-900']],
+]
+console.log('\n== Tokens claros × fundos ==')
+console.log(['token', 'hex', 'fundo', 'célula', 'elevação'].join(' | '))
+for (const name of [
+  'zeph-300', 'zeph-500', 'zeph-700', 'zeph-800',
+  'mist-100', 'mist-300', 'mist-400', 'mist-600',
+  'good', 'bad', 'hairline', 'scroll',
+]) {
+  const hex = LIGHT[name]
+  const cells = LIGHT_BACKGROUNDS.map(([, bg]) => `${fmt(contrast(hex, bg))}:1`)
+  console.log([name, hex, ...cells].join(' | '))
+}
+
+// ---------- pisos de papel: veredito ----------
+console.log('\n== Veredito dos pisos (pior caso = célula) ==')
+const FLOORS = [
+  ['zeph-300', 7, 'destaque'],
+  ['zeph-500', 3, 'suporte/gráfico'],
+  ['mist-400', 4.5, 'piso de texto corrido (alvo folgado ≥5)'],
+  ['mist-300', 4.5, 'texto secundário'],
+  ['mist-100', 7, 'texto principal'],
+  ['good', 4.5, 'texto de estado'],
+  ['bad', 4.5, 'texto de estado'],
+]
+let allPass = true
+for (const [name, floor, role] of FLOORS) {
+  const worst = Math.min(contrast(LIGHT[name], LIGHT_BG), contrast(LIGHT[name], lightCell))
+  const ok = worst >= floor
+  allPass &&= ok
+  console.log(`${name} (${role}): pior caso ${fmt(worst)}:1 → ${ok ? 'PASS' : 'FAIL'} (piso ${floor}:1)`)
+}
+
+// ---------- texto claro sobre chapado ----------
+console.log('\n== Texto ink-950 claro sobre chapado (chip zeph-300 / offline bad) ==')
+for (const [label, bg] of [
+  ['ink-950 sobre zeph-300 (chip de destaque)', LIGHT['zeph-300']],
+  ['ink-950 sobre bad (badge offline sólido)', LIGHT.bad],
+  ['ink-950 sobre good (referência)', LIGHT.good],
+]) {
+  const ratio = contrast(LIGHT['ink-950'], bg)
+  console.log(`${label}: ${fmt(ratio)}:1 ${ratio >= 4.5 ? 'PASS' : 'FAIL'}`)
+}
+
+// ---------- tints compostos sobre os fundos claros ----------
+console.log('\n== Tints compostos (composição REAL sobre os fundos claros) ==')
+// SegmentedControl ativo: zeph-800/40 POR CIMA da elevação ink-900
+const segTint = blend(LIGHT['ink-900'], LIGHT['zeph-800'], 0.4)
+console.log(
+  `zeph-800/40 sobre ink-900 (SegmentedControl ativo) = ${segTint} · ` +
+  `texto ativo zeph-300: ${fmt(contrast(LIGHT['zeph-300'], segTint))}:1 ${contrast(LIGHT['zeph-300'], segTint) >= 4.5 ? 'PASS' : 'FAIL'}`,
+)
+// Alerta do piso do ratio: bg-bad/10 sobre ink-900 (o readout é elevado)
+const alertTint = blend(LIGHT['ink-900'], LIGHT.bad, 0.1)
+console.log(
+  `bad/10 sobre ink-900 (alerta do piso) = ${alertTint} · ` +
+  `caption text-bad: ${fmt(contrast(LIGHT.bad, alertTint))}:1 ${contrast(LIGHT.bad, alertTint) >= 4.5 ? 'PASS' : 'FAIL'} · ` +
+  `corpo mist-100: ${fmt(contrast(LIGHT['mist-100'], alertTint))}:1 ${contrast(LIGHT['mist-100'], alertTint) >= 4.5 ? 'PASS' : 'FAIL'}`,
+)
+// Linha destacada da Bússola: zeph-800/20 sobre ink-950 (fundo da página)
+const rowTint = blend(LIGHT['ink-950'], LIGHT['zeph-800'], 0.2)
+console.log(
+  `zeph-800/20 sobre ink-950 (linha maior hashrate) = ${rowTint} · ` +
+  `célula de texto mist-100: ${fmt(contrast(LIGHT['mist-100'], rowTint))}:1 · ` +
+  `chip zeph-300 (texto ink-950): sobre o chip vale o chapado acima`,
+)
+
+console.log(`\n>>> RESULTADO CLARO: ${allPass ? 'TODOS OS PISOS PASSAM' : 'HÁ FALHAS — recalibre acima'}`)
+console.log('>>> valores finais pro bloco [data-theme=light]:')
+for (const [name, hex] of Object.entries(LIGHT)) console.log(`  ${name}: ${hex}`)
+console.log(`  textura: preto a ${LIGHT_TEXTURE_ALPHA * 100}% (célula ${lightCell})`)

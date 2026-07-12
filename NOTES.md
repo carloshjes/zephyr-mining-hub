@@ -1561,3 +1561,106 @@ regeneráveis: .e2e-out/r5b-rede-{1360,390}.png, r5b-rig-{1360,390}.png e
 shot-*.png (12). Nota: o dev server caiu entre sondas e foi re-erguido
 com `npm run dev` — se uma sonda der timeout na primeira carga, cheque a
 porta 5173 antes de suspeitar do código.
+
+# NOTES — 2º tema (claro), 2026-07-12
+
+A vantagem estrutural pagou: NENHUM componente usa hex solto desde o R1,
+então o tema inteiro é (a) um bloco `[data-theme='light']` redefinindo os
+MESMOS custom properties, (b) infraestrutura de troca/persistência e (c)
+calibração de contraste do conjunto novo. Zero mudança de classe em
+componente; o escuro não mudou NENHUM valor.
+
+## Arquitetura da troca (decisões 1–3 do prompt, como ficaram)
+
+- Bloco `[data-theme='light']` FORA do @theme em src/index.css: regra
+  não-camadada vence as @layer que o Tailwind emite, e os utilitários já
+  referenciam var(--color-*) — a cascata faz o tema. O @theme não aceita
+  selector; o bloco é override de runtime, não um segundo conjunto de
+  utilitários.
+- ESCURO = default SEM marcação: applyTheme('dark') REMOVE o atributo
+  (nunca existe data-theme='dark') — os e2e verificam cor computada no
+  default e nenhum espelho de token deles precisou mudar (provado: suíte
+  completa verde sem tocar em rewards/rig/pools-e2e).
+- Persistência `zephyr-hub.theme.v1` + script inline no <head> do
+  index.html que aplica o atributo ANTES do primeiro paint. Anti-flash
+  PROVADO no theme-e2e: após reload, o atributo já está no <html> no
+  primeiro poll (antes do React montar). A chave vive em DOIS lugares
+  (inline + src/lib/theme.ts) — sincronize os dois se mudar.
+- Botão [ TEMA · ESCURO/CLARO ]: o rótulo visível declara o estado ATUAL
+  (decisão documentada: os colchetes mono do sistema sempre dizem o que É —
+  rota ativa, [ Minerando normal ]; o destino iria contra a convenção). A
+  AÇÃO vai no aria-label ("Mudar pro tema claro"). min-w-[17ch] + text-left
+  seguram o layout na alternância. Posições: BASE do rail (mt-auto — zona
+  meta, não polui a nav) e linha própria SOB a nav mobile (a grade 2×2 do
+  N2 fica intacta; 5º item na grade viraria 2×3 acidental). Custo de altura
+  do header mobile: 229 → 261px num viewport 390 (31% de 844 — medido).
+
+## Calibração medida (contrast-check.mjs, seção TEMA CLARO)
+
+Pisos de papel IDÊNTICOS ao escuro, medidos contra fundo #f7f7f7 E célula
+escura da textura #f0f0f0 (preto a 3% — a polaridade inverte e o pior caso
+vira a célula mais escura). Da paleta de partida do planejamento, TRÊS
+valores falharam piso e desceram de claridade com H/S preservados
+(darkenToContrast, o espelho do withContrastOver do v3):
+
+- zeph-300 #1d4ed8 (5,88:1) → **#1944be** (7,06:1 na célula) — piso 7:1
+- good #15803d (4,40:1) → **#116832** (6,04:1) — alvo 6:1 (é texto de estado)
+- bad #c2410c (4,54:1) → **#a2360a** (6,01:1) — alvo 6:1
+
+Tabela final (token | fundo | célula | elevação-branca):
+zeph-300 #1944be 7,51/7,06/8,04 · zeph-500 #3b82f6 3,43/3,23/3,68 ·
+zeph-700 #93c5fd 1,68/1,58/1,80 (SÓ gráfico com alívio, como no escuro) ·
+zeph-800 #bfdbfe 1,33/1,25/1,42 (decoração) · mist-100 #171c26
+15,93/14,98/17,07 · mist-300 #3f4859 8,59/8,07/9,20 · mist-400 #5a6373
+5,65/5,32/6,06 (piso de texto, espelho do 5,3/5,0 escuro) · mist-600
+#a9b1c2 2,01/1,89/2,15 (decoração) · good #116832 6,43/6,04/6,89 · bad
+#a2360a 6,39/6,01/6,84 · hairline #d9dde6 1,27:1 · scroll #c8c8c8 1,56:1.
+Chapados com texto ink-950 claro: zeph-300 7,51:1 · bad 6,39:1 · good
+6,43:1 — todos PASS. Tints compostos recalculados sobre os fundos claros:
+zeph-800/40 sobre ink-900 = #e5f1ff com texto ativo zeph-300 a 7,03:1;
+bad/10 sobre ink-900 = #f6ebe7 com caption bad 5,85:1 e corpo mist-100
+14,59:1 — NENHUM percentual precisou mudar.
+
+Decisões de valor documentadas: elevação INVERTIDA (ink-900 claro = branco,
+1,07:1 sobre o fundo — mesma presença do 1,06:1 escuro; "elevado = mais
+perto da luz"); hairline com tinta AZUL (espelho da tinta roxa — marca na
+elevação/divisor, fundo croma zero); textura tokenizada
+(--color-texture-block: branco 2% escuro / preto 3% claro — papel único,
+consumido só pelo body::before; keyframes e deriva idênticos nos 2 temas).
+
+## Varredura de fuga (decisão 4 — achados e vereditos)
+
+- src/**/*.{ts,tsx}: ZERO hex/rgb fora de comentário (grep documentado).
+  Séries de gráfico via var() no style; LogoMark via var() por ponto;
+  stroke do anel do sparkline via classe (stroke-ink-950) — tudo flui.
+- index.css: a ÚNICA cor viva fora dos blocos de token era o
+  rgb(255 255 255 / 0.02) da textura → tokenizado (--color-texture-block).
+- Exceções documentadas (não fluem, de propósito): favicon NÃO EXISTE
+  (removido no R5; quando o novo vier, viverá fora da cascata e não muda
+  com o tema); scripts/logo-preview.html é espelho MANUAL (ganhou o
+  conjunto claro + toggle ?theme=light — o canvas resolve os tokens no
+  load, então o atributo é aplicado antes; --color-alert legado espelha o
+  bad claro); espelhos de token dos e2e apontam pro DARK default (contrato
+  deliberado — por isso o escuro é o default); favicon-*.svg emitidos pelo
+  logo-export.mjs são byproduct de exploração fora do app.
+
+## Verificação (2026-07-12)
+
+`npm run build` limpo (169ms) · lint só com os 2 warnings pré-existentes ·
+e2e completa no DEFAULT escuro sem alteração de contrato: rewards
+normal/lowratio/brokenrewards + rig normal/notfound + pools normal —
+**TUDO PASSOU** · **theme-e2e.mjs NOVO** (12 checks): default sem atributo
+e fundo rgb(20,20,20) computado; clique aplica light, fundo rgb(247,247,247),
+persiste, rótulo alterna; reload mantém com atributo presente ANTES do app
+montar (anti-flash provado); segundo clique volta (atributo removido,
+'dark' persistido) — **TUDO PASSOU** · design-shots agora 4×3×2 = 24
+capturas (escuro com nomes históricos, claro com -light), TODAS revisadas
+na rubrica de 8 perguntas — as 4 telas passam nos DOIS temas (hierarquia é
+tipografia/escala, sobrevive à troca; estados seguem texto+glifo; textura
+preta a 3% não compete; o dado segue a coisa mais viva; procedência via
+title/aria não depende de tema) · logo no claro: lupa 4x nos DOIS tamanhos
+(.e2e-out/logo/theme-light-{rail-176,header-128}-lupa4x.png) — os 4 degraus
+da rampa (zeph-300/mist-400/zeph-500/zeph-700 claros) leem a olho nu, o Z̶
+segue nítido. Sondas da rodada no scratchpad (theme-probe,
+logo-light-probe); evidências regeneráveis: .e2e-out/theme-light*.png,
+shot-*-light.png (12) e a saída do contrast-check.
