@@ -50,32 +50,25 @@ function NavLinks() {
   ))
 }
 
-// Botão de troca de tema — o sol/lua usa a MESMA linguagem pixelada do
+// Botão de troca de tema — o sol/céu estrelado usa a MESMA linguagem pixelada do
 // PixelHeart: grade grossa 11×11 de <rect>, um tom e vão real entre células.
 // A exploração docs/logo-exploracao.md já mediu que grades finas perdem a
 // textura abaixo de ~24px; a grade grossa é a única família que se mantém
 // halftone no pequeno. Captura R6: 18px funde os vãos; 24px pesa demais ao
 // lado do caption; 22px dá passo de grade exato de 2px e segura os dois.
 // Cor no papel mist-400 (o mesmo contraste medido do glifo anterior). O GLIFO
-// declara o estado ATUAL (lua = escuro, sol = claro) e a AÇÃO segue só no
+// declara o estado ATUAL (estrelas = escuro, sol = claro) e a AÇÃO segue só no
 // aria-label. Mesma caixa pros dois estados: zero salto.
 const GLYPH_SIZE = 22
 const THEME_GLYPH_DOT = 0.82
 
 type GlyphCell = readonly [x: number, y: number]
 
-const MOON_CELLS: ReadonlyArray<GlyphCell> = [
-  [5, 0], [6, 0],
-  [3, 1], [4, 1], [5, 1], [6, 1],
-  [2, 2], [3, 2], [4, 2], [5, 2],
-  [1, 3], [2, 3], [3, 3],
-  [1, 4], [2, 4], [3, 4],
-  [0, 5], [1, 5], [2, 5],
-  [1, 6], [2, 6], [3, 6],
-  [1, 7], [2, 7], [3, 7],
-  [2, 8], [3, 8], [4, 8], [5, 8],
-  [3, 9], [4, 9], [5, 9], [6, 9],
-  [5, 10], [6, 10],
+const STARS_CELLS: ReadonlyArray<GlyphCell> = [
+  [7, 1], [7, 2], [7, 3], [7, 4], [7, 5],
+  [5, 3], [6, 3], [8, 3], [9, 3],
+  [2, 6], [1, 7], [2, 7], [3, 7], [2, 8],
+  [4, 0], [9, 9], [0, 3],
 ]
 
 const SUN_CELLS: ReadonlyArray<GlyphCell> = [
@@ -107,8 +100,8 @@ function PixelThemeGlyph({ cells }: { cells: ReadonlyArray<GlyphCell> }) {
   )
 }
 
-function MoonGlyph() {
-  return <PixelThemeGlyph cells={MOON_CELLS} />
+function StarsGlyph() {
+  return <PixelThemeGlyph cells={STARS_CELLS} />
 }
 
 function SunGlyph() {
@@ -120,7 +113,8 @@ function SunGlyph() {
 // AO LADO do glifo, na convenção de colchetes do sistema. Grafia EXATA pedida
 // pelo Carlos: inglês, `[ DARK ]` com o escuro ativo e `[ WHITE ]` (não
 // "LIGHT") com o claro. O rótulo declara o estado ATUAL, como sempre; a AÇÃO
-// segue SÓ no aria-label. R6 troca apenas a técnica do glifo acima; o
+// segue SÓ no aria-label. R6 troca a técnica do glifo; R8 substitui o crescente
+// por um céu estrelado que preserva melhor a leitura na grade real de 22px. O
 // min-w-[9ch] reserva a largura do rótulo mais longo ("[ WHITE ]", 9 chars
 // mono) pra a troca DARK↔WHITE não mexer na largura do botão. Medição do R6:
 // flex centralizava as CAIXAS, mas a tinta da fonte mono ficava 0,92px acima
@@ -135,7 +129,7 @@ function ThemeToggle({ theme, onToggle }: { theme: Theme; onToggle: () => void }
       aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
       className="relative inline-flex items-center gap-2 font-mono text-caption tracking-wide text-mist-400 transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:text-mist-100 motion-reduce:transition-none"
     >
-      {theme === 'dark' ? <MoonGlyph /> : <SunGlyph />}
+      {theme === 'dark' ? <StarsGlyph /> : <SunGlyph />}
       <span className="min-w-[9ch] translate-y-px text-left">[ {theme === 'dark' ? 'DARK' : 'WHITE'} ]</span>
     </button>
   )

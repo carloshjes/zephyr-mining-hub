@@ -2240,3 +2240,62 @@ item b); d e e continuam exigindo o Carlos.
   pelo rewrite. Risco baixo por construção (o rewrite é um proxy passivo, não
   adiciona lógica de cadência), mas fica em aberto até alguém olhar a aba Network
   de verdade.
+
+# NOTES — R8: céu estrelado no ThemeToggle (2026-07-12)
+
+## Diagnóstico e direção escolhida
+
+O crescente pixelado do estado escuro tinha trechos com uma única célula de
+espessura. Na caixa real de 22px, a grade 11×11 vira pitch de 2px e esses trechos
+se fundiam: a silhueta perdia o vazio interno e lia mais como uma mancha do que
+como lua. Não era problema de contraste nem da técnica halftone compartilhada;
+era a forma específica depois da rasterização no tamanho de uso.
+
+Duas direções foram comparadas em mockup no chat Cowork: **A**, manter e
+recalibrar o crescente; **B**, representar o escuro como céu estrelado. Carlos
+escolheu B. A composição aprovada usa um sparkle grande de braço 2 centrado em
+`[7,3]`, um menor de braço 1 centrado em `[2,7]` e três estrelas distantes em
+`[4,0]`, `[9,9]` e `[0,3]`. A assimetria e os dois centros diferenciam o céu
+estrelado do sol claro, que continua radial e com um único centro.
+
+## Implementação e captura real
+
+`MOON_CELLS`/`MoonGlyph` viraram `STARS_CELLS`/`StarsGlyph`; o `ThemeToggle`
+passa a renderizar `StarsGlyph` no estado dark. As 17 células propostas foram
+mantidas sem nudge depois da inspeção: nenhuma ficou sumida e os três pontos
+soltos não desequilibraram os sparkles. `SUN_CELLS` e `SunGlyph` ficaram
+inalterados, assim como `[ DARK ]`/`[ WHITE ]`, `aria-label`, `min-w-[9ch]`,
+`translate-y-px`, grade 11×11, célula 0,82 e `var(--color-mist-400)`.
+
+`scripts/shell-detail-shots.mjs`, prefixo `r8-stars`, confirmou:
+
+- rail/dark e mobile/dark: SVG exatamente 22×22px, botão com 22px de altura e
+  o mesmo centro geométrico; leitura clara de dois sparkles + três pontos tanto
+  no contexto 1× quanto na lupa 5×;
+- rail/light e mobile/light: o sol preservado continua claramente diferente —
+  anel/raios simétricos contra a distribuição irregular das estrelas;
+- os arquivos-chave estão em `.e2e-out/r8-stars-glyph-22-dark-x1.png`,
+  `.e2e-out/r8-stars-glyph-22-dark.png`,
+  `.e2e-out/r8-stars-toggle-context-rail-dark.png`,
+  `.e2e-out/r8-stars-toggle-mobile-dark.png` e
+  `.e2e-out/r8-stars-toggle-context-mobile-dark.png`.
+
+O runner precisou de duas correções de infraestrutura para produzir a evidência
+real: `--no-sandbox`, já exigido pelos demais E2E no Edge 150 desta máquina, e
+captura sem `scrollIntoView` para o toggle já visível. O scroll anterior movia o
+clip na emulação mobile e gerava uma lupa só com o fundo; footer e demais
+capturas que precisam de scroll mantêm o comportamento anterior.
+
+## Verificação R8
+
+- `node scripts/contrast-check.mjs`: PASS; mist-400 no glifo mede 5,28:1 no
+  fundo escuro e 5,04:1 na célula da textura, 5,65:1 no fundo claro e 5,32:1
+  na célula — sempre acima do piso não-texto de 3:1.
+- `node scripts/theme-e2e.mjs`: todas as 14 asserções presentes no runner atual
+  passaram e o script encerrou com `TUDO PASSOU`. Ele confirma apenas `<svg>`,
+  rótulo, `aria-label`, tokens, persistência e anti-flash; não depende da forma
+  interna do glifo. O “13/13” histórico do pedido está uma unidade abaixo das
+  14 chamadas `check(...)` que existem hoje; nenhum contrato foi acrescentado
+  ou removido nesta rodada.
+- `npm run lint`: zero warnings.
+- `npm run build`: TypeScript e Vite limpos (65 módulos transformados).

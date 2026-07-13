@@ -3092,3 +3092,117 @@ o resultado seja "bloqueado" — a lacuna de conhecimento fecha de qualquer jeit
 Backlog pós-deploy mapeado em `docs/ANALISE-MELHORIAS-2026-07-11.md`: K1Pool via o
 mesmo rewrite, higiene de localStorage, CI mínimo (build+lint), Vitest pra lógica
 pura.
+
+---
+
+## Prompt R8 — Fable: glifo do dark mode vira céu estrelado (não mais lua)
+
+Escrito no chat Cowork em 2026-07-12, a partir de um achado de uso real do Carlos: a
+lua pixelada do `ThemeToggle` (técnica de grade grossa que o R6 introduziu, alinhada
+pelo R7) não lê bem — ao contrário do sol, que usa a mesma técnica e funciona. Rodei a
+skill `creative-ui-director` (modo `design-system-constrained-upgrade`, escopo
+enxuto — só este glifo) pra diagnosticar antes de propor. Diagnóstico: `MOON_CELLS`
+em `AppShell.tsx` é um crescente por subtração de dois círculos, e as pontas
+(y=0/y=10) e a "cintura" (y=3, y=7) ficam com só 1 célula de espessura — no passo de
+2px/célula da grade 11×11 (mesma medição do R6 pro tamanho do ícone, 22px) isso funde
+por antialiasing e vira mancha em vez de lua. O sol não sofre disso porque é feito de
+formas fortes (círculo cheio + linhas retas), nunca de curva fina — o mesmo princípio
+que `docs/logo-exploracao.md` já tinha registrado pro logo Z̶ (grades grossas só
+seguram silhuetas com espessura mínima de ~2 células; curvas finas desaparecem
+primeiro).
+
+Duas direções foram desenhadas e comparadas com mockup renderizado (mesma técnica real
+de `AppShell.tsx`: grade 11×11, célula 0.82, cor `var(--color-mist-400)`) antes de
+apresentar ao Carlos: **A — lua cheia com crateras** (disco sólido, mesma família de
+forma do núcleo do sol, 3 células vazadas pra não ler como bolinha lisa) e **B — céu
+estrelado** (1 sparkle grande em cruz — a mesma lógica círculo+raios do sol, só que
+com braços retos — mais 1 sparkle pequeno e 3 pontos soltos). Carlos escolheu **B**.
+Razão registrada: B reaproveita o vocabulário de pontos isolados que já existe no
+`LogoMark` (cintilância) e no `PixelHeart`, em vez de inventar uma forma nova — e um
+ponto isolado é o caso mais robusto que essa técnica de grade resolve (se um ponto
+distante ficar fraco demais em 22px, ele só lê como "estrela mais fraca", nunca como
+"forma quebrada" — o modo de falha oposto do crescente, que quebra em mancha).
+
+````
+Aja como um engenheiro front-end sênior mantendo um design system pixelado
+(halftone) já validado, fazendo uma substituição cirúrgica de um glifo que não
+está lendo bem no tamanho real.
+
+<contexto>
+O `ThemeToggle` em `src/components/layout/AppShell.tsx` mostra um glifo pixelado
+(grade 11×11 de `<rect>`, célula 0.82, cor `var(--color-mist-400)`, técnica
+compartilhada com o `PixelHeart` do rodapé) ao lado do rótulo mono `[ DARK ]` /
+`[ WHITE ]`. `SunGlyph`/`SUN_CELLS` (claro) fica como está — funciona bem, não
+mexa. `MoonGlyph`/`MOON_CELLS` (escuro) precisa virar um céu estrelado: o
+crescente atual tem segmentos de 1 célula de espessura que se fundem no passo de
+2px/célula da grade e o Carlos não gostou do resultado em uso real. Essa
+substituição já foi decidida e desenhada (direção B de 2, comparadas com mockup
+no chat Cowork) — sua tarefa é implementar e VERIFICAR no app real, não
+redesenhar do zero.
+
+Coordenadas propostas (ponto de partida aprovado em conceito, não um valor final
+sagrado — calibre pela captura real e ajuste célula a célula se o resultado no
+app não bater com a intenção):
+```
+STARS_CELLS = [
+  [7,1],[7,2],[7,3],[7,4],[7,5],[5,3],[6,3],[8,3],[9,3],  // sparkle grande, braço 2, centro (7,3)
+  [2,6],[1,7],[2,7],[3,7],[2,8],                          // sparkle pequeno, braço 1, centro (2,7)
+  [4,0],[9,9],[0,3],                                       // 3 pontos soltos (estrelas distantes)
+]
+```
+</contexto>
+
+<tarefa>
+1. Em `AppShell.tsx`, substitua `MOON_CELLS` por essas células (ajustando se a
+   verificação do item 3 pedir) e renomeie pra `STARS_CELLS` — o nome antigo
+   descreveria mal a forma nova. Renomeie `MoonGlyph` para `StarsGlyph` (ou nome
+   equivalente que você achar mais claro) e atualize o uso em `ThemeToggle`
+   (`{theme === 'dark' ? <MoonGlyph /> : <SunGlyph />}` → `<StarsGlyph />`).
+2. Atualize os comentários que mencionam "sol/lua" nesse trecho do arquivo
+   (linhas ~53-61 e ~118-128 na versão atual) pra "sol/estrelas" ou "céu
+   estrelado" — os comentários explicam a decisão de design pro próximo leitor,
+   não deixe eles descrevendo uma lua que não existe mais.
+3. Verifique no app real, reaproveitando `scripts/shell-detail-shots.mjs` (já
+   existe desde o R6, já mede este componente nos dois arranjos/temas): capture
+   o glifo novo no rail e no bloco mobile, tamanho real (22px) e com lupa —
+   confirme a olho nu que lê como céu estrelado (não como mancha, não como
+   confundível com o sol) nos dois lugares. Se algum ponto ficar bom demais
+   "sumido" ou o conjunto ficar desequilibrado, ajuste a posição/adicione ou
+   remova um ponto — pequenos nudges, não redesenho.
+4. Rode `contrast-check.mjs` — o par de token (mist-400 sobre ink-950) não
+   muda, então não deveria haver regressão; confirme mesmo assim.
+5. Rode `theme-e2e.mjs` — o script não deveria depender do formato interno do
+   glifo (só do `<svg>` existir, do texto `[ DARK ]`/`[ WHITE ]` e do
+   aria-label, pelo que ficou registrado no N3), mas confirme lendo o script
+   antes de assumir.
+6. Atualize `CLAUDE.md` (a seção que descreve a técnica do glifo sol/lua) e
+   `NOTES.md` (nova seção "# NOTES — R8: ...") com o diagnóstico do crescente,
+   as duas direções comparadas, a escolha do Carlos e o resultado da
+   verificação.
+</tarefa>
+
+<restricoes>
+- Não toque em `SUN_CELLS`/`SunGlyph` — o sol já funciona, está fora de escopo.
+- Não mude o rótulo `[ DARK ]`/`[ WHITE ]`, o `aria-label`, o `min-w-[9ch]`, o
+  `translate-y-px` (correção óptica do R6/R7) nem qualquer outro comportamento
+  do `ThemeToggle` além da forma do glifo escuro.
+- Mesma técnica exata: grade 11×11, célula 0.82, `var(--color-mist-400)`. Sem
+  cor nova, sem gradiente, sem animação (o glifo é estático, como o sol — não
+  reintroduza a cintilância do LogoMark aqui, é um componente diferente).
+- É troca de forma, não redesenho de sistema — não mexa em outros glifos
+  pixelados (`PixelHeart`, `LogoMark`) nem em outras partes do `AppShell.tsx`.
+</restricoes>
+
+<criterios_de_aceite>
+- `npm run build` limpo; `npm run lint` zero warnings (mantém o estado atual
+  pós-Prompt-5).
+- Captura real (rail + mobile, tamanho real 22px + lupa) confirma leitura como
+  céu estrelado nos dois arranjos e a olho nu, não só no código.
+- `contrast-check.mjs` sem regressão no par mist-400/ink-950.
+- `theme-e2e.mjs` passa (13/13, mesmo contrato de antes — ou documente
+  exatamente o que precisou mudar e por quê, se precisar).
+- Nenhuma mudança em `SUN_CELLS`, `SunGlyph`, no rótulo ou no aria-label.
+- `CLAUDE.md`/`NOTES.md` atualizados com o diagnóstico, as direções comparadas
+  e o resultado verificado.
+</criterios_de_aceite>
+````

@@ -418,7 +418,7 @@ for (const [name, hex] of Object.entries(LIGHT)) console.log(`  ${name}: ${hex}`
 console.log(`  textura: preto a ${LIGHT_TEXTURE_ALPHA * 100}% (célula ${lightCell})`)
 
 // ============================================================================
-// GLIFO DE TEMA (sol/lua no ThemeToggle, 2026-07-12) — elemento interativo
+// GLIFO DE TEMA (sol/estrelas no ThemeToggle, 2026-07-12) — elemento interativo
 // NÃO-texto: o piso WCAG 2.2 (1.4.11) é 3:1 contra os fundos adjacentes. O
 // traço usa o token mist-400 (mesmo peso visual do rótulo mono que
 // substituiu); pior caso = a célula da textura, como no resto do sistema.

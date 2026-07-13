@@ -31,6 +31,8 @@ const edge = spawn(EDGE, [
   `--remote-debugging-port=${PORT}`,
   `--user-data-dir=${path.join(os.tmpdir(), `zephyr-shell-shots-${Date.now()}`)}`,
   '--headless=new',
+  // Edge 150 encerra o CDP headless com 0x80000003 sem esta flag nesta máquina.
+  '--no-sandbox',
   '--window-size=1360,940',
   '--no-first-run',
   'about:blank',
@@ -117,11 +119,11 @@ async function navigate(width, height, mobile, theme) {
   await new Promise((resolve) => setTimeout(resolve, 250))
 }
 
-async function captureElement(selector, file, scale, padding = 0) {
+async function captureElement(selector, file, scale, padding = 0, scrollIntoView = true) {
   const clip = await evaluate(`(() => {
     const element = document.querySelector(${JSON.stringify(selector)})
     if (!element) return null
-    element.scrollIntoView({ block: 'center' })
+    if (${scrollIntoView}) element.scrollIntoView({ block: 'center' })
     const rect = element.getBoundingClientRect()
     const x = Math.max(0, rect.left + window.scrollX - ${padding})
     const y = Math.max(0, rect.top + window.scrollY - ${padding})
@@ -232,6 +234,7 @@ for (const theme of ['dark', 'light']) {
       `${PREFIX}-toggle-${layout.name}-${theme}.png`,
       5,
       4,
+      false,
     )
     // Régua conservadora ×1 ampliada 5×: compara a MESMA grade a 18/22/24px
     // no contexto real do botão. A exploração de logo aponta 24px como piso

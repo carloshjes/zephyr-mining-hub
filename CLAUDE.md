@@ -209,7 +209,7 @@ classe por causa do tema. Contraste MEDIDO com `scripts/contrast-check.mjs`
   papel só-textura). Da paleta planejada, zeph-300/good/bad FALHARAM piso e foram
   recalibrados descendo claridade com matiz preservado (contrast-check, seção TEMA
   CLARO — não edite valores sem re-rodar). Troca (glifo desde 2026-07-12): o
-  botão ganhou um ícone lua/sol no lugar do antigo rótulo mono
+  botão ganhou um ícone de estado escuro/claro no lugar do antigo rótulo mono
   `[ TEMA · ESCURO/CLARO ]` — na zona meta o rótulo por extenso pesava como
   item de nav. O GLIFO declara o estado ATUAL (mesma regra do rótulo: diz o
   que É, não o destino); a AÇÃO segue no aria-label ("Switch to … theme"), então
@@ -220,12 +220,19 @@ classe por causa do tema. Contraste MEDIDO com `scripts/contrast-check.mjs`
   em inglês pedida pelo Carlos, é WHITE e não LIGHT). O rótulo declara o estado,
   a ação segue SÓ no aria-label, min-w-[9ch] reserva a largura do mais longo
   ("[ WHITE ]") pra a troca não deslocar layout. R6 (2026-07-12): o traço fino
-  do N3 SAIU; sol/lua agora são PIXELADOS na mesma técnica do PixelHeart — SVG
+  do N3 SAIU; sol/céu estrelado agora são PIXELADOS na mesma técnica do PixelHeart — SVG
   inline, grid grosso 11×11 de `<rect>`, lado 0,82 com vão, um tom via
   `style={{ fill: 'var(--color-mist-400)' }}`. A comparação real 18/22/24px
   confirmou a pesquisa de `docs/logo-exploracao.md`: 18 funde os vãos, 24
   pesa demais ao lado do caption, 22 dá pitch exato de 2px e preserva a grade.
-  Sol e lua ocupam a MESMA caixa 22px (zero deslocamento na troca); sem lib de
+  R8 (2026-07-12): o crescente escuro SAIU porque os segmentos de uma célula
+  se fundiam no pitch real de 2px e liam como mancha. Entre recalibrar o
+  crescente (direção A) e usar céu estrelado (direção B), Carlos escolheu B:
+  dois sparkles de braços 2/1 + três pontos distantes. Sol e estrelas ocupam a
+  MESMA caixa 22px (zero deslocamento na troca). Capturas reais 1×/5× no rail
+  e no bloco mobile confirmaram os dois centros, os pontos distantes e a
+  diferença inequívoca pro sol; as 17 células propostas foram mantidas sem
+  nudge. Sem lib de
   ícones. Contraste do papel segue o medido pro interativo NÃO-texto (5,0:1
   escuro / 5,3:1 claro na célula, piso 3:1). Alvo de toque ≥24px pela extensão
   invisível `before:-inset-1.5`. Alinhamento R6: `items-center` já centralizava

@@ -6,7 +6,7 @@
 //    demais e2e verificam cor computada assumindo este default).
 // 2. O botão de tema aplica [data-theme='light'] no <html> e os tokens fluem
 //    (bg computado do body vira o ink-950 claro). O botão virou um GLIFO
-//    (sol/lua) no lugar do rótulo mono `[ TEMA · … ]`: o estado ATUAL agora
+//    (sol/estrelas) no lugar do rótulo mono `[ TEMA · … ]`: o estado ATUAL agora
 //    se lê pelo desenho, e a verificação migrou do innerText pro aria-label —
 //    que declara a AÇÃO oferecida ("Mudar pro tema claro" quando escuro,
 //    "…escuro" quando claro), logo determina o estado corrente. Mudança
